@@ -1,0 +1,13 @@
+services:
+  db:
+    container_name: "BitsShiftdb"
+    image: postgres:12.4-alpine
+    volumes:
+      - "./postgres-data:/var/lib/postgresql/data:rw"
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      POSTGRES_DB: "${DB_DATABASE}"
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    restart: unless-stopped
