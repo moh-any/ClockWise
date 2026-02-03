@@ -14,8 +14,9 @@ import (
 )
 
 type Server struct {
-	port int
-	db   database.Service
+	port      int
+	db        database.Service
+	userStore database.UserStore
 }
 
 func NewServer() *http.Server {
@@ -29,9 +30,13 @@ func NewServer() *http.Server {
 	if err != nil {
 		panic(fmt.Sprintf("failed to run database migrations: %s", err))
 	}
+
+	userStore := database.NewPostgresUserStore(dbService.GetDB())
+
 	NewServer := &Server{
-		port: port,
-		db:   dbService,
+		port:      port,
+		db:        dbService,
+		userStore: userStore,
 	}
 
 	// Declare Server config
