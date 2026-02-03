@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     delivery_longitude DECIMAL(10,7),
     out_for_delivery_time TIMESTAMP NOT NULL,
     delivered_time TIMESTAMP,
-    status VARCHAR(20) CHECK (status IN ("delivered","out for delivery","not delivered"))
+    status VARCHAR(20) CHECK (status IN ('delivered','out for delivery','not delivered'))
 );
 -- +goose StatementEnd
 
