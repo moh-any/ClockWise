@@ -5,8 +5,9 @@ import (
 	"os"
 	"time"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-gonic/gin"
+	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -27,18 +28,18 @@ func NewAuthMiddleware(userStore database.UserStore) (*jwt.GinJWTMiddleware, err
 		PayloadFunc:     payloadFunc(),
 		IdentityHandler: identityHandler(),
 		Authenticator:   authenticator(userStore),
-		Authorizator:    authorizator(),
+		Authorizer:      authorizator(),
 		Unauthorized:    unauthorized(),
-		TokenLookup:     "header: Authorization, query: token, cookie: jwt",
+		TokenLookup:     "header: Authorization, query: token, cookie: access_token",
 		TokenHeadName:   "Bearer",
 		TimeFunc:        time.Now,
 	})
 }
 
-func payloadFunc() func(data interface{}) jwt.MapClaims {
-	return func(data interface{}) jwt.MapClaims {
+func payloadFunc() func(data interface{}) gojwt.MapClaims {
+	return func(data interface{}) gojwt.MapClaims {
 		if v, ok := data.(*database.User); ok {
-			return jwt.MapClaims{
+			return gojwt.MapClaims{
 				"id":              v.ID.String(),
 				"full_name":       v.FullName,
 				"email":           v.Email,
@@ -46,7 +47,7 @@ func payloadFunc() func(data interface{}) jwt.MapClaims {
 				"organization_id": v.OrganizationID.String(),
 			}
 		}
-		return jwt.MapClaims{}
+		return gojwt.MapClaims{}
 	}
 }
 
@@ -86,8 +87,8 @@ func authenticator(userStore database.UserStore) func(c *gin.Context) (interface
 	}
 }
 
-func authorizator() func(data any, c *gin.Context) bool {
-	return func(data any, c *gin.Context) bool {
+func authorizator() func(c *gin.Context, data any) bool {
+	return func(c *gin.Context, data any) bool {
 		if _, ok := data.(*database.User); ok {
 			return true
 		}

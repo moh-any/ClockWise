@@ -6,7 +6,7 @@ import (
 
 	"ClockWise/backend/internal/middleware"
 
-	jwt "github.com/appleboy/gin-jwt/v2"
+	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -39,7 +39,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// --- Protected Routes ---
 	auth := r.Group("/auth")
 	auth.Use(authMiddleware.MiddlewareFunc())
-	auth.GET("/refresh_token", authMiddleware.RefreshHandler)
+	auth.POST("/refresh_token", authMiddleware.RefreshHandler)
 	auth.POST("/logout", authMiddleware.LogoutHandler)
 	auth.GET("/me", func(c *gin.Context) {
 		claims := jwt.ExtractClaims(c)
@@ -74,7 +74,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	staffing.POST("/upload") // upload employees csv to the server
 
 	employees := staffing.Group("/employees")
-	employees.GET("/")        // Get All employees
+	employees.GET("/") // Get All employees
 
 	employee := employees.Group("/:name")
 	employee.DELETE("/layoff")         // Layoff an employees
