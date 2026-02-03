@@ -22,8 +22,8 @@ func NewAuthMiddleware(userStore database.UserStore) (*jwt.GinJWTMiddleware, err
 	return jwt.New(&jwt.GinJWTMiddleware{
 		Realm:           "ClockWise",
 		Key:             []byte(os.Getenv("JWT_SECRET")),
-		Timeout:         time.Hour,
-		MaxRefresh:      time.Hour,
+		Timeout:         time.Minute * 15,
+		MaxRefresh:      time.Hour * 24 * 7,
 		IdentityKey:     identityKey,
 		PayloadFunc:     payloadFunc(),
 		IdentityHandler: identityHandler(),
