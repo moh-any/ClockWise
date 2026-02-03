@@ -16,10 +16,11 @@ CREATE TABLE IF NOT EXISTS organizations_roles (
     PRIMARY KEY (organization_id,role),
     FOREIGN KEY (organization_id) REFERENCES organizations(id)  
 );
+
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE organizations,organizations_roles CASCADE;
+DROP TABLE organizations, organizations_roles CASCADE;
 DROP EXTENSION IF EXISTS "uuid-ossp";
 -- +goose StatementEnd
