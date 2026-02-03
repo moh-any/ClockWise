@@ -23,7 +23,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.GET("/health", s.healthHandler)
 
-
 	authMiddleware, err := middleware.NewAuthMiddleware(s.userStore)
 	if err != nil {
 		log.Fatal("JWT Error:" + err.Error())
@@ -50,37 +49,32 @@ func (s *Server) RegisterRoutes() http.Handler {
 			"claims": claims,
 		})
 	})
-	
+
 	// Role management
 	organization := r.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
-	organization.PUT("/")  // Update Organization
-	organization.GET("/")  // Get organization details
+	organization.PUT("/")         // Update Organization
+	organization.GET("/")         // Get organization details
 	organization.POST("/request") // Request Calloff from organization Employees Only
-	
+
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/") // Change according to the current user
-	
+
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("/")         // Get Schedule
 	schedule.POST("/refresh") // Refresh Schedule
 	schedule.PUT("/")         // Edit Schedule
-	
+
 	insights := organization.Group("/insights")
 	insights.GET("/") // Get All insights
-	
-	settings := organization.Group("/settings")
-	settings.GET("/") // Show Current Settings (General Info)
-	settings.PUT("/") // Edit Settings (General Info)
-	
+
 	staffing := organization.Group("/staffing")
 	staffing.GET("/") // Show Staffing Summary & Insights
-	staffing.POST("/delegate", s.orgHandler.DelegateUser)
-	
+	staffing.POST("/", s.orgHandler.DelegateUser)
+	staffing.POST("/upload") // upload employees csv to the server
+
 	employees := staffing.Group("/employees")
 	employees.GET("/")        // Get All employees
-	employees.POST("/")       // Create a new employee  (Hire)
-	employees.POST("/upload") // upload employees csv to the server
 
 	employee := employees.Group("/:name")
 	employee.DELETE("/layoff")         // Layoff an employees
@@ -93,7 +87,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	perferences := organization.Group("/preferences") // Employees only
 	perferences.GET("/")                              // Get Current Employee Perfrences
-	perferences.PUT("/")                             // Edit current perferences and refresh schedule
+	perferences.PUT("/")                              // Edit current perferences and refresh schedule
 
 	rules := organization.Group("/rules") // Rules of the organization
 	rules.GET("/")                        // Get all the rules of the organization
