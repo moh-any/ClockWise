@@ -1,11 +1,25 @@
 services:
+  cw_app: 
+    container_name: "ClockwiseBackend"
+    build: .
+    ports:
+      - "${PORT}:8080"
+    env_file:
+      - .env
+    restart: always
+    depends_on: 
+      - db
   db:
-    container_name: "BitsShiftdb"
+    container_name: "ClockwiseDB"
     image: postgres:12.4-alpine
     volumes:
-      - "./postgres-data:/var/lib/postgresql/data:rw"
+      - postgres-data:/var/lib/postgresql/data
     ports:
       - "${DB_PORT}:5432"
-    env_file:
-      - ./.env
-    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: always
+volumes:
+  postgres-data:
