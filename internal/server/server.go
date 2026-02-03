@@ -17,6 +17,7 @@ type Server struct {
 	port      int
 	db        database.Service
 	userStore database.UserStore
+	orgStore  database.OrgStore
 }
 
 func NewServer() *http.Server {
@@ -32,11 +33,13 @@ func NewServer() *http.Server {
 	}
 
 	userStore := database.NewPostgresUserStore(dbService.GetDB())
+	orgStore := database.NewPostgresOrgStore(dbService.GetDB())
 
 	NewServer := &Server{
 		port:      port,
 		db:        dbService,
 		userStore: userStore,
+		orgStore:  orgStore,
 	}
 
 	// Declare Server config

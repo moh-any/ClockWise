@@ -6,8 +6,6 @@ services:
       - "./postgres-data:/var/lib/postgresql/data:rw"
     ports:
       - "${DB_PORT}:5432"
-    environment:
-      POSTGRES_DB: "${DB_DATABASE}"
-      POSTGRES_USER: "${DB_USERNAME}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    env_file:
+      - ./.env
     restart: unless-stopped

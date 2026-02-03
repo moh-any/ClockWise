@@ -7,12 +7,13 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-var identityKey = "id"
+var identityKey = "user"
 
 type Login struct {
-	Username string `form:"username" json:"username" binding:"required"`
+	Email    string `form:"email" json:"email" binding:"required"`
 	Password string `form:"password" json:"password" binding:"required"`
 }
 
@@ -38,10 +39,11 @@ func payloadFunc() func(data interface{}) jwt.MapClaims {
 	return func(data interface{}) jwt.MapClaims {
 		if v, ok := data.(*database.User); ok {
 			return jwt.MapClaims{
-				identityKey: v.ID.String(),
-				"username":  v.UserName,
-				"email":     v.Email,
-				"user_role": v.UserRole,
+				"id":              v.ID.String(),
+				"full_name":       v.FullName,
+				"email":           v.Email,
+				"user_role":       v.UserRole,
+				"organization_id": v.OrganizationID.String(),
 			}
 		}
 		return jwt.MapClaims{}
@@ -52,9 +54,11 @@ func identityHandler() func(c *gin.Context) interface{} {
 	return func(c *gin.Context) interface{} {
 		claims := jwt.ExtractClaims(c)
 		return &database.User{
-			UserName: claims["username"].(string),
-			Email:    claims["email"].(string),
-			UserRole: claims["user_role"].(string),
+			ID:             uuid.MustParse(claims["id"].(string)),
+			FullName:       claims["full_name"].(string),
+			Email:          claims["email"].(string),
+			UserRole:       claims["user_role"].(string),
+			OrganizationID: uuid.MustParse(claims["organization_id"].(string)),
 		}
 	}
 }
@@ -65,10 +69,10 @@ func authenticator(userStore database.UserStore) func(c *gin.Context) (interface
 		if err := c.ShouldBind(&loginVals); err != nil {
 			return "", jwt.ErrMissingLoginValues
 		}
-		userID := loginVals.Username
+		email := loginVals.Email
 		password := loginVals.Password
 
-		user, err := userStore.GetUserByUserName(userID)
+		user, err := userStore.GetUserByEmail(email)
 		if err != nil {
 			return nil, jwt.ErrFailedAuthentication
 		}

@@ -48,7 +48,7 @@ func (p *Password) Matches(plaintextPassword string) (bool, error) {
 
 type User struct {
 	ID             uuid.UUID `json:"id"`
-	UserName       string    `json:"username"`
+	FullName       string    `json:"full_name"`
 	Email          string    `json:"email"`
 	PasswordHash   Password  `json:"-"`
 	UserRole       string    `json:"user_role"`
@@ -75,33 +75,58 @@ func NewPostgresUserStore(db *sql.DB) *PostgresUserStore {
 
 type UserStore interface {
 	CreateUser(user *User) error
-	GetUserByUserName(username string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
 	UpdateUser(user *User) error
 }
 
 func (pgus *PostgresUserStore) CreateUser(user *User) error {
+	// Ensure ID is generated if not present
+	if user.ID == uuid.Nil {
+		user.ID = uuid.New()
+	}
+	if user.CreatedAt.IsZero() {
+		user.CreatedAt = time.Now()
+	}
+	if user.UpdatedAt.IsZero() {
+		user.UpdatedAt = time.Now()
+	}
+
 	query :=
 		`insert into users
-	(username,email,password_hash,user_role) 
-	values ($1,$2,$3,$4) returning id,created_at,updated_at`
-	err := pgus.db.QueryRow(query, user.UserName, user.Email, user.PasswordHash.hash, user.UserRole).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+	(id, full_name, email, password_hash, user_role, organization_id, created_at, updated_at) 
+	values ($1, $2, $3, $4, $5, $6, $7, $8) returning id, created_at, updated_at`
+
+	err := pgus.db.QueryRow(query,
+		user.ID,
+		user.FullName,
+		user.Email,
+		user.PasswordHash.hash,
+		user.UserRole,
+		user.OrganizationID,
+		user.CreatedAt,
+		user.UpdatedAt,
+	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (pgus *PostgresUserStore) GetUserByUserName(username string) (*User, error) {
+func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 	var user User
 	query :=
 		`select 
-	id,username,email,password_hash,user_role,organization_id,created_at,updated_at 
-	from users where username=$1`
-	err := pgus.db.QueryRow(query, username).Scan(
+	id, full_name, email, password_hash, user_role, organization_id, created_at, updated_at 
+	from users where email=$1`
+
+	var hash []byte
+
+	err := pgus.db.QueryRow(query, email).Scan(
 		&user.ID,
-		&user.UserName,
+		&user.FullName,
 		&user.Email,
-		&user.PasswordHash.hash,
+		&hash,
 		&user.UserRole,
 		&user.OrganizationID,
 		&user.CreatedAt,
@@ -110,15 +135,16 @@ func (pgus *PostgresUserStore) GetUserByUserName(username string) (*User, error)
 	if err != nil {
 		return nil, err
 	}
+	user.PasswordHash.hash = hash
 	return &user, nil
 }
 
 func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 	query :=
 		`update users 
-	set username=$1,email=$2,user_role=$3,organization_id=$4,updated_at=CURRENT_TIMESTAMP where id=$5 
+	set full_name=$1, email=$2, user_role=$3, organization_id=$4, updated_at=CURRENT_TIMESTAMP where id=$5 
 	returning updated_at`
-	res, err := pgus.db.Exec(query, user.UserName, user.Email, user.UserRole, user.OrganizationID, user.ID)
+	res, err := pgus.db.Exec(query, user.FullName, user.Email, user.UserRole, user.OrganizationID, user.ID)
 	if err != nil {
 		return err
 	}
