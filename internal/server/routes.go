@@ -64,6 +64,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 	
 
+	// Role management
+	dashboard := r.Group("/dashboard")
+	dashboard.GET("")
+
+	// Organization Admin  
+	
+	
 
 	return r
 }
