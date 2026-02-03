@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"ClockWise/backend/internal/database"
 	"os"
 	"time"
+
+	"github.com/clockwise/clockwise/backend/internal/database"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-gonic/gin"

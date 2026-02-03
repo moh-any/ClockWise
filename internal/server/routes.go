@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"ClockWise/backend/internal/middleware"
+	"github.com/clockwise/clockwise/backend/internal/middleware"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
@@ -74,7 +74,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	staffing.POST("/upload") // upload employees csv to the server
 
 	employees := staffing.Group("/employees")
-	employees.GET("/")        // Get All employees
+	employees.GET("/") // Get All employees
 
 	employee := employees.Group("/:name")
 	employee.DELETE("/layoff")         // Layoff an employees

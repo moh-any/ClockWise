@@ -1,10 +1,11 @@
 package api
 
 import (
-	"ClockWise/backend/internal/database"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/clockwise/clockwise/backend/internal/database"
 
 	"github.com/gin-gonic/gin"
 )

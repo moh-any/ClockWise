@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
-
 	"github.com/google/uuid"
 )
 
@@ -16,6 +15,9 @@ type Organization struct {
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	HexCode1 string `json:"hex1"`
+	HexCode2 string `json:"hex2"`
+	HexCode3 string `json:"hex3"`
 }
 
 type OrgStore interface {
@@ -45,8 +47,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 		org.Email = user.Email
 	}
 
-	queryOrg := `INSERT INTO organizations (id, name, address, email, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`
-	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt); err != nil {
+	queryOrg := `INSERT INTO organizations (id, name, address, email, created_at, updated_at,hex_code1,hex_code2,hex_code3) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9)`
+	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt,org.HexCode1,org.HexCode2,org.HexCode3); err != nil {
 		return fmt.Errorf("failed to insert org: %w", err)
 	}
 

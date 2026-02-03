@@ -1,12 +1,12 @@
 package api
 
 import (
-	"ClockWise/backend/internal/database"
-	"ClockWise/backend/internal/service"
-	"ClockWise/backend/internal/utils"
-	"fmt"
 	"log/slog"
 	"net/http"
+
+	"github.com/clockwise/clockwise/backend/internal/database"
+	"github.com/clockwise/clockwise/backend/internal/service"
+	"github.com/clockwise/clockwise/backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,11 +18,12 @@ type OrgHandler struct {
 	Logger       *slog.Logger
 }
 
-func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, emailService service.EmailService, Logger *slog.Logger) *OrgHandler {
+func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, emailService service.EmailService, logger *slog.Logger) *OrgHandler {
 	return &OrgHandler{
 		orgStore:     orgStore,
 		userStore:    userStore,
 		emailService: emailService,
+		Logger:       logger,
 	}
 }
 
@@ -41,8 +42,11 @@ type DelegateUserRequest struct {
 }
 
 func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
+	h.Logger.Info("register organization request received")
+
 	var req RegisterOrgRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Warn("invalid registration request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -59,10 +63,12 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	}
 
 	if err := h.orgStore.CreateOrgWithAdmin(org, user, req.AdminPassword); err != nil {
+		h.Logger.Error("failed to create organization with admin", "error", err, "org_name", req.OrgName, "admin_email", req.AdminEmail)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed: " + err.Error()})
 		return
 	}
 
+	h.Logger.Info("organization registered successfully", "org_id", org.ID, "user_id", user.ID, "org_name", req.OrgName)
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Organization registered successfully",
 		"org_id":  org.ID,
@@ -71,32 +77,41 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 }
 
 func (h *OrgHandler) DelegateUser(c *gin.Context) {
+	h.Logger.Info("delegate user request received")
+
 	currentUserInterface, exists := c.Get("user")
 	if !exists {
+		h.Logger.Warn("unauthorized delegation attempt - no user in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 	currentUser := currentUserInterface.(*database.User)
 
 	if currentUser.UserRole == "staff" {
+		h.Logger.Warn("forbidden delegation attempt by staff", "user_id", currentUser.ID, "email", currentUser.Email)
 		c.JSON(http.StatusForbidden, gin.H{"error": "Staff cannot delegate users"})
 		return
 	}
 
 	var req DelegateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Warn("invalid delegate user request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	h.Logger.Debug("delegating user", "email", req.Email, "role", req.Role, "delegated_by", currentUser.ID)
+
 	org, err := h.orgStore.GetOrganizationByID(currentUser.OrganizationID)
 	if err != nil {
+		h.Logger.Error("failed to retrieve organization", "error", err, "org_id", currentUser.OrganizationID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve organization"})
 		return
 	}
 
 	tempPassword, err := utils.GenerateRandomPassword(8)
 	if err != nil {
+		h.Logger.Error("failed to generate temporary password", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate password"})
 		return
 	}
@@ -109,21 +124,24 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 	}
 
 	if err := newUser.PasswordHash.Set(tempPassword); err != nil {
+		h.Logger.Error("failed to hash password", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Calculation error"})
 		return
 	}
 
 	if err := h.userStore.CreateUser(newUser); err != nil {
+		h.Logger.Error("failed to create delegated user", "error", err, "email", req.Email)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
 		return
 	}
 
 	go func() {
 		if err := h.emailService.SendWelcomeEmail(newUser.Email, newUser.FullName, tempPassword, newUser.UserRole, org.Name); err != nil {
-			fmt.Printf("Error sending email: %v\n", err)
+			h.Logger.Error("failed to send welcome email", "error", err, "email", newUser.Email)
 		}
 	}()
 
+	h.Logger.Info("user delegated successfully", "user_id", newUser.ID, "email", newUser.Email, "role", newUser.UserRole, "org_id", currentUser.OrganizationID)
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User delegated successfully. Email sent.",
 		"user_id": newUser.ID,

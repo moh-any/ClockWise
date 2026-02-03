@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"ClockWise/backend/internal/server"
+	"github.com/clockwise/clockwise/backend/internal/server"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -41,7 +41,6 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 func main() {
 	Logger := slog.Default()
 	server := server.NewServer(Logger)
-
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
