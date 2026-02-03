@@ -41,7 +41,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// Public routes
 	r.POST("/login", authMiddleware.LoginHandler)
-	r.POST("/register", userHandler.Register)
+	r.POST("/register", userHandler.Register) // Manager Only 
 
 	// Auth routes
 	auth := r.Group("/auth")
@@ -60,8 +60,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 				"role":     claims["user_role"],
 				"userData": user,
 			})
-		})
+	})
 	}
+	
+
 
 	return r
 }

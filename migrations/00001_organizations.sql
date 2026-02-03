@@ -5,8 +5,16 @@ CREATE TABLE IF NOT EXISTS organizations(
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) UNIQUE NOT NULL,
     address TEXT,
+    email VARCHAR(100) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS organizations_roles (
+    organization_id UUID,
+    role VARCHAR(50),
+    PRIMARY KEY (organization_id,role),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id)  
 );
 -- +goose StatementEnd
 
