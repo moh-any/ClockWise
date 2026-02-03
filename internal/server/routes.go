@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"ClockWise/backend/internal/middleware"
+	"github.com/clockwise/clockwise/backend/internal/middleware"
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/cors"

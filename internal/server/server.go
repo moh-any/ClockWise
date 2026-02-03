@@ -10,10 +10,10 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"ClockWise/backend/internal/api"
-	"ClockWise/backend/internal/database"
-	"ClockWise/backend/internal/service"
-	"ClockWise/backend/migrations"
+	"github.com/clockwise/clockwise/backend/internal/api"
+	"github.com/clockwise/clockwise/backend/internal/database"
+	"github.com/clockwise/clockwise/backend/internal/service"
+	"github.com/clockwise/clockwise/backend/migrations"
 )
 
 type Server struct {

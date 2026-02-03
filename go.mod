@@ -1,4 +1,4 @@
-module ClockWise/backend
+module github.com/clockwise/clockwise/backend
 
 go 1.25.5
 
