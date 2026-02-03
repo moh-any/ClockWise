@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"BitShift/internal/api"
-	"BitShift/internal/middleware"
-	"BitShift/internal/service"
+	"ClockWise/backend/internal/api"
+	"ClockWise/backend/internal/middleware"
+	"ClockWise/backend/internal/service"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"

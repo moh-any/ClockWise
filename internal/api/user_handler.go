@@ -1,7 +1,7 @@
 package api
 
 import (
-	"BitShift/internal/database"
+	"ClockWise/backend/internal/database"
 	"net/http"
 	"time"
 

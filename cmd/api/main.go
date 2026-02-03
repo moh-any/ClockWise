@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"BitShift/internal/server"
+	"ClockWise/backend/internal/server"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"BitShift/internal/database"
+	"ClockWise/backend/internal/database"
 	"os"
 	"time"
 
@@ -19,7 +19,7 @@ type Login struct {
 
 func NewAuthMiddleware(userStore database.UserStore) (*jwt.GinJWTMiddleware, error) {
 	return jwt.New(&jwt.GinJWTMiddleware{
-		Realm:           "BitShift",
+		Realm:           "ClockWise",
 		Key:             []byte(os.Getenv("JWT_SECRET")),
 		Timeout:         time.Hour,
 		MaxRefresh:      time.Hour,

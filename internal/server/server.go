@@ -9,8 +9,8 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 
-	"BitShift/internal/database"
-	"BitShift/migrations"
+	"ClockWise/backend/internal/database"
+	"ClockWise/backend/migrations"
 )
 
 type Server struct {

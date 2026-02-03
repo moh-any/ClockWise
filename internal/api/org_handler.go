@@ -1,9 +1,9 @@
 package api
 
 import (
-	"BitShift/internal/database"
-	"BitShift/internal/service"
-	"BitShift/internal/utils"
+	"ClockWise/backend/internal/database"
+	"ClockWise/backend/internal/service"
+	"ClockWise/backend/internal/utils"
 	"fmt"
 	"net/http"
 

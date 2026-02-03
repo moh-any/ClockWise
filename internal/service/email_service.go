@@ -36,13 +36,13 @@ func (s *SMTPEmailService) SendWelcomeEmail(toEmail, fullName, password, role st
 
 	auth := smtp.PlainAuth("", s.username, s.password, s.host)
 
-	subject := "Subject: Welcome to BitShift - Account Details\n"
+	subject := "Subject: Welcome to ClockWise - Account Details\n"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	body := fmt.Sprintf(`
         <html>
         <body>
             <h3>Hello %s,</h3>
-            <p>You have been invited to join BitShift as a <b>%s</b> in the organization <b>%s</b>.</p>
+            <p>You have been invited to join ClockWise as a <b>%s</b> in the organization <b>%s</b>.</p>
             <p>Here are your login credentials:</p>
             <ul>
                 <li><b>Email:</b> %s</li>

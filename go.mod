@@ -1,4 +1,4 @@
-module BitShift
+module ClockWise/backend
 
 go 1.25.5
 
