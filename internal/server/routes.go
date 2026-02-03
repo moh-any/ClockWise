@@ -4,9 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"ClockWise/backend/internal/api"
 	"ClockWise/backend/internal/middleware"
-	"ClockWise/backend/internal/service"
 
 	jwt "github.com/appleboy/gin-jwt/v2"
 	"github.com/gin-contrib/cors"
@@ -25,9 +23,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.GET("/health", s.healthHandler)
 
-	emailService := service.NewSMTPEmailService()
-
-	orgHandler := api.NewOrgHandler(s.orgStore, s.userStore, emailService)
 
 	authMiddleware, err := middleware.NewAuthMiddleware(s.userStore)
 	if err != nil {
@@ -40,14 +35,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// --- Public Routes ---
 	r.POST("/login", authMiddleware.LoginHandler)
-	r.POST("/register", orgHandler.RegisterOrganization)
+	r.POST("/register", s.orgHandler.RegisterOrganization)
 
 	// --- Protected Routes ---
 	auth := r.Group("/auth")
 	auth.Use(authMiddleware.MiddlewareFunc())
 	auth.GET("/refresh_token", authMiddleware.RefreshHandler)
 	auth.POST("/logout", authMiddleware.LogoutHandler)
-	auth.POST("/delegate", orgHandler.DelegateUser)
 	auth.GET("/me", func(c *gin.Context) {
 		claims := jwt.ExtractClaims(c)
 		user, _ := c.Get("user")
@@ -56,33 +50,33 @@ func (s *Server) RegisterRoutes() http.Handler {
 			"claims": claims,
 		})
 	})
-
+	
 	// Role management
 	organization := r.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
-
 	organization.PUT("/")  // Update Organization
 	organization.GET("/")  // Get organization details
 	organization.POST("/request") // Request Calloff from organization Employees Only
-
+	
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/") // Change according to the current user
-
+	
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("/")         // Get Schedule
 	schedule.POST("/refresh") // Refresh Schedule
 	schedule.PUT("/")         // Edit Schedule
-
+	
 	insights := organization.Group("/insights")
 	insights.GET("/") // Get All insights
-
+	
 	settings := organization.Group("/settings")
 	settings.GET("/") // Show Current Settings (General Info)
 	settings.PUT("/") // Edit Settings (General Info)
-
+	
 	staffing := organization.Group("/staffing")
 	staffing.GET("/") // Show Staffing Summary & Insights
-
+	staffing.POST("/delegate", s.orgHandler.DelegateUser)
+	
 	employees := staffing.Group("/employees")
 	employees.GET("/")        // Get All employees
 	employees.POST("/")       // Create a new employee  (Hire)

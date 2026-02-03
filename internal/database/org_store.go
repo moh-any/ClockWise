@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,7 +27,7 @@ type PostgresOrgStore struct {
 	db *sql.DB
 }
 
-func NewPostgresOrgStore(db *sql.DB) *PostgresOrgStore {
+func NewPostgresOrgStore(db *sql.DB, Logger *slog.Logger) *PostgresOrgStore {
 	return &PostgresOrgStore{db: db}
 }
 

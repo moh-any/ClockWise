@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/smtp"
 	"os"
 )
@@ -16,14 +17,16 @@ type SMTPEmailService struct {
 	port     string
 	username string
 	password string
+	Logger   *slog.Logger
 }
 
-func NewSMTPEmailService() *SMTPEmailService {
+func NewSMTPEmailService(Logger *slog.Logger) *SMTPEmailService {
 	return &SMTPEmailService{
 		host:     os.Getenv("SMTP_HOST"),
 		port:     os.Getenv("SMTP_PORT"),
 		username: os.Getenv("SMTP_USERNAME"),
 		password: os.Getenv("SMTP_PASSWORD"),
+		Logger:   Logger,
 	}
 }
 

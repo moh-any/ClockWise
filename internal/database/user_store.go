@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -67,7 +68,7 @@ type PostgresUserStore struct {
 	db *sql.DB
 }
 
-func NewPostgresUserStore(db *sql.DB) *PostgresUserStore {
+func NewPostgresUserStore(db *sql.DB, Logger *slog.Logger) *PostgresUserStore {
 	return &PostgresUserStore{
 		db: db,
 	}

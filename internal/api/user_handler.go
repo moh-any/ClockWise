@@ -2,6 +2,7 @@ package api
 
 import (
 	"ClockWise/backend/internal/database"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,9 +11,10 @@ import (
 
 type UserHandler struct {
 	userStore database.UserStore
+	Logger    *slog.Logger
 }
 
-func NewUserHandler(userStore database.UserStore) *UserHandler {
+func NewUserHandler(userStore database.UserStore, Logger *slog.Logger) *UserHandler {
 	return &UserHandler{
 		userStore: userStore,
 	}

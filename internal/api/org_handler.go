@@ -5,6 +5,7 @@ import (
 	"ClockWise/backend/internal/service"
 	"ClockWise/backend/internal/utils"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,9 +15,10 @@ type OrgHandler struct {
 	orgStore     database.OrgStore
 	userStore    database.UserStore
 	emailService service.EmailService
+	Logger       *slog.Logger
 }
 
-func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, emailService service.EmailService) *OrgHandler {
+func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, emailService service.EmailService, Logger *slog.Logger) *OrgHandler {
 	return &OrgHandler{
 		orgStore:     orgStore,
 		userStore:    userStore,
