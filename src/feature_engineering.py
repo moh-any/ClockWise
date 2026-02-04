@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from pathlib import Path
 from weather_api import get_weather_for_demand_data
+from holiday_api import add_holiday_feature
 
 # This module contains functions for feature engineering on time series data.
 
@@ -265,6 +266,10 @@ def combine_features(raw_features: dict) -> pd.DataFrame:
     # Step 7: Add weather features
     print("\nStep 7: Adding weather features...")
     combined = get_weather_for_demand_data(combined)
+    
+    # Step 8: Add holiday features
+    print("\nStep 8: Adding holiday features...")
+    combined = add_holiday_feature(combined)
     
     # Final cleanup
     combined = combined.drop(columns=['date', 'time'], errors='ignore')
