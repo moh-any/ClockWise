@@ -60,7 +60,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// --- Protected Routes ---
 	auth := api.Group("/auth")
 	auth.Use(authMiddleware.MiddlewareFunc())
-	auth.POST("/refresh_token", authMiddleware.RefreshHandler)
+	auth.POST("/refresh", authMiddleware.RefreshHandler)
 	auth.POST("/logout", authMiddleware.LogoutHandler)
 	auth.GET("/me", func(c *gin.Context) {
 		claims := jwt.ExtractClaims(c)
@@ -87,7 +87,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	schedule.POST("/refresh") // Refresh Schedule
 
 	insights := organization.Group("/insights")
-	insights.GET("/") // Get All insights
+	insights.GET("/", s.insightHandler.GetInsightsHandler) // Get All insights
 
 	staffing := organization.Group("/staffing")
 	staffing.GET("/", s.staffingHandler.GetStaffingSummary)
@@ -128,3 +128,31 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
+
+
+/*
+Admin (Organization) 
+- Schedule: All employees at each segment of time 
+- Demand Heat Map: Weekly 
+- General Insights & Statistics
+- Staffing Recommendations (Layoffs or Hiring)
+- Campaigns Suggestions
+- Current Manager shift
+- Employees Now in shift
+- Change settings for the organization (shift hours, weekly rate, hourly rate)
+- Set his rules
+Manager
+- Schedule for his shifts with the number of employees in his shift
+- Demand Heat map
+- General Insights
+- Current Employees in shift
+- Demand Suggestions
+- Current Employees in his shift 
+- Perferences for shifts
+- Current Requests 
+Employee
+- Schedule for only them
+- Perference settings
+- Request suggestions
+- General insights on working hours
+*/

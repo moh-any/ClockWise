@@ -358,12 +358,18 @@ definitions:
   api.LoginResponse:
     description: Response returned after successful authentication
     properties:
-      token:
+      refresh_token:
         type: string
         example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-      expire:
-        type: string
-        example: "2026-02-05T19:00:00Z"
+      access_token:
+        type: string 
+        example: ""
+      expires_in:
+        type: integer
+        example: "1234356324"
+      token_type: 
+        type: string 
+        example: "Bearer"
     type: object
   api.EmployeeListResponse:
     description: List of employees in the organization

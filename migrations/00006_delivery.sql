@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS deliveries (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES orders(id), 
+    driver_id UUID REFERENCES users(id),
     delivery_latitude DECIMAL(10,7),
     delivery_longitude DECIMAL(10,7),
     out_for_delivery_time TIMESTAMP NOT NULL,
