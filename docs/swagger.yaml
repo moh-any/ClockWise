@@ -1,0 +1,1114 @@
+basePath: /api
+definitions:
+  # ============================================================================
+  # ERROR RESPONSE SCHEMAS
+  # ============================================================================
+  errors.BadRequestError:
+    description: Returned when the request body or parameters are invalid
+    properties:
+      error:
+        type: string
+        example: "Invalid request body"
+    type: object
+  errors.UnauthorizedError:
+    description: Returned when authentication is required but not provided or invalid
+    properties:
+      error:
+        type: string
+        example: "Unauthorized"
+    type: object
+  errors.ForbiddenError:
+    description: Returned when the user does not have permission to perform the action
+    properties:
+      error:
+        type: string
+        example: "Access denied"
+    type: object
+  errors.NotFoundError:
+    description: Returned when the requested resource does not exist
+    properties:
+      error:
+        type: string
+        example: "Resource not found"
+    type: object
+  errors.InternalServerError:
+    description: Returned when an unexpected server error occurs
+    properties:
+      error:
+        type: string
+        example: "Internal server error"
+    type: object
+  errors.ValidationError:
+    description: Returned when request validation fails
+    properties:
+      error:
+        type: string
+        example: "Key: 'Field' Error:Field 'field' is required"
+    type: object
+  errors.ConflictError:
+    description: Returned when a resource conflict occurs (e.g., duplicate email)
+    properties:
+      error:
+        type: string
+        example: "Email already exists"
+    type: object
+
+  # ============================================================================
+  # SPECIFIC ERROR RESPONSES
+  # ============================================================================
+  errors.InvalidEmployeeIDError:
+    description: Returned when the employee ID format is invalid
+    properties:
+      error:
+        type: string
+        example: "Invalid employee ID"
+    type: object
+  errors.InvalidRequestIDError:
+    description: Returned when the request ID format is invalid
+    properties:
+      error:
+        type: string
+        example: "Invalid request ID"
+    type: object
+  errors.EmployeeNotFoundError:
+    description: Returned when the specified employee does not exist
+    properties:
+      error:
+        type: string
+        example: "Employee not found"
+    type: object
+  errors.RequestNotFoundError:
+    description: Returned when the specified request does not exist
+    properties:
+      error:
+        type: string
+        example: "Request not found"
+    type: object
+  errors.StaffCannotDelegateError:
+    description: Returned when a staff member tries to delegate users
+    properties:
+      error:
+        type: string
+        example: "Staff cannot delegate users"
+    type: object
+  errors.NoPermissionToLayoffError:
+    description: Returned when a user without permission tries to layoff an employee
+    properties:
+      error:
+        type: string
+        example: "You don't have permission to layoff employees"
+    type: object
+  errors.CannotLayoffYourselfError:
+    description: Returned when a user tries to layoff themselves
+    properties:
+      error:
+        type: string
+        example: "Cannot layoff yourself"
+    type: object
+  errors.ManagerCannotLayoffAdminError:
+    description: Returned when a manager tries to layoff an admin
+    properties:
+      error:
+        type: string
+        example: "Managers cannot layoff admins"
+    type: object
+  errors.NoPermissionToUploadError:
+    description: Returned when a user without permission tries to upload employees
+    properties:
+      error:
+        type: string
+        example: "You don't have permission to upload employees"
+    type: object
+  errors.NoFileUploadedError:
+    description: Returned when no file is provided in a file upload request
+    properties:
+      error:
+        type: string
+        example: "No file uploaded"
+    type: object
+  errors.InvalidCSVFormatError:
+    description: Returned when the uploaded CSV file has an invalid format
+    properties:
+      error:
+        type: string
+        example: "Invalid CSV format"
+    type: object
+  errors.MissingCSVHeaderError:
+    description: Returned when a required CSV header is missing
+    properties:
+      error:
+        type: string
+        example: "Missing required header: email"
+    type: object
+  errors.NoPermissionToApproveError:
+    description: Returned when a user without permission tries to approve a request
+    properties:
+      error:
+        type: string
+        example: "You don't have permission to approve requests"
+    type: object
+  errors.NoPermissionToDeclineError:
+    description: Returned when a user without permission tries to decline a request
+    properties:
+      error:
+        type: string
+        example: "You don't have permission to decline requests"
+    type: object
+  errors.RegistrationFailedError:
+    description: Returned when organization registration fails
+    properties:
+      error:
+        type: string
+        example: "Registration failed: database error"
+    type: object
+  errors.FailedToRetrieveEmployeesError:
+    description: Returned when retrieving employees from the database fails
+    properties:
+      error:
+        type: string
+        example: "Failed to retrieve employees"
+    type: object
+  errors.FailedToRetrieveOrganizationError:
+    description: Returned when retrieving organization from the database fails
+    properties:
+      error:
+        type: string
+        example: "Failed to retrieve organization"
+    type: object
+  errors.FailedToLayoffEmployeeError:
+    description: Returned when the layoff operation fails
+    properties:
+      error:
+        type: string
+        example: "Failed to layoff employee"
+    type: object
+  errors.FailedToRetrieveRequestsError:
+    description: Returned when retrieving requests from the database fails
+    properties:
+      error:
+        type: string
+        example: "Failed to retrieve requests"
+    type: object
+  errors.FailedToApproveRequestError:
+    description: Returned when approving a request fails
+    properties:
+      error:
+        type: string
+        example: "Failed to approve request"
+    type: object
+  errors.FailedToDeclineRequestError:
+    description: Returned when declining a request fails
+    properties:
+      error:
+        type: string
+        example: "Failed to decline request"
+    type: object
+  errors.DatabaseError:
+    description: Returned when a database operation fails
+    properties:
+      error:
+        type: string
+        example: "Database error: connection refused"
+    type: object
+  errors.InvalidCredentialsError:
+    description: Returned when login credentials are incorrect
+    properties:
+      error:
+        type: string
+        example: "Invalid email or password"
+    type: object
+  errors.TokenExpiredError:
+    description: Returned when the JWT token has expired
+    properties:
+      error:
+        type: string
+        example: "Token has expired"
+    type: object
+  errors.InvalidTokenError:
+    description: Returned when the JWT token is invalid
+    properties:
+      error:
+        type: string
+        example: "Invalid token"
+    type: object
+
+  # ============================================================================
+  # REQUEST SCHEMAS
+  # ============================================================================
+  api.DelegateUserRequest:
+    description: Request body for creating a new employee in the organization
+    properties:
+      email:
+        type: string
+        example: "john.doe@company.com"
+      full_name:
+        type: string
+        example: "John Doe"
+      role:
+        enum:
+          - manager
+          - staff
+        type: string
+        example: "staff"
+    required:
+      - email
+      - full_name
+      - role
+    type: object
+  api.LayoffRequest:
+    description: Request body for employee layoff with optional reason
+    properties:
+      reason:
+        type: string
+        example: "Position eliminated due to restructuring"
+    type: object
+  api.RegisterOrgRequest:
+    description: Request body for registering a new organization with admin user
+    properties:
+      admin_email:
+        type: string
+        example: "admin@company.com"
+      admin_full_name:
+        type: string
+        example: "Admin User"
+      admin_password:
+        minLength: 6
+        type: string
+        example: "securepassword123"
+      org_address:
+        type: string
+        example: "123 Main Street, City, Country"
+      org_name:
+        type: string
+        example: "Acme Corporation"
+    required:
+      - admin_email
+      - admin_full_name
+      - admin_password
+      - org_name
+    type: object
+  api.LoginRequest:
+    description: Request body for user authentication
+    properties:
+      email:
+        type: string
+        example: "user@company.com"
+      password:
+        type: string
+        example: "mypassword123"
+    required:
+      - email
+      - password
+    type: object
+  api.RequestActionBody:
+    description: Request body for approving or declining employee requests
+    properties:
+      request_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    required:
+      - request_id
+    type: object
+
+  # ============================================================================
+  # RESPONSE SCHEMAS
+  # ============================================================================
+  api.StaffingSummary:
+    description: Staffing overview with employee breakdown by role
+    properties:
+      by_role:
+        additionalProperties:
+          type: integer
+        type: object
+        example:
+          admin: 1
+          manager: 3
+          staff: 10
+      employees:
+        items:
+          $ref: "#/definitions/database.User"
+        type: array
+      total_employees:
+        type: integer
+        example: 14
+    type: object
+  api.RegisterOrgResponse:
+    description: Response returned after successful organization registration
+    properties:
+      message:
+        type: string
+        example: "Organization registered successfully"
+      org_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      user_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440001"
+    type: object
+  api.DelegateUserResponse:
+    description: Response returned after successful user delegation
+    properties:
+      message:
+        type: string
+        example: "User delegated successfully. Email sent."
+      user_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    type: object
+  api.LoginResponse:
+    description: Response returned after successful authentication
+    properties:
+      token:
+        type: string
+        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      expire:
+        type: string
+        example: "2026-02-05T19:00:00Z"
+    type: object
+  api.EmployeeListResponse:
+    description: List of employees in the organization
+    properties:
+      employees:
+        items:
+          $ref: "#/definitions/database.User"
+        type: array
+      total:
+        type: integer
+        example: 25
+    type: object
+  api.LayoffResponse:
+    description: Response returned after successful employee layoff
+    properties:
+      message:
+        type: string
+        example: "Employee laid off successfully"
+      employee_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    type: object
+  api.RequestListResponse:
+    description: List of employee requests
+    properties:
+      requests:
+        items:
+          $ref: "#/definitions/database.Request"
+        type: array
+      total:
+        type: integer
+        example: 5
+    type: object
+  api.RequestActionResponse:
+    description: Response returned after approving or declining a request
+    properties:
+      message:
+        type: string
+        example: "Request approved successfully"
+      request_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    type: object
+  api.BulkUploadResponse:
+    description: Response returned after bulk employee CSV upload
+    properties:
+      message:
+        type: string
+        example: "Bulk upload completed"
+      created_count:
+        type: integer
+        example: 10
+      created:
+        type: array
+        items:
+          type: string
+        example: ["user1@company.com", "user2@company.com"]
+      failed_count:
+        type: integer
+        example: 2
+      failed:
+        type: array
+        items:
+          type: object
+          properties:
+            email:
+              type: string
+            error:
+              type: string
+    type: object
+  api.HealthResponse:
+    description: API health check response
+    properties:
+      status:
+        type: string
+        example: "healthy"
+      database:
+        type: string
+        example: "connected"
+    type: object
+
+  # ============================================================================
+  # DATA MODEL SCHEMAS
+  # ============================================================================
+  database.User:
+    description: User/Employee information
+    properties:
+      created_at:
+        type: string
+        example: "2026-01-15T10:30:00Z"
+      email:
+        type: string
+        example: "user@company.com"
+      full_name:
+        type: string
+        example: "John Doe"
+      id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      organization_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440001"
+      updated_at:
+        type: string
+        example: "2026-02-01T14:45:00Z"
+      user_role:
+        type: string
+        enum:
+          - admin
+          - manager
+          - staff
+        example: "staff"
+    type: object
+  database.Request:
+    description: Employee request (time-off, call-off, etc.)
+    properties:
+      id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      employee_id:
+        type: string
+        example: "550e8400-e29b-41d4-a716-446655440001"
+      type:
+        type: string
+        enum:
+          - time_off
+          - call_off
+          - shift_swap
+        example: "time_off"
+      status:
+        type: string
+        enum:
+          - pending
+          - accepted
+          - declined
+        example: "pending"
+      reason:
+        type: string
+        example: "Family vacation"
+      start_date:
+        type: string
+        example: "2026-03-01"
+      end_date:
+        type: string
+        example: "2026-03-05"
+      created_at:
+        type: string
+        example: "2026-02-01T10:00:00Z"
+      updated_at:
+        type: string
+        example: "2026-02-01T10:00:00Z"
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
+info:
+  contact:
+    email: ziadeliwa@aucegypt.edu
+    name: ClockWise API Support
+  description: ClockWise is a workforce management and scheduling platform for organizations.
+  license:
+    name: MIT License
+    url: https://opensource.org/license/mit
+  termsOfService: http://swagger.io/terms/
+  title: ClockWise API
+  version: 1.0.0
+paths:
+  /{org}/staffing:
+    get:
+      consumes:
+        - application/json
+      description:
+        Returns staffing overview including total employees and breakdown
+        by role
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Staffing summary
+          schema:
+            $ref: "#/definitions/api.StaffingSummary"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "500":
+          description: Failed to retrieve employees from database
+          schema:
+            $ref: "#/definitions/errors.FailedToRetrieveEmployeesError"
+      security:
+        - BearerAuth: []
+      summary: Get staffing summary
+      tags:
+        - Staffing
+    post:
+      consumes:
+        - application/json
+      description:
+        Delegates/creates a new user in the organization. Only admins and
+        managers can perform this action.
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: New employee details
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/api.DelegateUserRequest"
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: User delegated successfully
+          schema:
+            $ref: "#/definitions/api.DelegateUserResponse"
+        "400":
+          description: Invalid request body - validation failed
+          schema:
+            $ref: "#/definitions/errors.ValidationError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Staff members cannot delegate users
+          schema:
+            $ref: "#/definitions/errors.StaffCannotDelegateError"
+        "500":
+          description: Internal server error - database or password generation failed
+          schema:
+            $ref: "#/definitions/errors.InternalServerError"
+      security:
+        - BearerAuth: []
+      summary: Create a new employee
+      tags:
+        - Staffing
+  /{org}/staffing/employees:
+    get:
+      consumes:
+        - application/json
+      description: Returns a list of all employees in the organization
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of employees
+          schema:
+            $ref: "#/definitions/api.EmployeeListResponse"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "500":
+          description: Failed to retrieve employees from database
+          schema:
+            $ref: "#/definitions/errors.FailedToRetrieveEmployeesError"
+      security:
+        - BearerAuth: []
+      summary: Get all employees
+      tags:
+        - Staffing
+  /{org}/staffing/employees/{id}:
+    get:
+      consumes:
+        - application/json
+      description: Returns detailed information about a specific employee
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: Employee UUID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Employee details
+          schema:
+            $ref: "#/definitions/database.User"
+        "400":
+          description: Invalid employee ID format (must be valid UUID)
+          schema:
+            $ref: "#/definitions/errors.InvalidEmployeeIDError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Access denied - Cannot access employee from different organization
+          schema:
+            $ref: "#/definitions/errors.ForbiddenError"
+        "404":
+          description: Employee not found in database
+          schema:
+            $ref: "#/definitions/errors.EmployeeNotFoundError"
+      security:
+        - BearerAuth: []
+      summary: Get employee details
+      tags:
+        - Employees
+  /{org}/staffing/employees/{id}/layoff:
+    delete:
+      consumes:
+        - application/json
+      description:
+        Marks an employee as laid off. Only admins and managers can perform
+        this action. Managers cannot layoff admins.
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: Employee UUID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Layoff reason (optional)
+          in: body
+          name: request
+          schema:
+            $ref: "#/definitions/api.LayoffRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Employee laid off successfully
+          schema:
+            $ref: "#/definitions/api.LayoffResponse"
+        "400":
+          description: Invalid employee ID or cannot layoff yourself
+          schema:
+            $ref: "#/definitions/errors.InvalidEmployeeIDError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Permission denied - Staff cannot layoff, or managers cannot layoff admins
+          schema:
+            $ref: "#/definitions/errors.NoPermissionToLayoffError"
+        "404":
+          description: Employee not found in database
+          schema:
+            $ref: "#/definitions/errors.EmployeeNotFoundError"
+        "500":
+          description: Failed to layoff employee in database
+          schema:
+            $ref: "#/definitions/errors.FailedToLayoffEmployeeError"
+      security:
+        - BearerAuth: []
+      summary: Layoff an employee
+      tags:
+        - Employees
+  /{org}/staffing/employees/{id}/requests:
+    get:
+      consumes:
+        - application/json
+      description:
+        Returns all requests (time-off, call-off, etc.) for a specific
+        employee. Employees can only view their own requests unless they are admin/manager.
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: Employee UUID
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: List of employee requests
+          schema:
+            $ref: "#/definitions/api.RequestListResponse"
+        "400":
+          description: Invalid employee ID format (must be valid UUID)
+          schema:
+            $ref: "#/definitions/errors.InvalidEmployeeIDError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Access denied - Can only view own requests unless admin/manager
+          schema:
+            $ref: "#/definitions/errors.ForbiddenError"
+        "404":
+          description: Employee not found in database
+          schema:
+            $ref: "#/definitions/errors.EmployeeNotFoundError"
+        "500":
+          description: Failed to retrieve requests from database
+          schema:
+            $ref: "#/definitions/errors.FailedToRetrieveRequestsError"
+      security:
+        - BearerAuth: []
+      summary: Get employee requests
+      tags:
+        - Employees
+  /{org}/staffing/employees/{id}/requests/approve:
+    post:
+      consumes:
+        - application/json
+      description:
+        Approves a pending employee request. Only admins and managers can
+        approve requests.
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: Employee UUID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Request ID to approve
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/api.RequestActionBody"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Request approved successfully
+          schema:
+            $ref: "#/definitions/api.RequestActionResponse"
+        "400":
+          description: Invalid request body or request ID format
+          schema:
+            $ref: "#/definitions/errors.InvalidRequestIDError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Only admins and managers can approve requests
+          schema:
+            $ref: "#/definitions/errors.NoPermissionToApproveError"
+        "404":
+          description: Request not found in database
+          schema:
+            $ref: "#/definitions/errors.RequestNotFoundError"
+        "500":
+          description: Failed to approve request in database
+          schema:
+            $ref: "#/definitions/errors.FailedToApproveRequestError"
+      security:
+        - BearerAuth: []
+      summary: Approve an employee request
+      tags:
+        - Employees
+  /{org}/staffing/employees/{id}/requests/decline:
+    post:
+      consumes:
+        - application/json
+      description:
+        Declines a pending employee request. Only admins and managers can
+        decline requests.
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: Employee UUID
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: Request ID to decline
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/api.RequestActionBody"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Request declined successfully
+          schema:
+            $ref: "#/definitions/api.RequestActionResponse"
+        "400":
+          description: Invalid request body or request ID format
+          schema:
+            $ref: "#/definitions/errors.InvalidRequestIDError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Only admins and managers can decline requests
+          schema:
+            $ref: "#/definitions/errors.NoPermissionToDeclineError"
+        "404":
+          description: Request not found in database
+          schema:
+            $ref: "#/definitions/errors.RequestNotFoundError"
+        "500":
+          description: Failed to decline request in database
+          schema:
+            $ref: "#/definitions/errors.FailedToDeclineRequestError"
+      security:
+        - BearerAuth: []
+      summary: Decline an employee request
+      tags:
+        - Employees
+  /{org}/staffing/upload:
+    post:
+      consumes:
+        - multipart/form-data
+      description:
+        "Upload a CSV file to create multiple employees at once. Required
+        headers: full_name, email, role. Valid roles: manager, staff, employee"
+      parameters:
+        - description: Organization ID
+          in: path
+          name: org
+          required: true
+          type: string
+        - description: CSV file with employee data
+          in: formData
+          name: file
+          required: true
+          type: file
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Bulk upload completed (may include partial failures)
+          schema:
+            $ref: "#/definitions/api.BulkUploadResponse"
+        "400":
+          description: No file uploaded, invalid CSV format, or missing required headers
+          schema:
+            $ref: "#/definitions/errors.InvalidCSVFormatError"
+        "401":
+          description: Unauthorized - No valid authentication provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+        "403":
+          description: Staff and employees cannot upload - only admin/manager
+          schema:
+            $ref: "#/definitions/errors.NoPermissionToUploadError"
+        "500":
+          description: Failed to retrieve organization from database
+          schema:
+            $ref: "#/definitions/errors.FailedToRetrieveOrganizationError"
+      security:
+        - BearerAuth: []
+      summary: Bulk upload employees via CSV
+      tags:
+        - Staffing
+  /health:
+    get:
+      consumes:
+        - application/json
+      description: Returns the health status of the API and database connection
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: API is healthy
+          schema:
+            $ref: "#/definitions/api.HealthResponse"
+      summary: Health check
+      tags:
+        - Health
+  /auth/register:
+    post:
+      consumes:
+        - application/json
+      description: Creates a new organization along with an admin user account. The admin will receive a confirmation email.
+      parameters:
+        - description: Organization registration details
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/api.RegisterOrgRequest"
+      produces:
+        - application/json
+      responses:
+        "201":
+          description: Organization registered successfully
+          schema:
+            $ref: "#/definitions/api.RegisterOrgResponse"
+        "400":
+          description: Invalid request body - validation failed
+          schema:
+            $ref: "#/definitions/errors.ValidationError"
+        "500":
+          description: Registration failed - database error
+          schema:
+            $ref: "#/definitions/errors.RegistrationFailedError"
+      summary: Register a new organization
+      tags:
+        - Authentication
+  /auth/login:
+    post:
+      consumes:
+        - application/json
+      description: Authenticate a user and receive a JWT token. Users are invited via email with a temporary password.
+      parameters:
+        - description: Login credentials
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/api.LoginRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Login successful - JWT token returned
+          schema:
+            $ref: "#/definitions/api.LoginResponse"
+        "400":
+          description: Invalid request body - validation failed
+          schema:
+            $ref: "#/definitions/errors.ValidationError"
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: "#/definitions/errors.InvalidCredentialsError"
+        "500":
+          description: Internal server error during authentication
+          schema:
+            $ref: "#/definitions/errors.InternalServerError"
+      summary: User login
+      tags:
+        - Authentication
+  /auth/refresh_token:
+    post:
+      consumes:
+        - application/json
+      description: Refresh an expiring JWT token to get a new valid token
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: New JWT token returned
+          schema:
+            $ref: "#/definitions/api.LoginResponse"
+        "401":
+          description: Token is invalid or expired
+          schema:
+            $ref: "#/definitions/errors.TokenExpiredError"
+        "500":
+          description: Internal server error during token refresh
+          schema:
+            $ref: "#/definitions/errors.InternalServerError"
+      security:
+        - BearerAuth: []
+      summary: Refresh JWT token
+      tags:
+        - Authentication
+  /auth/logout:
+    post:
+      consumes:
+        - application/json
+      description: Invalidate the current JWT token and logout the user
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: "Successfully logged out"
+        "401":
+          description: No valid token provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+      security:
+        - BearerAuth: []
+      summary: User logout
+      tags:
+        - Authentication
+  /auth/me:
+    get:
+      consumes:
+        - application/json
+      description: Get the currently authenticated user's information and JWT claims
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Current user information
+          schema:
+            type: object
+            properties:
+              user:
+                $ref: "#/definitions/database.User"
+              claims:
+                type: object
+                additionalProperties: true
+        "401":
+          description: No valid token provided
+          schema:
+            $ref: "#/definitions/errors.UnauthorizedError"
+      security:
+        - BearerAuth: []
+      summary: Get current user
+      tags:
+        - Authentication
+securityDefinitions:
+  BearerAuth:
+    description: JWT Authorization header using the Bearer scheme. Example "Bearer {token}"
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
