@@ -108,7 +108,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	perferences := organization.Group("/preferences") // Employees only
 	perferences.GET("/")                              // Get Current Employee Perfrences
-	perferences.PUT("/")                              // Edit current perferences and refresh schedule
+	perferences.PUT("/")                              // Edit current perferences
 
 	rules := organization.Group("/rules") // Rules of the organization
 	rules.GET("/")                        // Get all the rules of the organization
