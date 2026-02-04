@@ -17,12 +17,15 @@ import (
 )
 
 type Server struct {
-	port       int
-	db         database.Service
-	orgHandler *api.OrgHandler
-	userStore  database.UserStore
-	orgStore   database.OrgStore
-	Logger     *slog.Logger
+	port            int
+	db              database.Service
+	orgHandler      *api.OrgHandler
+	staffingHandler *api.StaffingHandler
+	employeeHandler *api.EmployeeHandler
+	userStore       database.UserStore
+	orgStore        database.OrgStore
+	requestStore    database.RequestStore
+	Logger          *slog.Logger
 }
 
 func NewServer(Logger *slog.Logger) *http.Server {
@@ -40,18 +43,25 @@ func NewServer(Logger *slog.Logger) *http.Server {
 
 	userStore := database.NewPostgresUserStore(dbService.GetDB(), Logger)
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
+	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
 
 	emailService := service.NewSMTPEmailService(Logger)
+	uploadService := service.NewCSVUploadService(Logger)
 
 	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
+	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
+	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
 
 	NewServer := &Server{
-		port:       port,
-		db:         dbService,
-		userStore:  userStore,
-		orgStore:   orgStore,
-		orgHandler: orgHandler,
-		Logger:     Logger,
+		port:            port,
+		db:              dbService,
+		userStore:       userStore,
+		orgStore:        orgStore,
+		requestStore:    requestStore,
+		orgHandler:      orgHandler,
+		staffingHandler: staffingHandler,
+		employeeHandler: employeeHandler,
+		Logger:          Logger,
 	}
 
 	// Declare Server config

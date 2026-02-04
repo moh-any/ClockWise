@@ -55,7 +55,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization.Use(authMiddleware.MiddlewareFunc())
 	organization.PUT("/")         // Update Organization
 	organization.GET("/")         // Get organization details
-	organization.POST("/request") // Request Calloff from organization Employees Only
+	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
 
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/") // Change according to the current user
@@ -69,21 +69,21 @@ func (s *Server) RegisterRoutes() http.Handler {
 	insights.GET("/") // Get All insights
 
 	staffing := organization.Group("/staffing")
-	staffing.GET("/") // Show Staffing Summary & Insights
+	staffing.GET("/", s.staffingHandler.GetStaffingSummary)
 	staffing.POST("/", s.orgHandler.DelegateUser)
-	staffing.POST("/upload") // upload employees csv to the server
+	staffing.POST("/upload", s.staffingHandler.UploadEmployeesCSV)
 
 	employees := staffing.Group("/employees")
-	employees.GET("/") // Get All employees
+	employees.GET("/", s.staffingHandler.GetAllEmployees)
 
-	employee := employees.Group("/:name")
-	employee.DELETE("/layoff")         // Layoff an employees
-	employee.GET("/")                  // Get Employee Details
-	employee.GET("/schedule")          // Get Employee Schedule
-	employee.PUT("/schedule")          // Edit Employee Schedule
-	employee.GET("/requests")          // Show all requests
-	employee.POST("/requests/approve") // Approve requests as a manager or org admin
-	employee.POST("/requests/decline") // Decline requests as a manager or org admin
+	employee := employees.Group("/:id")
+	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
+	employee.GET("/", s.employeeHandler.GetEmployeeDetails)
+	employee.GET("/schedule") // Get Employee Schedule
+	employee.PUT("/schedule") // Edit Employee Schedule
+	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
+	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
+	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
 	perferences := organization.Group("/preferences") // Employees only
 	perferences.GET("/")                              // Get Current Employee Perfrences

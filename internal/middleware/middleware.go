@@ -104,3 +104,33 @@ func unauthorized() func(c *gin.Context, code int, message string) {
 		})
 	}
 }
+
+// ValidateOrgAccess validates that the :org URL parameter matches the user's organization ID.
+// Returns the user if valid, or sends an error response and returns nil if invalid.
+func ValidateOrgAccess(c *gin.Context) *database.User {
+	currentUser, exists := c.Get("user")
+	if !exists {
+		c.JSON(401, gin.H{"error": "Unauthorized"})
+		return nil
+	}
+	user := currentUser.(*database.User)
+
+	orgParam := c.Param("org")
+	if orgParam == "" {
+		// No org param in route, skip validation
+		return user
+	}
+
+	orgID, err := uuid.Parse(orgParam)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid organization ID"})
+		return nil
+	}
+
+	if orgID != user.OrganizationID {
+		c.JSON(403, gin.H{"error": "Access denied: You can only access your own organization"})
+		return nil
+	}
+
+	return user
+}

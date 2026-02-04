@@ -52,7 +52,7 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 		return fmt.Errorf("failed to insert org: %w", err)
 	}
 
-	roles := []string{"admin", "manager", "staff"}
+	roles := []string{"admin", "manager", "employee"}
 	queryRoles := `INSERT INTO organizations_roles (organization_id, role) VALUES ($1, $2)`
 	for _, role := range roles {
 		if _, err := tx.Exec(queryRoles, org.ID, role); err != nil {

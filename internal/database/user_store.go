@@ -77,7 +77,11 @@ func NewPostgresUserStore(db *sql.DB, Logger *slog.Logger) *PostgresUserStore {
 type UserStore interface {
 	CreateUser(user *User) error
 	GetUserByEmail(email string) (*User, error)
+	GetUserByID(id uuid.UUID) (*User, error)
+	GetUsersByOrganization(orgID uuid.UUID) ([]*User, error)
 	UpdateUser(user *User) error
+	DeleteUser(id uuid.UUID) error
+	LayoffUser(id uuid.UUID, reason string) error
 }
 
 func (pgus *PostgresUserStore) CreateUser(user *User) error {
@@ -157,4 +161,119 @@ func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 		return sql.ErrNoRows
 	}
 	return nil
+}
+
+func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
+	var user User
+	query := `SELECT id, full_name, email, password_hash, user_role, organization_id, created_at, updated_at 
+		FROM users WHERE id=$1`
+
+	var hash []byte
+	err := pgus.db.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.FullName,
+		&user.Email,
+		&hash,
+		&user.UserRole,
+		&user.OrganizationID,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	user.PasswordHash.hash = hash
+	return &user, nil
+}
+
+func (pgus *PostgresUserStore) GetUsersByOrganization(orgID uuid.UUID) ([]*User, error) {
+	query := `SELECT id, full_name, email, user_role, organization_id, created_at, updated_at 
+		FROM users WHERE organization_id=$1 ORDER BY created_at DESC`
+
+	rows, err := pgus.db.Query(query, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(
+			&user.ID,
+			&user.FullName,
+			&user.Email,
+			&user.UserRole,
+			&user.OrganizationID,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (pgus *PostgresUserStore) DeleteUser(id uuid.UUID) error {
+	query := `DELETE FROM users WHERE id=$1`
+	res, err := pgus.db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (pgus *PostgresUserStore) LayoffUser(id uuid.UUID, reason string) error {
+	tx, err := pgus.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Get user info before deletion
+	var userName, userEmail string
+	var orgID uuid.UUID
+	getUserQuery := `SELECT full_name, email, organization_id FROM users WHERE id=$1`
+	err = tx.QueryRow(getUserQuery, id).Scan(&userName, &userEmail, &orgID)
+	if err != nil {
+		return err
+	}
+
+	// Insert layoff record with user info
+	layoffQuery := `INSERT INTO layoffs_hirings (id, user_id, user_name, user_email, organization_id, action, reason, action_date) 
+		VALUES ($1, $2, $3, $4, $5, 'layoff', $6, CURRENT_TIMESTAMP)`
+	_, err = tx.Exec(layoffQuery, uuid.New(), id, userName, userEmail, orgID, reason)
+	if err != nil {
+		return err
+	}
+
+	// Delete the user
+	deleteQuery := `DELETE FROM users WHERE id=$1`
+	res, err := tx.Exec(deleteQuery, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return tx.Commit()
 }
