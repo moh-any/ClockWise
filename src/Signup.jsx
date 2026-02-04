@@ -28,13 +28,13 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    console.log("Signup submitted", {
-      organizationName,
-      address,
-      email,
-      password,
-      colors: [color1, color2, color3],
-    })
+
+    const colors = [color1, color2, color3]
+    localStorage.setItem("orgColors", JSON.stringify(colors))
+
+    console.log("Colors saved:", colors)
+
+    window.location.href = "/admin"
   }
 
   return (
