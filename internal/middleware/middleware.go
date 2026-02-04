@@ -36,8 +36,8 @@ func NewAuthMiddleware(userStore database.UserStore) (*jwt.GinJWTMiddleware, err
 	})
 }
 
-func payloadFunc() func(data interface{}) gojwt.MapClaims {
-	return func(data interface{}) gojwt.MapClaims {
+func payloadFunc() func(data any) gojwt.MapClaims {
+	return func(data any) gojwt.MapClaims {
 		if v, ok := data.(*database.User); ok {
 			return gojwt.MapClaims{
 				"id":              v.ID.String(),
@@ -51,8 +51,8 @@ func payloadFunc() func(data interface{}) gojwt.MapClaims {
 	}
 }
 
-func identityHandler() func(c *gin.Context) interface{} {
-	return func(c *gin.Context) interface{} {
+func identityHandler() func(c *gin.Context) any {
+	return func(c *gin.Context) any {
 		claims := jwt.ExtractClaims(c)
 		return &database.User{
 			ID:             uuid.MustParse(claims["id"].(string)),
@@ -64,8 +64,8 @@ func identityHandler() func(c *gin.Context) interface{} {
 	}
 }
 
-func authenticator(userStore database.UserStore) func(c *gin.Context) (interface{}, error) {
-	return func(c *gin.Context) (interface{}, error) {
+func authenticator(userStore database.UserStore) func(c *gin.Context) (any, error) {
+	return func(c *gin.Context) (any, error) {
 		var loginVals Login
 		if err := c.ShouldBind(&loginVals); err != nil {
 			return "", jwt.ErrMissingLoginValues
