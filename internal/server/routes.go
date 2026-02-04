@@ -53,8 +53,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Role management
 	organization := r.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
-	organization.PUT("/")         // Update Organization
+
 	organization.GET("/")         // Get organization details
+	organization.PUT("/")         // Update Organization
 	organization.POST("/request") // Request Calloff from organization Employees Only
 
 	dashboard := organization.Group("/dashboard")
@@ -62,8 +63,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("/")         // Get Schedule
-	schedule.POST("/refresh") // Refresh Schedule
 	schedule.PUT("/")         // Edit Schedule
+	schedule.POST("/refresh") // Refresh Schedule
 
 	insights := organization.Group("/insights")
 	insights.GET("/") // Get All insights
@@ -92,6 +93,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	rules := organization.Group("/rules") // Rules of the organization
 	rules.GET("/")                        // Get all the rules of the organization
 	rules.PUT("/")                        // Edit the rules of the organization
+
 	return r
 }
 

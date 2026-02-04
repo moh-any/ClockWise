@@ -17,12 +17,12 @@ import (
 )
 
 type Server struct {
-	port       int
-	db         database.Service
-	orgHandler *api.OrgHandler
-	userStore  database.UserStore
-	orgStore   database.OrgStore
-	Logger     *slog.Logger
+	port        int
+	db          database.Service
+	orgHandler  *api.OrgHandler
+	userStore   database.UserStore
+	orgStore    database.OrgStore
+	Logger      *slog.Logger
 }
 
 func NewServer(Logger *slog.Logger) *http.Server {
@@ -46,12 +46,12 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
 
 	NewServer := &Server{
-		port:       port,
-		db:         dbService,
-		userStore:  userStore,
-		orgStore:   orgStore,
-		orgHandler: orgHandler,
-		Logger:     Logger,
+		port:        port,
+		db:          dbService,
+		userStore:   userStore,
+		orgStore:    orgStore,
+		orgHandler:  orgHandler,
+		Logger:      Logger,
 	}
 
 	// Declare Server config

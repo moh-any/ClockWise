@@ -57,7 +57,7 @@ func (s *CSVUploadService) ParseCSV(file multipart.File) (*CSVData, error) {
 			if j < len(records[i]) {
 				row[header] = records[i][j]
 			} else {
-				row[header] = "" // Handle missing values
+				row[header] = "" 
 			}
 		}
 		rows = append(rows, row)
