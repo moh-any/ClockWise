@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import "./AdminDashboard.css"
+import api from "./services/api"
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
@@ -7,11 +8,17 @@ function AdminDashboard() {
   const [secondaryColor, setSecondaryColor] = useState("#7B68EE")
   const [accentColor, setAccentColor] = useState("#FF6B6B")
 
-  const [totalHeadcount, setTotalHeadcount] = useState(247)
-  const [laborCost, setLaborCost] = useState(42500)
-  const [revenue, setRevenue] = useState(98000)
-  const [currentlyClocked, setCurrentlyClocked] = useState(87)
-  const [expectedClocked, setExpectedClocked] = useState(95)
+  // Loading and error states
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  // Data from API
+  const [staffingSummary, setStaffingSummary] = useState(null)
+  const [totalHeadcount, setTotalHeadcount] = useState(0)
+  const [laborCost, setLaborCost] = useState(0)
+  const [revenue, setRevenue] = useState(0)
+  const [currentlyClocked, setCurrentlyClocked] = useState(0)
+  const [expectedClocked, setExpectedClocked] = useState(0)
 
   const [aiAlerts, setAiAlerts] = useState([
     {
@@ -137,7 +144,35 @@ function AdminDashboard() {
         wrapper.style.setProperty("--accent-contrast", getContrastColor(accent))
       }
     }
+
+    // Fetch staffing summary data
+    fetchStaffingData()
   }, [])
+
+  const fetchStaffingData = async () => {
+    try {
+      setLoading(true)
+      setError("")
+      
+      const summary = await api.staffing.getStaffingSummary()
+      setStaffingSummary(summary)
+      
+      // Update KPI values from API response
+      if (summary) {
+        setTotalHeadcount(summary.total_headcount || 0)
+        setLaborCost(summary.labor_cost || 0)
+        setRevenue(summary.revenue || 0)
+        setCurrentlyClocked(summary.currently_clocked || 0)
+        setExpectedClocked(summary.expected_clocked || 0)
+      }
+    } catch (err) {
+      console.error("Error fetching staffing data:", err)
+      setError(err.message || "Failed to load dashboard data")
+      // Keep default values if API fails
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const renderHomeDashboard = () => (
     <div className="admin-dashboard-content">
@@ -804,12 +839,36 @@ function AdminDashboard() {
 
       {/* Main Content Area */}
       <main className="admin-main-content">
-        {activeTab === "home" && renderHomeDashboard()}
-        {activeTab === "schedule" && renderMasterSchedule()}
-        {activeTab === "analytics" && renderAnalytics()}
-        {activeTab === "planning" && renderPlanning()}
-        {activeTab === "settings" && renderOrgSettings()}
-        {activeTab === "profile" && renderProfile()}
+        {loading && (
+          <div className="admin-loading-overlay">
+            <div className="admin-loading-spinner"></div>
+            <p>Loading dashboard data...</p>
+          </div>
+        )}
+        
+        {error && !loading && (
+          <div className="admin-error-banner">
+            <span className="admin-error-icon">!</span>
+            <span>{error}</span>
+            <button 
+              className="admin-error-retry"
+              onClick={fetchStaffingData}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {activeTab === "home" && renderHomeDashboard()}
+            {activeTab === "schedule" && renderMasterSchedule()}
+            {activeTab === "analytics" && renderAnalytics()}
+            {activeTab === "planning" && renderPlanning()}
+            {activeTab === "settings" && renderOrgSettings()}
+            {activeTab === "profile" && renderProfile()}
+          </>
+        )}
       </main>
     </div>
   )

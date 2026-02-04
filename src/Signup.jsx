@@ -1,17 +1,21 @@
 import { useState } from "react"
 import "./Signup.css"
+import api from "./services/api"
 
 function Signup({ onClose, onSwitchToLogin, isClosing }) {
   const [organizationName, setOrganizationName] = useState("")
   const [address, setAddress] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
   const [color1, setColor1] = useState("")
   const [color2, setColor2] = useState("")
   const [color3, setColor3] = useState("")
   const [hexInput1, setHexInput1] = useState("")
   const [hexInput2, setHexInput2] = useState("")
   const [hexInput3, setHexInput3] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleHexChange = (colorSetter, hexSetter, value) => {
     const hex = value.replace("#", "")
@@ -26,15 +30,39 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
     hexSetter(value.replace("#", ""))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-    const colors = [color1, color2, color3]
-    localStorage.setItem("orgColors", JSON.stringify(colors))
+    try {
+      // Save colors to localStorage first
+      const colors = [color1, color2, color3]
+      localStorage.setItem("orgColors", JSON.stringify(colors))
 
-    console.log("Colors saved:", colors)
+      // Register organization with backend
+      const registrationData = {
+        org_name: organizationName,
+        org_address: address || undefined,
+        admin_email: email,
+        admin_full_name: fullName,
+        admin_password: password,
+      }
 
-    window.location.href = "/admin"
+      const response = await api.auth.register(registrationData)
+
+      console.log("Registration successful:", response)
+
+      // Auto-login after registration
+      await api.auth.login({ email, password })
+
+      // Redirect to admin dashboard
+      window.location.href = "/admin"
+    } catch (err) {
+      console.error("Registration error:", err)
+      setError(err.message || "Registration failed. Please try again.")
+      setLoading(false)
+    }
   }
 
   return (
@@ -47,6 +75,9 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
           <h2 className="signup-title">Create Account</h2>
           <p className="signup-subtitle">Join Clockwise today</p>
         </div>
+
+        {error && <div className="signup-error-message">{error}</div>}
+
         <form className="signup-form" onSubmit={handleSubmit}>
           <div className="signup-form-group">
             <label className="signup-label" htmlFor="organizationName">
@@ -60,11 +91,12 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               onChange={(e) => setOrganizationName(e.target.value)}
               placeholder="Enter your organization name"
               required
+              disabled={loading}
             />
           </div>
           <div className="signup-form-group">
             <label className="signup-label" htmlFor="address">
-              Address
+              Address (Optional)
             </label>
             <input
               className="signup-input"
@@ -73,12 +105,27 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Enter your address"
+              disabled={loading}
+            />
+          </div>
+          <div className="signup-form-group">
+            <label className="signup-label" htmlFor="fullName">
+              Full Name
+            </label>
+            <input
+              className="signup-input"
+              type="text"
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
               required
+              disabled={loading}
             />
           </div>
           <div className="signup-form-group">
             <label className="signup-label" htmlFor="email">
-              Email
+              Admin Email
             </label>
             <input
               className="signup-input"
@@ -88,6 +135,7 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              disabled={loading}
             />
           </div>
           <div className="signup-form-group">
@@ -100,8 +148,10 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Enter your password (min 6 characters)"
               required
+              minLength="6"
+              disabled={loading}
             />
           </div>
           <div className="signup-form-group">
@@ -220,8 +270,12 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               </div>
             </div>
           </div>
-          <button type="submit" className="signup-submit-btn">
-            Sign Up
+          <button
+            type="submit"
+            className="signup-submit-btn"
+            disabled={loading}
+          >
+            {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
         <div className="signup-footer">

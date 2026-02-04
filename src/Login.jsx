@@ -1,13 +1,34 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import "./Login.css"
+import api from "./services/api"
 
 function Login({ onClose, onSwitchToSignup, isClosing }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Login submitted", { email, password })
+    setError("")
+    setLoading(true)
+
+    try {
+      // Attempt login
+      const response = await api.auth.login({ email, password })
+
+      // Close modal on success
+      onClose()
+
+      // Navigate to admin dashboard
+      navigate("/admin")
+    } catch (err) {
+      setError(err.message || "Login failed. Please check your credentials.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -20,6 +41,7 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
           <h2 className="login-title">Welcome Back</h2>
           <p className="login-subtitle">Log in to your account</p>
         </div>
+        {error && <div className="login-error-message">{error}</div>}
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-form-group">
             <label className="login-label" htmlFor="email">
@@ -33,6 +55,7 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              disabled={loading}
             />
           </div>
           <div className="login-form-group">
@@ -47,6 +70,8 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              minLength="6"
+              disabled={loading}
             />
           </div>
           <div className="login-options">
@@ -58,8 +83,8 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
               Forgot password?
             </a>
           </div>
-          <button type="submit" className="login-submit-btn">
-            Log In
+          <button type="submit" className="login-submit-btn" disabled={loading}>
+            {loading ? "Logging In..." : "Log In"}
           </button>
         </form>
         <div className="login-footer">
