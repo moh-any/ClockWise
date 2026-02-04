@@ -11,6 +11,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @title           ClockWise API
+// @version         1.0.0
+// @description     ClockWise is a workforce management and scheduling platform for organizations.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   ClockWise API Support
+// @contact.email  ziadeliwa@aucegypt.edu
+
+// @license.name  MIT License
+// @license.url   https://opensource.org/license/mit
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 
@@ -21,6 +41,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: true,
 	}))
 
+	api := r.Group("/api")
 	r.GET("/health", s.healthHandler)
 
 	authMiddleware, err := middleware.NewAuthMiddleware(s.userStore)
@@ -33,11 +54,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}
 
 	// --- Public Routes ---
-	r.POST("/login", authMiddleware.LoginHandler)
-	r.POST("/register", s.orgHandler.RegisterOrganization)
+	api.POST("/login", authMiddleware.LoginHandler)
+	api.POST("/register", s.orgHandler.RegisterOrganization)
 
 	// --- Protected Routes ---
-	auth := r.Group("/auth")
+	auth := api.Group("/auth")
 	auth.Use(authMiddleware.MiddlewareFunc())
 	auth.POST("/refresh_token", authMiddleware.RefreshHandler)
 	auth.POST("/logout", authMiddleware.LogoutHandler)
@@ -51,7 +72,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	})
 
 	// Role management
-	organization := r.Group("/:org")
+	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
 	organization.GET("/")         // Get organization details
@@ -96,6 +117,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	return r
 }
 
+// healthHandler godoc
+// @Summary      Health check
+// @Description  Returns the health status of the API and database connection
+// @Tags         Health
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]interface{} "API is healthy"
+// @Router       /health [get]
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }

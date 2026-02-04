@@ -41,6 +41,17 @@ type DelegateUserRequest struct {
 	Role     string `json:"role" binding:"required,oneof=manager staff"`
 }
 
+// RegisterOrganization godoc
+// @Summary      Register a new organization
+// @Description  Creates a new organization along with an admin user account
+// @Tags         Organizations
+// @Accept       json
+// @Produce      json
+// @Param        request body RegisterOrgRequest true "Organization registration details"
+// @Success      201 {object} map[string]interface{} "Organization registered successfully"
+// @Failure      400 {object} map[string]string "Invalid request body"
+// @Failure      500 {object} map[string]string "Registration failed"
+// @Router       /register [post]
 func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	h.Logger.Info("register organization request received")
 
@@ -76,6 +87,21 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	})
 }
 
+// DelegateUser godoc
+// @Summary      Create a new employee
+// @Description  Delegates/creates a new user in the organization. Only admins and managers can perform this action.
+// @Tags         Staffing
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        org path string true "Organization ID"
+// @Param        request body DelegateUserRequest true "New employee details"
+// @Success      201 {object} map[string]interface{} "User delegated successfully"
+// @Failure      400 {object} map[string]string "Invalid request body"
+// @Failure      401 {object} map[string]string "Unauthorized"
+// @Failure      403 {object} map[string]string "Staff cannot delegate users"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /{org}/staffing [post]
 func (h *OrgHandler) DelegateUser(c *gin.Context) {
 	h.Logger.Info("delegate user request received")
 

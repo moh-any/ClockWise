@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
-	"net/http"
 	"os/signal"
+	"net/http"
 	"syscall"
 	"time"
-
 	"github.com/clockwise/clockwise/backend/internal/server"
 )
 
