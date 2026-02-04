@@ -22,6 +22,7 @@ type Server struct {
 	orgHandler      *api.OrgHandler
 	staffingHandler *api.StaffingHandler
 	employeeHandler *api.EmployeeHandler
+	insightHandler  *api.InsightHandler
 	userStore       database.UserStore
 	orgStore        database.OrgStore
 	requestStore    database.RequestStore

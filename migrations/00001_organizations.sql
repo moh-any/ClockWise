@@ -16,10 +16,28 @@ CREATE TABLE IF NOT EXISTS organizations(
 CREATE TABLE IF NOT EXISTS organizations_roles (
     organization_id UUID,
     role VARCHAR(50),
+    min_needed_per_shift INTEGER NOT NULL,
+    items_per_role_per_hour INTEGER NOT NULL,
+    need_for_demand BOOLEAN NOT NULL CHECK ((role = 'manager' AND need_for_demand = false) OR (role != manager)),
     PRIMARY KEY (organization_id,role),
     FOREIGN KEY (organization_id) REFERENCES organizations(id)  
 );
 
+CREATE TABLE IF NOT EXISTS organizations_rules (
+    organization_id UUID PRIMARY KEY REFERENCES organizations(id),
+    shift_max_hours INTEGER NOT NULL, 
+    shift_min_hours INTEGER NOT NULL, 
+    max_weekly_hours INTEGER NOT NULL, 
+    min_weekly_hours INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS organizations_operating_hours (
+    organization_id UUID REFERENCES organizations(id),
+    weekday CHAR CHECK (weekday IN ('sunday','monday','tuesday','wednesday','thursday','friday','saturday')),
+    opening_time TIMESTAMP NOT NULL,
+    closing_time TIMESTAMP NOT NULL,
+    PRIMARY KEY (organization_id, weekday) 
+);
 -- +goose StatementEnd
 
 -- +goose Down

@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/clockwise/clockwise/backend/internal/database"
 	"github.com/clockwise/clockwise/backend/internal/middleware"
@@ -109,7 +110,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 	}
 
 	// Check permission - only admin and manager can upload
-	if user.UserRole == "staff" || user.UserRole == "employee" {
+	if user.UserRole != "admin" && user.UserRole != "manager" {
 		h.Logger.Warn("forbidden upload attempt", "user_id", user.ID, "role", user.UserRole)
 		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to upload employees"})
 		return
@@ -131,7 +132,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 	}
 
 	// Validate required headers
-	requiredHeaders := map[string]bool{"full_name": false, "email": false, "role": false}
+	requiredHeaders := map[string]bool{"full_name": false, "email": false, "role": false, "salary": false}
 	for _, header := range csvData.Headers {
 		if _, ok := requiredHeaders[header]; ok {
 			requiredHeaders[header] = true
@@ -159,7 +160,9 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		fullName := row["full_name"]
 		email := row["email"]
 		role := row["role"]
+		salary, ok := row["salary"]
 
+		
 		// Validate role
 		if role != "manager" && role != "staff" && role != "employee" {
 			failed = append(failed, map[string]string{
@@ -168,7 +171,20 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 			})
 			continue
 		}
-
+		
+		var empSalary float64
+		if ok {
+			empSalary, err := strconv.ParseFloat(salary, 32)
+			if err != nil {
+				failed = append(failed, map[string]string {
+					"email": email,
+					"error": "invalid salary format. Please use only numbers in this format (123.12)",
+				})
+				h.Logger.Error("error parsing float", "error", err.Error(), "for user", email)
+				c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{"error":"you have error in salaries column use the specified format int the specs"})
+			}
+			h.Logger.Info("empolyee salary retrieved",email,empSalary)
+		}
 		// Generate temporary password
 		tempPassword, err := utils.GenerateRandomPassword(8)
 		if err != nil {
@@ -184,6 +200,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 			Email:          email,
 			UserRole:       role,
 			OrganizationID: user.OrganizationID,
+			SalaryPerHour:         &empSalary,
 		}
 
 		if err := newUser.PasswordHash.Set(tempPassword); err != nil {
