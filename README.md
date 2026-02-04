@@ -1,10 +1,10 @@
 # ClockWise: Intelligent Shift Planning System
 
-![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.25.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12.4-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![REST API](https://img.shields.io/badge/REST-API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Make](https://img.shields.io/badge/Make-A42E2B?style=for-the-badge&logo=gnu&logoColor=white)
+![Gin](https://img.shields.io/badge/Gin-1.11-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 
 ---
 
@@ -32,41 +32,122 @@ ClockWise is the **Shift Wizard**—an intelligent system that monitors schedule
 - **Demand Forecasting**: Predict customer traffic patterns based on historical data, day-of-week trends, and external events
 - **Intelligent Shift Recommendations**: Real-time suggestions for optimal staffing levels with coverage analysis
 - **Call-Off Management**: Quickly identify coverage gaps and auto-suggest solutions when employees call out
-- **PTO & Leave Management**: Track employee time-off requests and maintain schedule integrity
+- **PTO & Leave Management**: Track employee time-off requests (calloff, holiday, resign) with approval workflow
 - **Schedule Optimization**: Generate balanced schedules that respect employee preferences while meeting business needs
 - **Labor Cost Analytics**: Monitor labor costs in real-time with predictive cost projections
-- **Performance Metrics**: Dashboard with KPIs for coverage rates, labor cost efficiency, and service quality
-- **Employee Management**: Comprehensive employee profiles with skills, availability, and preferences
-- **Organization Management**: Multi-location support with centralized management capabilities
+- **Employee Management**: Comprehensive employee profiles with layoff/hiring history tracking
+- **Organization Management**: Multi-tenant support with role-based access control (admin, manager, employee)
+- **Bulk Employee Upload**: CSV-based bulk employee import with automatic welcome emails
 
 ---
 
 ## Technologies Used
 
 ### Backend
-- **Language**: Go 1.x
-- **Framework**: RESTful API with Go standard library
-- **Database**: PostgreSQL 12.4
+- **Language**: Go 1.25.5
+- **Framework**: Gin Web Framework v1.11
+- **Database**: PostgreSQL 12.4 (Alpine)
+- **Authentication**: JWT with gin-jwt/v3
+- **Password Hashing**: bcrypt via golang.org/x/crypto
 
 ### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Database Migration**: Custom migration system (SQL-based)
-- **Authentication**: Middleware-based request handling
+- **Containerization**: Docker & Docker Compose (2 containers: API + Database)
+- **Database Migration**: Goose v3 (SQL-based migrations)
+- **Email Service**: SMTP-based notifications
+- **Database Driver**: pgx/v5
 
-### Tools & Utilities
-- **Build System**: GNU Make
-- **Database**: PostgreSQL with Alpine Linux container
-- **Configuration**: Environment-based configuration via `.env`
+### Key Dependencies
+- `github.com/gin-gonic/gin` - HTTP web framework
+- `github.com/appleboy/gin-jwt/v3` - JWT middleware
+- `github.com/jackc/pgx/v5` - PostgreSQL driver
+- `github.com/pressly/goose/v3` - Database migrations
+- `github.com/google/uuid` - UUID generation
+- `github.com/gin-contrib/cors` - CORS middleware
+
+---
+
+## Database Schema
+
+### Tables
+
+#### `organizations`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| name | VARCHAR(100) | Organization name (unique) |
+| address | TEXT | Physical address |
+| email | VARCHAR(100) | Contact email (unique) |
+| hex_code1, hex_code2, hex_code3 | VARCHAR(6) | Brand colors |
+| created_at | TIMESTAMP | Creation timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |
+
+#### `users`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| full_name | VARCHAR(255) | Employee full name |
+| email | VARCHAR(255) | Email address (unique) |
+| password_hash | VARCHAR(255) | bcrypt hashed password |
+| user_role | VARCHAR(50) | Role: admin, manager, employee |
+| organization_id | UUID | Foreign key to organizations |
+| created_at | TIMESTAMP | Creation timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |
+
+#### `organizations_roles`
+| Column | Type | Description |
+|--------|------|-------------|
+| organization_id | UUID | Foreign key to organizations |
+| role | VARCHAR(50) | Role name (composite PK) |
+
+#### `organizations_managers`
+| Column | Type | Description |
+|--------|------|-------------|
+| organization_id | UUID | Foreign key to organizations |
+| manager_id | UUID | Foreign key to users |
+
+#### `requests`
+| Column | Type | Description |
+|--------|------|-------------|
+| request_id | UUID | Primary key |
+| employee_id | UUID | Foreign key to users |
+| type | VARCHAR(20) | Type: calloff, holiday, resign |
+| message | TEXT | Request message |
+| submitted_at | TIMESTAMP | Submission timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |
+| status | VARCHAR(10) | Status: accepted, declined, in queue |
+
+#### `layoffs_hirings`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Employee ID |
+| user_name | VARCHAR(255) | Employee name (archived) |
+| user_email | VARCHAR(255) | Employee email (archived) |
+| organization_id | UUID | Foreign key to organizations |
+| action | VARCHAR(20) | Action: layoff, hiring |
+| reason | TEXT | Reason for action |
+| action_date | TIMESTAMP | Action timestamp |
+
+#### `schedules`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
 
 ---
 
 ## Installation
 
 ### Prerequisites
-- Go 1.x or higher
 - Docker and Docker Compose
-- PostgreSQL CLI (optional, for local development)
-- Make utility
+
+### Docker Containers
+
+The application runs in two containers:
+
+| Container | Name | Description |
+|-----------|------|-------------|
+| **cw_app** | ClockwiseBackend | Go API server |
+| **db** | ClockwiseDB | PostgreSQL 12.4 database |
 
 ### Step-by-Step Setup
 
@@ -79,94 +160,168 @@ cd ClockWise
 #### 2. Configure Environment Variables
 Create a `.env` file in the project root:
 ```env
-DB_HOST=db
+# Database Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+POSTGRES_DB=clockwise
 DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=clockwise
-API_PORT=8080
+DB_HOST=db
+DB_SCHEMA=public
+
+# API Configuration
+PORT=8080
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key
+
+# SMTP Configuration (optional - falls back to mock emails if not set)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your_email
+SMTP_PASSWORD=your_email_password
 ```
 
-#### 3. Start PostgreSQL Container
+#### 3. Start All Services
 ```bash
-make docker-run
+docker-compose up -d
 ```
-This will spin up a PostgreSQL 12.4 container with persistent data storage.
+This will:
+- Build the Go application from Dockerfile
+- Start PostgreSQL 12.4 container with persistent volume
+- Run database migrations automatically on startup
+- Start the API server
 
-#### 4. Run Database Migrations
-Migrations are automatically applied on application startup. The migration files are located in the `migrations/` directory and include:
-- Organizations schema
-- Users and authentication
-- Marketing campaigns
-- Schedule management
-- Orders and delivery
-- Layoff and hiring records
-
-#### 5. Build the Application
+#### 4. Verify Services
 ```bash
-make build
+# Check container status
+docker-compose ps
+
+# Check API health
+curl http://localhost:8080/health
+
+# View logs
+docker-compose logs -f cw_app
 ```
 
-#### 6. Run the Application
-```bash
-make run
-```
 The API will be available at `http://localhost:8080`
+
+### Running Without Docker (Development)
+
+```bash
+# Start only the database
+docker-compose up -d db
+
+# Set DB_HOST to localhost in .env
+DB_HOST=localhost
+
+# Run the application
+go run cmd/api/main.go
+```
 
 ---
 
-## Usage
+## API Endpoints
 
-### API Endpoints
+### Public Routes
 
-#### Organizations
-- `POST /api/organizations` - Create new organization
-- `GET /api/organizations/:id` - Get organization details
-- `PUT /api/organizations/:id` - Update organization
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/login` | User authentication (returns JWT) |
+| POST | `/register` | Register new organization with admin |
+| GET | `/health` | Health check with DB stats |
 
-#### Users/Employees
-- `POST /api/users` - Create new user/employee
-- `GET /api/users/:id` - Get user details
-- `PUT /api/users/:id` - Update user profile
+### Auth Routes (Protected)
 
-#### Schedules & Shifts
-- `GET /api/schedules/:org_id` - View schedules
-- `POST /api/schedules` - Create/update schedules
-- `GET /api/shifts/:id` - Get shift details
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/refresh_token` | Refresh JWT token |
+| POST | `/auth/logout` | Logout user |
+| GET | `/auth/me` | Get current user info & claims |
 
-#### Demand Forecasting
-- `GET /api/forecast/:org_id` - Get demand forecast
-- `GET /api/insights/:org_id` - Get staffing insights
+### Organization Routes (Protected)
 
-### Command Line Usage
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/` | Get organization details |
+| POST | `/:org/request` | Submit call-off/leave request |
 
+### Dashboard Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/dashboard/` | Get dashboard data |
+| GET | `/:org/dashboard/schedule/` | Get schedule |
+| PUT | `/:org/dashboard/schedule/` | Edit schedule |
+| POST | `/:org/dashboard/schedule/refresh` | Refresh/regenerate schedule |
+
+### Insights Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/insights/` | Get staffing insights |
+
+### Staffing Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/staffing/` | Get staffing summary (total, by role) |
+| POST | `/:org/staffing/` | Delegate/create new user |
+| POST | `/:org/staffing/upload` | Bulk upload employees via CSV |
+| GET | `/:org/staffing/employees/` | Get all employees |
+
+### Employee Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/staffing/employees/:id/` | Get employee details |
+| DELETE | `/:org/staffing/employees/:id/layoff` | Layoff employee |
+| GET | `/:org/staffing/employees/:id/schedule` | Get employee schedule |
+| PUT | `/:org/staffing/employees/:id/schedule` | Edit employee schedule |
+| GET | `/:org/staffing/employees/:id/requests` | Get employee requests |
+| POST | `/:org/staffing/employees/:id/requests/approve` | Approve request |
+| POST | `/:org/staffing/employees/:id/requests/decline` | Decline request |
+
+### Preferences Routes (Employees Only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/preferences/` | Get employee preferences |
+| PUT | `/:org/preferences/` | Update preferences |
+
+### Rules Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/:org/rules/` | Get organization rules |
+| PUT | `/:org/rules/` | Update organization rules |
+
+---
+
+## Authentication
+
+### JWT Token Structure
+
+Access tokens contain the following claims:
+```json
+{
+  "id": "user-uuid",
+  "full_name": "John Doe",
+  "email": "john@example.com",
+  "user_role": "admin",
+  "organization_id": "org-uuid"
+}
+```
+
+### Token Configuration
+- **Access Token Timeout**: 15 minutes
+- **Refresh Token Timeout**: 7 days
+- **Token Lookup**: Header (`Authorization: Bearer <token>`), Query (`?token=`), Cookie (`access_token`)
+
+### Example Login Request
 ```bash
-# Run complete build with tests
-make all
-
-# Build the application only
-make build
-
-# Run the application
-make run
-
-# Start database container
-make docker-run
-
-# Stop database container
-make docker-down
-
-# Run integration tests
-make itest
-
-# Run test suite
-make test
-
-# Enable live reload during development
-make watch
-
-# Clean build artifacts
-make clean
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@example.com", "password": "password123"}'
 ```
 
 ---
@@ -182,51 +337,37 @@ make clean
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   API Layer (REST)                       │
-│        ┌──────────────────────────────────────┐         │
-│        │  Organization Handlers               │         │
-│        │  User/Employee Handlers              │         │
-│        │  Schedule & Shift Handlers           │         │
-│        │  Demand Forecasting Handlers         │         │
-└────────────┬───────────────────────────────────┘
-             │
-             ▼
+│           Docker Container: ClockwiseBackend             │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │               API Layer (Gin REST)                 │  │
+│  │    Organization | Staffing | Employee | Dashboard  │  │
+│  └────────────────────┬──────────────────────────────┘  │
+│                       │                                  │
+│  ┌────────────────────▼──────────────────────────────┐  │
+│  │              Middleware Layer                      │  │
+│  │   JWT Auth | Org Validation | CORS | Logging      │  │
+│  └────────────────────┬──────────────────────────────┘  │
+│                       │                                  │
+│  ┌────────────────────▼──────────────────────────────┐  │
+│  │          Business Logic Layer (Services)          │  │
+│  │     Email Service | CSV Upload | Scheduling       │  │
+│  └────────────────────┬──────────────────────────────┘  │
+│                       │                                  │
+│  ┌────────────────────▼──────────────────────────────┐  │
+│  │           Data Access Layer (Stores)              │  │
+│  │    OrgStore | UserStore | RequestStore | DB Pool  │  │
+│  └────────────────────┬──────────────────────────────┘  │
+└───────────────────────┼─────────────────────────────────┘
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────────┐
-│              Middleware Layer                            │
-│     ┌─────────────────────────────────────┐             │
-│     │  Authentication & Authorization      │             │
-│     │  Request/Response Logging            │             │
-│     │  Error Handling                      │             │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│            Business Logic Layer (Services)               │
-│     ┌─────────────────────────────────────┐             │
-│     │  Email Service                       │             │
-│     │  Forecasting Engine                  │             │
-│     │  Scheduling Optimizer                │             │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│             Data Access Layer                            │
-│     ┌─────────────────────────────────────┐             │
-│     │  Organization Store                  │             │
-│     │  User Store                          │             │
-│     │  Schedule Store                      │             │
-│     │  Database Connection Pool            │             │
-└────────────┬────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│         PostgreSQL Database (Docker Container)           │
-│     ┌─────────────────────────────────────┐             │
-│     │  Organizations                      │             │
-│     │  Users & Authentication              │             │
-│     │  Schedules & Shifts                  │             │
-│     │  Forecasts & Analytics               │             │
-│     │  Orders & Delivery Data              │             │
+│            Docker Container: ClockwiseDB                 │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │           PostgreSQL 12.4 (Alpine)                │  │
+│  │  organizations | users | requests | schedules     │  │
+│  │  layoffs_hirings | organizations_roles            │  │
+│  └───────────────────────────────────────────────────┘  │
+│              Volume: postgres-data                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -236,63 +377,124 @@ make clean
 ClockWise/
 ├── cmd/
 │   └── api/
-│       └── main.go                 # Application entry point
+│       └── main.go                 # Application entry point with graceful shutdown
 ├── internal/
 │   ├── api/
-│   │   ├── org_handler.go         # Organization endpoints
-│   │   └── user_handler.go        # User endpoints
+│   │   ├── org_handler.go          # Organization & delegation endpoints
+│   │   ├── staffing_handler.go     # Staffing summary & CSV upload
+│   │   ├── employee_handler.go     # Employee CRUD & request management
+│   │   ├── dashboard_handler.go    # Dashboard endpoints
+│   │   ├── insights_handler.go     # Analytics & insights
+│   │   ├── schedule_handler.go     # Schedule management
+│   │   └── rules_handler.go        # Organization rules
 │   ├── database/
-│   │   ├── database.go            # DB connection management
-│   │   ├── org_store.go           # Organization data access
-│   │   └── user_store.go          # User data access
+│   │   ├── database.go             # DB connection & health checks
+│   │   ├── org_store.go            # Organization data access
+│   │   ├── user_store.go           # User CRUD & layoff operations
+│   │   └── request_store.go        # Request data access
 │   ├── middleware/
-│   │   └── middleware.go          # HTTP middleware
+│   │   └── middleware.go           # JWT auth & ValidateOrgAccess
 │   ├── server/
-│   │   ├── server.go              # Server setup
-│   │   └── routes.go              # Route definitions
+│   │   ├── server.go               # Server setup & dependency injection
+│   │   └── routes.go               # Route definitions
 │   ├── service/
-│   │   └── email_service.go       # Email notifications
+│   │   ├── email_service.go        # SMTP email (with mock fallback)
+│   │   └── uploadcsv_service.go    # CSV parsing service
 │   └── utils/
-│       └── utils.go               # Utility functions
+│       └── utils.go                # Password generation utilities
 ├── migrations/
 │   ├── 00001_organizations.sql
 │   ├── 00002_users.sql
-│   ├── 00003_marketing_campaigns.sql
 │   ├── 00004_schedules.sql
-│   ├── 00005_orders.sql
-│   ├── 00006_delivery.sql
-│   ├── 00007_tables.sql
 │   ├── 00008_layoffs_hirings.sql
-│   └── 00009_organizations_managers.sql
-├── docker-compose.yml             # Docker configuration
-├── go.mod                          # Go dependencies
-├── Makefile                        # Build automation
-└── README.md                       # This file
+│   ├── 00009_organizations_managers.sql
+│   ├── 00010_requests.sql
+│   └── fs.go                       # Embedded migrations filesystem
+├── Dockerfile                      # Multi-stage Go build
+├── docker-compose.yml              # 2-container orchestration
+├── go.mod                          # Go 1.25.5 dependencies
+└── README.md
 ```
+
+---
+
+## CSV Upload Format
+
+For bulk employee upload via `POST /:org/staffing/upload`:
+
+```csv
+full_name,email,role
+John Doe,john@example.com,employee
+Jane Smith,jane@example.com,manager
+Bob Wilson,bob@example.com,staff
+```
+
+**Required columns:**
+- `full_name` - Employee's full name
+- `email` - Employee's email address
+- `role` - One of: `manager`, `staff`, `employee`
+
+**Response:**
+```json
+{
+  "message": "Bulk upload completed",
+  "created_count": 2,
+  "created": ["john@example.com", "jane@example.com"],
+  "failed_count": 1,
+  "failed": [{"email": "bob@example.com", "error": "duplicate key"}]
+}
+```
+
+Welcome emails are sent automatically to created users with temporary passwords.
 
 ---
 
 ## Development
 
-### Testing
+### Docker Commands
 
 ```bash
-# Run all tests with coverage
-make test
+# Start all services
+docker-compose up -d
 
-# Run integration tests with database
-make itest
+# View logs
+docker-compose logs -f
+
+# Restart services
+docker-compose restart
+
+# Stop all services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# Access database shell
+docker exec -it ClockwiseDB psql -U postgres -d clockwise
 ```
 
-### Live Reload Development
-
-For faster development iteration:
+### Running Tests
 
 ```bash
-make watch
+# Run all tests
+go test ./...
+
+# Run with coverage
+go test -cover ./...
+
+# Run specific package tests
+go test ./internal/database/...
 ```
 
-This enables automatic recompilation when you modify source files.
+### Building Locally
+
+```bash
+# Build binary
+go build -o clockwise cmd/api/main.go
+
+# Run binary
+./clockwise
+```
 
 ---
 
@@ -317,15 +519,9 @@ This enables automatic recompilation when you modify source files.
 - Mobile app for employee scheduling
 - Automated scheduling optimization using AI
 - Integration with social media APIs for trend analysis
-- Real-time notifications and alerts
+- Real-time notifications and alerts (WebSocket)
 - Advanced analytics and reporting dashboard
 - Multi-language support
-
----
-
-## Support & Documentation
-
-For issues, feature requests, or questions, please refer to the project's issue tracker or contact the development team.
 
 ---
 
