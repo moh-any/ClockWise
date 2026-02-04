@@ -1,4 +1,4 @@
-.login-overlay {
+.signup-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -14,30 +14,20 @@
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: loginFadeIn 0.8s ease-in-out;
+  animation: signupFadeIn 0.8s ease-in-out;
+  overflow-y: auto;
+  padding: 20px 0;
 }
 
-.login-overlay.closing {
-  animation: loginFadeOut 0.6s ease-in-out forwards;
+.signup-overlay.closing {
+  animation: signupFadeOut 0.6s ease-in-out forwards;
 }
 
-.login-overlay.closing .login-container {
-  animation: loginSlideDown 0.6s ease-in forwards;
+.signup-overlay.closing .signup-container {
+  animation: signupSlideDown 0.6s ease-in forwards;
 }
 
-.login-overlay::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 0;
-  animation: loginOverlayFade 0.8s ease-in-out;
-}
-
-@keyframes loginFadeIn {
+@keyframes signupFadeIn {
   from {
     opacity: 0;
   }
@@ -46,7 +36,7 @@
   }
 }
 
-@keyframes loginFadeOut {
+@keyframes signupFadeOut {
   from {
     opacity: 1;
   }
@@ -55,7 +45,7 @@
   }
 }
 
-@keyframes loginOverlayFade {
+@keyframes signupOverlayFade {
   from {
     opacity: 0;
   }
@@ -64,21 +54,22 @@
   }
 }
 
-.login-container {
+.signup-container {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 16px;
   padding: 40px;
   width: 90%;
-  max-width: 440px;
+  max-width: 500px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   position: relative;
   z-index: 1;
-  animation: loginSlideUp 0.8s ease-out;
+  animation: signupSlideUp 0.8s ease-out;
+  margin: auto;
 }
 
-@keyframes loginSlideUp {
+@keyframes signupSlideUp {
   from {
     transform: translateY(30px);
     opacity: 0;
@@ -89,7 +80,7 @@
   }
 }
 
-@keyframes loginSlideDown {
+@keyframes signupSlideDown {
   from {
     transform: translateY(0);
     opacity: 1;
@@ -100,7 +91,7 @@
   }
 }
 
-.login-close-btn {
+.signup-close-btn {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -119,17 +110,17 @@
   transition: all 0.5s ease;
 }
 
-.login-close-btn:hover {
+.signup-close-btn:hover {
   color: #000;
   transform: rotate(90deg);
 }
 
-.login-header {
+.signup-header {
   text-align: center;
   margin-bottom: 32px;
 }
 
-.login-title {
+.signup-title {
   font-size: 28px;
   font-weight: 700;
   color: #000000;
@@ -137,7 +128,7 @@
   letter-spacing: -1px;
 }
 
-.login-subtitle {
+.signup-subtitle {
   font-size: 15px;
   color: #444444;
   margin: 0;
@@ -145,26 +136,26 @@
   letter-spacing: -0.3px;
 }
 
-.login-form {
+.signup-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.login-form-group {
+.signup-form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.login-label {
+.signup-label {
   font-size: 14px;
   font-weight: 600;
   color: #000000;
   letter-spacing: -0.3px;
 }
 
-.login-input {
+.signup-input {
   padding: 12px 16px;
   border: 2px solid rgba(0, 0, 0, 0.15);
   border-radius: 50px;
@@ -177,52 +168,128 @@
   background-color: rgba(255, 255, 255, 0.75);
 }
 
-.login-input:focus {
+.signup-input:focus {
   outline: none;
   border-color: #000000;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
   background-color: rgba(255, 255, 255, 0.95);
 }
 
-.login-input::placeholder {
+.signup-input::placeholder {
   color: #999;
 }
 
-.login-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
+.signup-color-description {
+  font-size: 13px;
+  color: #666666;
+  margin: 0 0 8px 0;
+  font-weight: 400;
 }
 
-.login-checkbox-label {
+.signup-color-pickers {
   display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12px 0;
+}
+
+.signup-color-picker-wrapper {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  color: #555555;
+}
+
+.signup-color-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
   cursor: pointer;
-}
-input[type="checkbox"] {
-  accent-color: #000000;
-}
-.login-checkbox {
-  cursor: pointer;
-}
-
-.login-forgot-link {
-  font-size: 14px;
-  color: #000000;
-  text-decoration: none;
-  font-weight: 500;
-  transition: opacity 0.5s ease;
+  border: 3px solid rgba(0, 0, 0, 0.3);
+  background: transparent;
+  overflow: visible;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-.login-forgot-link:hover {
-  opacity: 0.7;
+.signup-color-circle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  border-color: rgba(0, 0, 0, 0.5);
 }
 
-.login-submit-btn {
+.signup-color-circle.has-color {
+  overflow: hidden;
+}
+
+.signup-color-preview {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.plus-icon {
+  position: absolute;
+  top: 49%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 300;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.signup-hex-input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
+  font-family: monospace;
+  text-transform: uppercase;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+.signup-hex-input:focus {
+  outline: none;
+  border-color: #000000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.signup-hex-input::placeholder {
+  color: #999;
+  text-transform: none;
+  font-size: 11px;
+}
+
+.signup-color-input {
+  opacity: 0;
+  position: absolute;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.signup-submit-btn {
   padding: 14px;
   background-color: #000000;
   color: #ffffff;
@@ -240,54 +307,57 @@ input[type="checkbox"] {
   letter-spacing: 0.5px;
 }
 
-.login-submit-btn:hover {
+.signup-submit-btn:hover {
   background-color: #ffffff;
   color: #000000;
   transform: translateY(-2px);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
 
-.login-submit-btn:active {
+.signup-submit-btn:active {
   transform: translateY(0);
 }
 
-.login-footer {
+.signup-footer {
   margin-top: 24px;
   text-align: center;
   padding-top: 24px;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.login-footer-text {
+.signup-footer-text {
   font-size: 14px;
   color: #555555;
   margin: 0;
 }
 
-.login-signup-link {
+.signup-login-link {
   color: #000000;
   text-decoration: none;
   font-weight: 600;
   transition: opacity 0.5s ease;
 }
 
-.login-signup-link:hover {
+.signup-login-link:hover {
   opacity: 0.7;
 }
 
 @media (max-width: 500px) {
-  .login-container {
+  .signup-container {
     padding: 32px 24px;
     width: 95%;
   }
 
-  .login-title {
+  .signup-title {
     font-size: 24px;
   }
 
-  .login-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .signup-color-pickers {
+    gap: 16px;
+  }
+
+  .signup-color-circle {
+    width: 50px;
+    height: 50px;
   }
 }

@@ -1,18 +1,17 @@
 import { useState } from "react"
 import "./Login.css"
 
-function Login({ onClose }) {
+function Login({ onClose, onSwitchToSignup, isClosing }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    // Handle login logic here
     console.log("Login submitted", { email, password })
   }
 
   return (
-    <div className="login-overlay">
+    <div className={`login-overlay ${isClosing ? "closing" : ""}`}>
       <div className="login-container">
         <button className="login-close-btn" onClick={onClose}>
           ×
@@ -66,7 +65,14 @@ function Login({ onClose }) {
         <div className="login-footer">
           <p className="login-footer-text">
             Don't have an account?{" "}
-            <a href="#" className="login-signup-link">
+            <a
+              href="#"
+              className="login-signup-link"
+              onClick={(e) => {
+                e.preventDefault()
+                onSwitchToSignup && onSwitchToSignup()
+              }}
+            >
               Sign up
             </a>
           </p>
