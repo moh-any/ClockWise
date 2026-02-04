@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS organizations_roles (
     role VARCHAR(50),
     min_needed_per_shift INTEGER NOT NULL,
     items_per_role_per_hour INTEGER NOT NULL,
-    need_for_demand BOOLEAN NOT NULL CHECK ((role = 'manager' AND need_for_demand = false) OR (role != manager)),
+    need_for_demand BOOLEAN NOT NULL CHECK ((role = 'manager' AND need_for_demand = false) OR (role != 'manager')),
     PRIMARY KEY (organization_id,role),
     FOREIGN KEY (organization_id) REFERENCES organizations(id)  
 );
@@ -42,6 +42,6 @@ CREATE TABLE IF NOT EXISTS organizations_operating_hours (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE organizations, organizations_roles CASCADE;
+DROP TABLE organizations, organizations_roles, organizations_rules, organizations_operating_hours CASCADE;
 DROP EXTENSION IF EXISTS "uuid-ossp";
 -- +goose StatementEnd
