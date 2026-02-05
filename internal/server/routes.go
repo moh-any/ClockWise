@@ -35,6 +35,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 	gin.SetMode(gin.TestMode)
 
+	r.RedirectTrailingSlash = false
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
@@ -76,40 +78,40 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
-	organization.GET("/")         // Get organization details
+	organization.GET("")          // Get organization details
 	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
 
 	// TODO: roles routes editing
 	roles := organization.Group("/roles")
-	roles.GET("/")  // Get All roles
-	roles.POST("/") // Create roles
+	roles.GET("")  // Get All roles
+	roles.POST("") // Create roles
 
 	roles.GET("/:role")    // Get role
 	roles.PUT("/:role")    // Update role
 	roles.DELETE("/:role") // Delete role
 
 	dashboard := organization.Group("/dashboard")
-	dashboard.GET("/") // Change according to the current user
+	dashboard.GET("") // Change according to the current user
 
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("/")         // Get Schedule
-	schedule.POST("/")         // Edit Schedule
+	schedule.GET("")          // Get Schedule
+	schedule.PUT("")          // Edit Schedule
 	schedule.POST("/refresh") // Refresh Schedule
 
 	insights := organization.Group("/insights")
-	insights.GET("/", s.insightHandler.GetInsightsHandler) // Get All insights
+	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
 
 	staffing := organization.Group("/staffing")
-	staffing.GET("/", s.staffingHandler.GetStaffingSummary)
-	staffing.POST("/", s.orgHandler.DelegateUser)
+	staffing.GET("", s.staffingHandler.GetStaffingSummary)
+	staffing.POST("", s.orgHandler.DelegateUser)
 	staffing.POST("/upload", s.staffingHandler.UploadEmployeesCSV)
 
 	employees := staffing.Group("/employees")
-	employees.GET("/", s.staffingHandler.GetAllEmployees)
+	employees.GET("", s.staffingHandler.GetAllEmployees)
 
 	employee := employees.Group("/:id")
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
-	employee.GET("/", s.employeeHandler.GetEmployeeDetails)
+	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
 	employee.GET("/schedule") // Get Employee Schedule
 	employee.PUT("/schedule") // Edit Employee Schedule
@@ -118,13 +120,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
-	perferences := organization.Group("/preferences") // Employees only
-	perferences.GET("/")                              // Get Current Employee Perfrences
-	perferences.POST("/")                             // Edit current perferences
+	preferences := organization.Group("/preferences") // Employees only
+	preferences.GET("")                               // Get Current Employee Preferences
+	preferences.POST("")                              // Edit current preferences
 
 	rules := organization.Group("/rules") // Rules of the organization
-	rules.GET("/")                        // Get all the rules of the organization
-	rules.POST("/")                       // Edit the rules of the organization
+	rules.GET("")                         // Get all the rules of the organization
+	rules.POST("")                        // Edit the rules of the organization
 
 	r.NoRoute(s.notFoundHandler)
 	return r
