@@ -13,5 +13,5 @@ type InsightHandler struct {
 }
 
 func (ih *InsightHandler) GetInsightsHandler(c *gin.Context) {
-
+	
 }
