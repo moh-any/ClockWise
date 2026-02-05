@@ -34,3 +34,5 @@ main
 
 # Database 
 postgres-data/
+
+node_modules/
