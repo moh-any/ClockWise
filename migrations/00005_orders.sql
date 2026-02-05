@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS items (
     organization_id UUID NOT NULL REFERENCES organizations(id),
     name VARCHAR(50) NOT NULL,
     needed_num_to_prepare INTEGER NOT NULL,
-    price DECIMAL(10,2) INTEGER NOT NULL
+    price DECIMAL(10,2) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
