@@ -17,16 +17,18 @@ import (
 )
 
 type Server struct {
-	port            int
-	db              database.Service
-	orgHandler      *api.OrgHandler
-	staffingHandler *api.StaffingHandler
-	employeeHandler *api.EmployeeHandler
-	insightHandler  *api.InsightHandler
-	userStore       database.UserStore
-	orgStore        database.OrgStore
-	requestStore    database.RequestStore
-	Logger          *slog.Logger
+	port               int
+	db                 database.Service
+	orgHandler         *api.OrgHandler
+	staffingHandler    *api.StaffingHandler
+	employeeHandler    *api.EmployeeHandler
+	insightHandler     *api.InsightHandler
+	preferencesHandler *api.PreferencesHandler
+	userStore          database.UserStore
+	orgStore           database.OrgStore
+	requestStore       database.RequestStore
+	preferencesStore   database.PreferencesStore
+	Logger             *slog.Logger
 }
 
 func NewServer(Logger *slog.Logger) *http.Server {
@@ -45,6 +47,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	userStore := database.NewPostgresUserStore(dbService.GetDB(), Logger)
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
+	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
 
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
@@ -52,17 +55,20 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
+	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
 
 	NewServer := &Server{
-		port:            port,
-		db:              dbService,
-		userStore:       userStore,
-		orgStore:        orgStore,
-		requestStore:    requestStore,
-		orgHandler:      orgHandler,
-		staffingHandler: staffingHandler,
-		employeeHandler: employeeHandler,
-		Logger:          Logger,
+		port:               port,
+		db:                 dbService,
+		userStore:          userStore,
+		orgStore:           orgStore,
+		requestStore:       requestStore,
+		preferencesStore:   preferencesStore,
+		orgHandler:         orgHandler,
+		staffingHandler:    staffingHandler,
+		employeeHandler:    employeeHandler,
+		preferencesHandler: preferencesHandler,
+		Logger:             Logger,
 	}
 
 	// Declare Server config

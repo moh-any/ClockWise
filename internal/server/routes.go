@@ -120,9 +120,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
-	preferences := organization.Group("/preferences") // Employees only
-	preferences.GET("")                               // Get Current Employee Preferences
-	preferences.POST("")                              // Edit current preferences
+	preferences := organization.Group("/preferences")                           // Employees only
+	preferences.GET("", s.preferencesHandler.GetCurrentEmployeePreferences)     // Get Current Employee Preferences
+	preferences.POST("", s.preferencesHandler.UpdateCurrentEmployeePreferences) // Edit current preferences
 
 	rules := organization.Group("/rules") // Rules of the organization
 	rules.GET("")                         // Get all the rules of the organization
