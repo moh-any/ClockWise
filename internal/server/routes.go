@@ -33,6 +33,7 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
+	gin.SetMode(gin.TestMode)
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -78,6 +79,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization.GET("/")         // Get organization details
 	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
 
+	// TODO: roles routes editing
+	roles := organization.Group("/roles")
+	roles.GET("/")  // Get All roles
+	roles.POST("/") // Create roles
+
+	roles.GET("/:role")    // Get role
+	roles.PUT("/:role")    // Update role
+	roles.DELETE("/:role") // Delete role
+
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/") // Change according to the current user
 
@@ -100,19 +110,21 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee := employees.Group("/:id")
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("/", s.employeeHandler.GetEmployeeDetails)
+
 	employee.GET("/schedule") // Get Employee Schedule
 	employee.PUT("/schedule") // Edit Employee Schedule
+
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
 	perferences := organization.Group("/preferences") // Employees only
 	perferences.GET("/")                              // Get Current Employee Perfrences
-	perferences.PUT("/")                              // Edit current perferences
+	perferences.POST("/")                             // Edit current perferences
 
 	rules := organization.Group("/rules") // Rules of the organization
 	rules.GET("/")                        // Get all the rules of the organization
-	rules.PUT("/")                        // Edit the rules of the organization
+	rules.POST("/")                       // Edit the rules of the organization
 
 	return r
 }
@@ -128,31 +140,3 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
-
-
-/*
-Admin (Organization) 
-- Schedule: All employees at each segment of time 
-- Demand Heat Map: Weekly 
-- General Insights & Statistics
-- Staffing Recommendations (Layoffs or Hiring)
-- Campaigns Suggestions
-- Current Manager shift
-- Employees Now in shift
-- Change settings for the organization (shift hours, weekly rate, hourly rate)
-- Set his rules
-Manager
-- Schedule for his shifts with the number of employees in his shift
-- Demand Heat map
-- General Insights
-- Current Employees in shift
-- Demand Suggestions
-- Current Employees in his shift 
-- Perferences for shifts
-- Current Requests 
-Employee
-- Schedule for only them
-- Perference settings
-- Request suggestions
-- General insights on working hours
-*/

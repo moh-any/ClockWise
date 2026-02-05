@@ -51,7 +51,7 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt,org.HexCode1,org.HexCode2,org.HexCode3); err != nil {
 		return fmt.Errorf("failed to insert org: %w", err)
 	}
-
+	// TODO: Allow for multi role adding 
 	roles := []string{"admin", "manager", "employee"}
 	queryRoles := `INSERT INTO organizations_roles (organization_id, role) VALUES ($1, $2)`
 	for _, role := range roles {
