@@ -25,12 +25,14 @@ type Server struct {
 	insightHandler     *api.InsightHandler
 	preferencesHandler *api.PreferencesHandler
 	rulesHandler       *api.RulesHandler
+	rolesHandler       *api.RolesHandler
 	profileHandler     *api.ProfileHandler
 	userStore          database.UserStore
 	orgStore           database.OrgStore
 	requestStore       database.RequestStore
 	preferencesStore   database.PreferencesStore
 	rulesStore         database.RulesStore
+	rolesStore         database.RolesStore
 	Logger             *slog.Logger
 }
 
@@ -53,9 +55,10 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
 	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
 	rulesStore := database.NewPostgresRulesStore(dbService.GetDB(), Logger)
+	rolesStore := database.NewPostgresRolesStore(dbService.GetDB(), Logger)
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
-	// Services 
+	// Services
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
 
@@ -65,8 +68,9 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
 	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
 	rulesHandler := api.NewRulesHandler(rulesStore, Logger)
+	rolesHandler := api.NewRolesHandler(rolesStore, Logger)
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
-	profileHandler := api.NewProfileHandler(userStore,Logger)
+	profileHandler := api.NewProfileHandler(userStore, Logger)
 
 	NewServer := &Server{
 		port:               port,
@@ -76,11 +80,13 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		requestStore:       requestStore,
 		preferencesStore:   preferencesStore,
 		rulesStore:         rulesStore,
+		rolesStore:         rolesStore,
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
 		employeeHandler:    employeeHandler,
 		preferencesHandler: preferencesHandler,
 		rulesHandler:       rulesHandler,
+		rolesHandler:       rolesHandler,
 		insightHandler:     insightHandler,
 		profileHandler:     profileHandler,
 		Logger:             Logger,

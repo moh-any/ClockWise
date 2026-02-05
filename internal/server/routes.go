@@ -75,8 +75,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	})
 
 	// Profile Management
-	api.GET("/profile",s.profileHandler.GetProfileHandler)
-	api.POST("/profile/changepassword",s.profileHandler.ChangePasswordHandler)
+	api.GET("/profile", s.profileHandler.GetProfileHandler)
+	api.POST("/profile/changepassword", s.profileHandler.ChangePasswordHandler)
 
 	// Role management
 	organization := api.Group("/:org")
@@ -85,14 +85,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization.GET("")          // Get organization details
 	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
 
-	// TODO: roles routes editing
+	// Role management
 	roles := organization.Group("/roles")
-	roles.GET("")  // Get All roles
-	roles.POST("") // Create roles
+	roles.GET("", s.rolesHandler.GetAllRoles) // Get All roles
+	roles.POST("", s.rolesHandler.CreateRole) // Create role
 
-	roles.GET("/:role")    // Get role
-	roles.PUT("/:role")    // Update role
-	roles.DELETE("/:role") // Delete role
+	roles.GET("/:role", s.rolesHandler.GetRole)       // Get role
+	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
+	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("") // Change according to the current user
