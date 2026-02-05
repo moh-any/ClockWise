@@ -65,5 +65,8 @@ func (ih *InsightHandler) GetInsightsHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, insights)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Insights retrieved successfully",
+		"data":    insights,
+	})
 }
