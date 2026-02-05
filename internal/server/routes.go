@@ -124,9 +124,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	preferences.GET("", s.preferencesHandler.GetCurrentEmployeePreferences)     // Get Current Employee Preferences
 	preferences.POST("", s.preferencesHandler.UpdateCurrentEmployeePreferences) // Edit current preferences
 
-	rules := organization.Group("/rules") // Rules of the organization
-	rules.GET("")                         // Get all the rules of the organization
-	rules.POST("")                        // Edit the rules of the organization
+	rules := organization.Group("/rules")                  // Rules of the organization
+	rules.GET("", s.rulesHandler.GetOrganizationRules)     // Get all the rules of the organization
+	rules.POST("", s.rulesHandler.UpdateOrganizationRules) // Edit the rules of the organization
 
 	r.NoRoute(s.notFoundHandler)
 	return r
@@ -145,6 +145,5 @@ func (s *Server) healthHandler(c *gin.Context) {
 }
 
 func (s *Server) notFoundHandler(c *gin.Context) {
-	c.JSON(http.StatusNotFound,gin.H{"error":"404 Not Found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
 }
-

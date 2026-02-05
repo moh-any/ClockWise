@@ -24,10 +24,12 @@ type Server struct {
 	employeeHandler    *api.EmployeeHandler
 	insightHandler     *api.InsightHandler
 	preferencesHandler *api.PreferencesHandler
+	rulesHandler       *api.RulesHandler
 	userStore          database.UserStore
 	orgStore           database.OrgStore
 	requestStore       database.RequestStore
 	preferencesStore   database.PreferencesStore
+	rulesStore         database.RulesStore
 	Logger             *slog.Logger
 }
 
@@ -48,6 +50,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
 	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
+	rulesStore := database.NewPostgresRulesStore(dbService.GetDB(), Logger)
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
 	emailService := service.NewSMTPEmailService(Logger)
@@ -57,6 +60,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
 	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
+	rulesHandler := api.NewRulesHandler(rulesStore, Logger)
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	NewServer := &Server{
 		port:               port,
@@ -65,10 +69,12 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		orgStore:           orgStore,
 		requestStore:       requestStore,
 		preferencesStore:   preferencesStore,
+		rulesStore:         rulesStore,
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
 		employeeHandler:    employeeHandler,
 		preferencesHandler: preferencesHandler,
+		rulesHandler:       rulesHandler,
 		insightHandler:     insightHandler,
 		Logger:             Logger,
 	}
