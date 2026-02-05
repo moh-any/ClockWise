@@ -1101,3 +1101,221 @@ input:checked + .admin-toggle-slider:before {
 .admin-dashboard-content > * {
   animation: fade-In 0.4s ease-out;
 }
+
+/* Sub-tab Navigation */
+.admin-sub-tab {
+  padding: 10px 20px;
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: transparent;
+  color: #1a1f36;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  font-weight: 600;
+  margin-right: 10px;
+}
+
+.admin-sub-tab:hover {
+  background-color: rgba(74, 144, 226, 0.1);
+}
+
+/* Location Section */
+.admin-coords-display {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-coords-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #1a1f36;
+}
+
+.admin-coords-values {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.admin-map-container {
+  width: 100%;
+  height: 600px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-map-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  color: #666;
+  font-size: 16px;
+}
+
+.admin-map-hint {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+/* Data Upload Section */
+.admin-upload-card {
+  background: #ffffff;
+  padding: 24px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  border: 2px solid;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.admin-upload-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.admin-upload-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.admin-upload-number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+.admin-upload-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1f36;
+}
+
+.admin-upload-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.admin-upload-body {
+  margin-bottom: 20px;
+}
+
+.admin-upload-formats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.admin-format-tag {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.admin-format-json {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.admin-format-xlsx {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.admin-format-csv {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.admin-upload-schema {
+  background-color: #f5f7fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.admin-upload-schema summary {
+  font-weight: 600;
+  font-size: 14px;
+  color: #475569;
+  user-select: none;
+  list-style: none;
+}
+
+.admin-upload-schema summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-upload-schema summary::before {
+  content: "▶ ";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.2s ease;
+}
+
+.admin-upload-schema[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.admin-schema-content {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.admin-schema-section {
+  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-schema-section strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #1a1f36;
+}
+
+.admin-schema-section code {
+  display: block;
+  background-color: #ffffff;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #475569;
+  word-wrap: break-word;
+}
+
+.admin-schema-note {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background-color: #fff3e0;
+  border-left: 3px solid #f57c00;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #e65100;
+}

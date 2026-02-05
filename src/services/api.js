@@ -1,18 +1,14 @@
-// API Configuration and Base Setup
 const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api"
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:8080"
 
-// Helper function to get auth token from localStorage
 const getAuthToken = () => {
   return localStorage.getItem("access_token")
 }
 
-// Helper function to get organization ID from localStorage
 const getOrgId = () => {
   return localStorage.getItem("org_id")
 }
 
-// Helper function to build headers
 const getHeaders = (includeAuth = true, contentType = "application/json") => {
   const headers = {}
 
@@ -30,7 +26,6 @@ const getHeaders = (includeAuth = true, contentType = "application/json") => {
   return headers
 }
 
-// Generic API request handler with error handling
 const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -82,7 +77,7 @@ export const authAPI = {
    * @returns {Promise<{org_id: string, user_id: string, message: string}>}
    */
   register: async (data) => {
-    const response = await apiRequest("/auth/register", {
+    const response = await apiRequest("/api/register", {
       method: "POST",
       auth: false,
       body: JSON.stringify(data),
@@ -104,7 +99,7 @@ export const authAPI = {
    * @returns {Promise<{access_token: string, refresh_token: string, expires_in: number, token_type: string}>}
    */
   login: async (credentials) => {
-    const response = await apiRequest("/auth/login", {
+    const response = await apiRequest("/api/login", {
       method: "POST",
       auth: false,
       body: JSON.stringify(credentials),
@@ -155,6 +150,8 @@ export const authAPI = {
     localStorage.removeItem("refresh_token")
     localStorage.removeItem("org_id")
     localStorage.removeItem("current_user")
+    localStorage.removeItem("user_info")
+    localStorage.removeItem("orgColors")
 
     return response
   },

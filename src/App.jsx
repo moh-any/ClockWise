@@ -152,7 +152,7 @@ function App() {
       <main className="mainContent">
         <section className="hero">
           <h1 className="heroTitle">ClockWise</h1>
-          <p className="hero-subtitle">
+          <p className="heroSubtitle">
             AI-powered shift scheduling that adapts to any situation
           </p>
           <button className="ctaBtn" onClick={() => setShowSignup(true)}>

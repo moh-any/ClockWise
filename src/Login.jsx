@@ -16,13 +16,15 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
     setLoading(true)
 
     try {
-      // Attempt login
       const response = await api.auth.login({ email, password })
 
-      // Close modal on success
-      onClose()
+      const userInfo = await api.auth.getCurrentUser()
 
-      // Navigate to admin dashboard
+      if (userInfo.user) {
+        localStorage.setItem("user_info", JSON.stringify(userInfo.user))
+      }
+
+      onClose()
       navigate("/admin")
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.")

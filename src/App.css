@@ -92,7 +92,7 @@ html {
 
 .app {
   min-height: 100vh;
-  background-image: url("./PICs/old-black-background-grunge-texture-dark-wallpaper-blackboard-chalkboard-concrete.jpg");
+  background-image: url("./PICs/abstract-black-gray-grunge-texture-pattern-background.jpg");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -449,109 +449,6 @@ html {
   color: var(--secondary-color);
   transform: translateY(-2px);
   box-shadow: var(--shadow-hover);
-}
-
-.user1,
-.user2 {
-  position: absolute;
-  z-index: var(--z-base);
-  color: var(--primary-color);
-  font-family: "Odibee Sans", sans-serif;
-  font-size: 1.45rem;
-  letter-spacing: 0.28rem;
-  opacity: 0;
-}
-.user1 {
-  top: 35%;
-  left: 20%;
-}
-.user2 {
-  top: 35%;
-  left: 57%;
-}
-@keyframes fade {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes rightCurtain {
-  0% {
-    clip-path: inset(0 0 0 100%);
-    opacity: 0;
-  }
-  1% {
-    opacity: 1;
-  }
-  40% {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-  }
-}
-@keyframes fallLogo {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-500px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-@keyframes floatLogo {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(500px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-@keyframes leftLogo {
-  0% {
-    transform: translateX(0px);
-  }
-  50% {
-    transform: translateX(-1300px);
-  }
-  100% {
-    transform: translateX(0px);
-  }
-}
-
-.mainLogo:hover .letterB {
-  animation: leftLogo 2.25s ease-in-out;
-}
-
-.mainLogo:hover .user1 {
-  animation: rightCurtain 2.25s linear;
-}
-
-.mainLogo:hover .upperS {
-  animation: floatLogo 2s ease-in-out 0.25s;
-}
-
-.mainLogo:hover .lowerS {
-  animation: fallLogo 2s ease-in-out 0.25s;
-}
-
-.mainLogo:hover .user2 {
-  animation: fade 2s ease-in-out 0.25s;
-}
-.mainLogo {
-  overflow: visible;
-  display: inline-block;
-  position: relative;
-  margin-left: 30px;
 }
 
 /* ===================================== 

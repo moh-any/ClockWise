@@ -1,24 +1,27 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import "./AdminDashboard.css"
 import api from "./services/api"
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
+  const [requiredInfoSubTab, setRequiredInfoSubTab] = useState("location")
   const [primaryColor, setPrimaryColor] = useState("#4A90E2")
   const [secondaryColor, setSecondaryColor] = useState("#7B68EE")
   const [accentColor, setAccentColor] = useState("#FF6B6B")
 
-  // Loading and error states
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Data from API
   const [staffingSummary, setStaffingSummary] = useState(null)
   const [totalHeadcount, setTotalHeadcount] = useState(0)
   const [laborCost, setLaborCost] = useState(0)
   const [revenue, setRevenue] = useState(0)
   const [currentlyClocked, setCurrentlyClocked] = useState(0)
   const [expectedClocked, setExpectedClocked] = useState(0)
+  const [selectedCoords, setSelectedCoords] = useState({ lat: null, lng: null })
+  const mapInstance = useRef(null)
+  const configFileInput = useRef(null)
+  const rosterFileInput = useRef(null)
 
   const [aiAlerts, setAiAlerts] = useState([
     {
@@ -145,19 +148,30 @@ function AdminDashboard() {
       }
     }
 
-    // Fetch staffing summary data
     fetchStaffingData()
+
+    if (!document.getElementById("mapbox-gl-js")) {
+      const script = document.createElement("script")
+      script.id = "mapbox-gl-js"
+      script.src = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"
+      document.head.appendChild(script)
+
+      const link = document.createElement("link")
+      link.id = "mapbox-gl-css"
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+      link.rel = "stylesheet"
+      document.head.appendChild(link)
+    }
   }, [])
 
   const fetchStaffingData = async () => {
     try {
       setLoading(true)
       setError("")
-      
+
       const summary = await api.staffing.getStaffingSummary()
       setStaffingSummary(summary)
-      
-      // Update KPI values from API response
+
       if (summary) {
         setTotalHeadcount(summary.total_headcount || 0)
         setLaborCost(summary.labor_cost || 0)
@@ -168,9 +182,79 @@ function AdminDashboard() {
     } catch (err) {
       console.error("Error fetching staffing data:", err)
       setError(err.message || "Failed to load dashboard data")
-      // Keep default values if API fails
     } finally {
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "requiredinfo" && requiredInfoSubTab === "location") {
+      const timer = setTimeout(() => {
+        initializeMap()
+      }, 100)
+      return () => {
+        clearTimeout(timer)
+        if (mapInstance.current) {
+          mapInstance.current.remove()
+          mapInstance.current = null
+        }
+      }
+    } else {
+      if (mapInstance.current) {
+        mapInstance.current.remove()
+        mapInstance.current = null
+      }
+    }
+  }, [activeTab, requiredInfoSubTab])
+
+  const initializeMap = () => {
+    if (typeof window.mapboxgl === "undefined") {
+      console.log("Mapbox GL not loaded yet")
+      return
+    }
+
+    const mapContainer = document.getElementById("location-map")
+    if (!mapContainer) return
+
+    if (mapInstance.current) {
+      mapInstance.current.remove()
+      mapInstance.current = null
+    }
+
+    window.mapboxgl.accessToken =
+      "pk.eyJ1IjoibW9zdGFmYTE5MjYiLCJhIjoiY21sOW1xZWNiMDRobTNlczczNDc0cGM0aCJ9.z2un235WCxTP0RswBTewPg"
+
+    const map = new window.mapboxgl.Map({
+      container: "location-map",
+      style: "mapbox://styles/mapbox/satellite-streets-v12",
+      projection: "globe",
+      zoom: 2,
+      center: [0, 0],
+      attributionControl: true,
+    })
+
+    map.on("click", (e) => {
+      const lat = e.lngLat.lat.toFixed(6)
+      const lng = e.lngLat.lng.toFixed(6)
+      setSelectedCoords({ lat, lng })
+    })
+
+    mapInstance.current = map
+  }
+
+  const handleConfigUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      console.log("Configuration file selected:", file.name)
+      // TODO: Process file upload
+    }
+  }
+
+  const handleRosterUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      console.log("Roster file selected:", file.name)
+      // TODO: Process file upload
     }
   }
 
@@ -590,6 +674,245 @@ function AdminDashboard() {
     </div>
   )
 
+  const renderRequiredInfo = () => (
+    <div className="admin-dashboard-content">
+      <h1 className="admin-page-title">Required Information</h1>
+
+      <div className="admin-filters-bar">
+        <button
+          className={`admin-sub-tab ${requiredInfoSubTab === "location" ? "active" : ""}`}
+          onClick={() => setRequiredInfoSubTab("location")}
+          style={
+            requiredInfoSubTab === "location"
+              ? {
+                  backgroundColor: primaryColor,
+                  color: getContrastColor(primaryColor),
+                }
+              : {}
+          }
+        >
+          Location
+        </button>
+        <button
+          className={`admin-sub-tab ${requiredInfoSubTab === "dataupload" ? "active" : ""}`}
+          onClick={() => setRequiredInfoSubTab("dataupload")}
+          style={
+            requiredInfoSubTab === "dataupload"
+              ? {
+                  backgroundColor: primaryColor,
+                  color: getContrastColor(primaryColor),
+                }
+              : {}
+          }
+        >
+          Data Upload
+        </button>
+      </div>
+
+      {/* Location Section */}
+      {requiredInfoSubTab === "location" && (
+        <div className="admin-section">
+          <h2 className="admin-section-title">Select Organization Location</h2>
+          <p className="admin-section-description">
+            Click anywhere on the globe to select your organization's location
+          </p>
+
+          {/* Coordinates Display Box */}
+          {selectedCoords.lat && selectedCoords.lng && (
+            <div
+              className="admin-coords-display"
+              style={{ borderColor: primaryColor }}
+            >
+              <div className="admin-coords-title">Selected Coordinates</div>
+              <div className="admin-coords-values">
+                Latitude: {selectedCoords.lat} | Longitude: {selectedCoords.lng}
+              </div>
+              <button
+                className="admin-btn-primary"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: getContrastColor(primaryColor),
+                }}
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `${selectedCoords.lat}, ${selectedCoords.lng}`,
+                  )
+                  alert("Coordinates copied to clipboard!")
+                }}
+              >
+                Copy Coordinates
+              </button>
+            </div>
+          )}
+
+          <div id="location-map" className="admin-map-container">
+            {!selectedCoords.lat && (
+              <div className="admin-map-loading">Loading map...</div>
+            )}
+          </div>
+
+          {!selectedCoords.lat && (
+            <p className="admin-map-hint">
+              Click anywhere on the map to get latitude and longitude
+              coordinates
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Data Upload Section */}
+      {requiredInfoSubTab === "dataupload" && (
+        <div className="admin-section">
+          <h2 className="admin-section-title">Data Upload</h2>
+          <p className="admin-section-description">
+            Upload configuration and employee data files
+          </p>
+
+          {/* Upload Slot 1 */}
+          <div
+            className="admin-upload-card"
+            style={{ borderColor: primaryColor }}
+          >
+            <div className="admin-upload-header">
+              <div
+                className="admin-upload-number"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: getContrastColor(primaryColor),
+                }}
+              >
+                1
+              </div>
+              <div>
+                <h3 className="admin-upload-title">Configuration & Roles</h3>
+                <p className="admin-upload-subtitle">
+                  Place details and job definitions
+                </p>
+              </div>
+            </div>
+
+            <div className="admin-upload-body">
+              <div className="admin-upload-formats">
+                <span className="admin-format-tag admin-format-json">
+                  .json
+                </span>
+                <span className="admin-format-tag admin-format-xlsx">
+                  .xlsx
+                </span>
+              </div>
+
+              <details className="admin-upload-schema">
+                <summary>View Schema</summary>
+                <div className="admin-schema-content">
+                  <div className="admin-schema-section">
+                    <strong>Place Fields:</strong>
+                    <code>placeId, placeName, type, openingHours</code>
+                  </div>
+                  <div className="admin-schema-section">
+                    <strong>Role Fields:</strong>
+                    <code>
+                      roleId, roleName, producing, itemsPerEmployeePerHour,
+                      minPresent
+                    </code>
+                  </div>
+                  <div className="admin-schema-note">
+                    Note: itemsPerEmployeePerHour required only if producing is
+                    true
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <input
+              ref={configFileInput}
+              type="file"
+              accept=".json,.xlsx"
+              onChange={handleConfigUpload}
+              style={{ display: "none" }}
+            />
+            <button
+              className="admin-btn-primary"
+              style={{
+                backgroundColor: primaryColor,
+                color: getContrastColor(primaryColor),
+              }}
+              onClick={() => configFileInput.current.click()}
+            >
+              Select File
+            </button>
+          </div>
+
+          {/* Upload Slot 2 */}
+          <div
+            className="admin-upload-card"
+            style={{ borderColor: secondaryColor }}
+          >
+            <div className="admin-upload-header">
+              <div
+                className="admin-upload-number"
+                style={{
+                  backgroundColor: secondaryColor,
+                  color: getContrastColor(secondaryColor),
+                }}
+              >
+                2
+              </div>
+              <div>
+                <h3 className="admin-upload-title">Staff Roster</h3>
+                <p className="admin-upload-subtitle">
+                  Employee availability data
+                </p>
+              </div>
+            </div>
+
+            <div className="admin-upload-body">
+              <div className="admin-upload-formats">
+                <span className="admin-format-tag admin-format-csv">.csv</span>
+                <span className="admin-format-tag admin-format-xlsx">
+                  .xlsx
+                </span>
+              </div>
+
+              <details className="admin-upload-schema">
+                <summary>View Schema</summary>
+                <div className="admin-schema-content">
+                  <div className="admin-schema-section">
+                    <strong>Required Columns:</strong>
+                    <code>
+                      employeeId, roleIds, availableDays, preferredDays,
+                      availableHours, preferredHours
+                    </code>
+                  </div>
+                  <div className="admin-schema-note">
+                    Note: roleIds must match existing roles from Configuration
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <input
+              ref={rosterFileInput}
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleRosterUpload}
+              style={{ display: "none" }}
+            />
+            <button
+              className="admin-btn-primary"
+              style={{
+                backgroundColor: secondaryColor,
+                color: getContrastColor(secondaryColor),
+              }}
+              onClick={() => rosterFileInput.current.click()}
+            >
+              Select File
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
   const renderProfile = () => (
     <div className="admin-dashboard-content">
       <h1 className="admin-page-title">Admin Profile</h1>
@@ -817,6 +1140,21 @@ function AdminDashboard() {
           >
             Org Settings
           </button>
+
+          <button
+            className={`admin-nav-item ${activeTab === "requiredinfo" ? "active" : ""}`}
+            onClick={() => setActiveTab("requiredinfo")}
+            style={
+              activeTab === "requiredinfo"
+                ? {
+                    backgroundColor: primaryColor,
+                    color: getContrastColor(primaryColor),
+                  }
+                : {}
+            }
+          >
+            Required Info
+          </button>
         </nav>
 
         <div className="admin-sidebar-footer">
@@ -845,15 +1183,12 @@ function AdminDashboard() {
             <p>Loading dashboard data...</p>
           </div>
         )}
-        
+
         {error && !loading && (
           <div className="admin-error-banner">
             <span className="admin-error-icon">!</span>
             <span>{error}</span>
-            <button 
-              className="admin-error-retry"
-              onClick={fetchStaffingData}
-            >
+            <button className="admin-error-retry" onClick={fetchStaffingData}>
               Retry
             </button>
           </div>
@@ -866,6 +1201,7 @@ function AdminDashboard() {
             {activeTab === "analytics" && renderAnalytics()}
             {activeTab === "planning" && renderPlanning()}
             {activeTab === "settings" && renderOrgSettings()}
+            {activeTab === "requiredinfo" && renderRequiredInfo()}
             {activeTab === "profile" && renderProfile()}
           </>
         )}

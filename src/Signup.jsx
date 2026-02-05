@@ -35,11 +35,11 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
     setLoading(true)
     setError(null)
 
-    try {
-      // Save colors to localStorage first
-      const colors = [color1, color2, color3]
-      localStorage.setItem("orgColors", JSON.stringify(colors))
+    // Save colors to localStorage first
+    const colors = [color1, color2, color3]
+    localStorage.setItem("orgColors", JSON.stringify(colors))
 
+    try {
       // Register organization with backend
       const registrationData = {
         org_name: organizationName,
@@ -55,6 +55,14 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
 
       // Auto-login after registration
       await api.auth.login({ email, password })
+
+      // Fetch user information after successful login
+      const userInfo = await api.auth.getCurrentUser()
+
+      // Store user data in localStorage
+      if (userInfo.user) {
+        localStorage.setItem("user_info", JSON.stringify(userInfo.user))
+      }
 
       // Redirect to admin dashboard
       window.location.href = "/admin"
