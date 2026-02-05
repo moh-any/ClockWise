@@ -93,7 +93,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("/")         // Get Schedule
-	schedule.PUT("/")         // Edit Schedule
+	schedule.POST("/")         // Edit Schedule
 	schedule.POST("/refresh") // Refresh Schedule
 
 	insights := organization.Group("/insights")
