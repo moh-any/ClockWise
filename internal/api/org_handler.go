@@ -67,8 +67,11 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	}
 
 	org := &database.Organization{
-		Name:    req.OrgName,
-		Address: req.OrgAddress,
+		Name:     req.OrgName,
+		Address:  req.OrgAddress,
+		HexCode1: req.Hex1,
+		HexCode2: req.Hex2,
+		HexCode3: req.Hex3,
 	}
 
 	user := &database.User{
