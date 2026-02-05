@@ -162,7 +162,6 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		role := row["role"]
 		salary, ok := row["salary"]
 
-		
 		// Validate role
 		if role != "manager" && role != "staff" && role != "employee" {
 			failed = append(failed, map[string]string{
@@ -171,19 +170,19 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 			})
 			continue
 		}
-		
+
 		var empSalary float64
 		if ok {
 			empSalary, err := strconv.ParseFloat(salary, 32)
 			if err != nil {
-				failed = append(failed, map[string]string {
+				failed = append(failed, map[string]string{
 					"email": email,
 					"error": "invalid salary format. Please use only numbers in this format (123.12)",
 				})
 				h.Logger.Error("error parsing float", "error", err.Error(), "for user", email)
-				c.AbortWithStatusJSON(http.StatusBadRequest,gin.H{"error":"you have error in salaries column use the specified format int the specs"})
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "you have error in salaries column use the specified format int the specs"})
 			}
-			h.Logger.Info("empolyee salary retrieved",email,empSalary)
+			h.Logger.Info("empolyee salary retrieved", email, empSalary)
 		}
 		// Generate temporary password
 		tempPassword, err := utils.GenerateRandomPassword(8)
@@ -200,7 +199,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 			Email:          email,
 			UserRole:       role,
 			OrganizationID: user.OrganizationID,
-			SalaryPerHour:         &empSalary,
+			SalaryPerHour:  &empSalary,
 		}
 
 		if err := newUser.PasswordHash.Set(tempPassword); err != nil {

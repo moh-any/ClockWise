@@ -32,13 +32,17 @@ type RegisterOrgRequest struct {
 	OrgAddress    string `json:"org_address"`
 	AdminFullName string `json:"admin_full_name" binding:"required"`
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
-	AdminPassword string `json:"admin_password" binding:"required,min=6"`
+	AdminPassword string `json:"admin_password" binding:"required,min=8"`
+	Hex1          string `json:"hex1" binding:"required,len=6"`
+	Hex2          string `json:"hex2" binding:"required,len=6"`
+	Hex3          string `json:"hex3" binding:"required,len=6"`
 }
 
 type DelegateUserRequest struct {
-	FullName string `json:"full_name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Role     string `json:"role" binding:"required,oneof=manager staff"`
+	FullName      string  `json:"full_name" binding:"required"`
+	Email         string  `json:"email" binding:"required,email"`
+	Role          string  `json:"role" binding:"required,oneof=manager staff"`
+	SalaryPerHour float64 `json:"salary_per_hour" binding:"required"`
 }
 
 // RegisterOrganization godoc
@@ -63,8 +67,11 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	}
 
 	org := &database.Organization{
-		Name:    req.OrgName,
-		Address: req.OrgAddress,
+		Name:     req.OrgName,
+		Address:  req.OrgAddress,
+		HexCode1: req.Hex1,
+		HexCode2: req.Hex2,
+		HexCode3: req.Hex3,
 	}
 
 	user := &database.User{
@@ -147,6 +154,7 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		Email:          req.Email,
 		UserRole:       req.Role,
 		OrganizationID: currentUser.OrganizationID,
+		SalaryPerHour:  &req.SalaryPerHour,
 	}
 
 	if err := newUser.PasswordHash.Set(tempPassword); err != nil {

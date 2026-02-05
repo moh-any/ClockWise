@@ -33,6 +33,9 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
+	gin.SetMode(gin.TestMode)
+
+	r.RedirectTrailingSlash = false
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -75,45 +78,57 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
-	organization.GET("/")         // Get organization details
+	organization.GET("")          // Get organization details
 	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
 
+	// TODO: roles routes editing
+	roles := organization.Group("/roles")
+	roles.GET("")  // Get All roles
+	roles.POST("") // Create roles
+
+	roles.GET("/:role")    // Get role
+	roles.PUT("/:role")    // Update role
+	roles.DELETE("/:role") // Delete role
+
 	dashboard := organization.Group("/dashboard")
-	dashboard.GET("/") // Change according to the current user
+	dashboard.GET("") // Change according to the current user
 
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("/")         // Get Schedule
-	schedule.PUT("/")         // Edit Schedule
+	schedule.GET("")          // Get Schedule
+	schedule.PUT("")          // Edit Schedule
 	schedule.POST("/refresh") // Refresh Schedule
 
 	insights := organization.Group("/insights")
-	insights.GET("/", s.insightHandler.GetInsightsHandler) // Get All insights
+	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
 
 	staffing := organization.Group("/staffing")
-	staffing.GET("/", s.staffingHandler.GetStaffingSummary)
-	staffing.POST("/", s.orgHandler.DelegateUser)
+	staffing.GET("", s.staffingHandler.GetStaffingSummary)
+	staffing.POST("", s.orgHandler.DelegateUser)
 	staffing.POST("/upload", s.staffingHandler.UploadEmployeesCSV)
 
 	employees := staffing.Group("/employees")
-	employees.GET("/", s.staffingHandler.GetAllEmployees)
+	employees.GET("", s.staffingHandler.GetAllEmployees)
 
 	employee := employees.Group("/:id")
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
-	employee.GET("/", s.employeeHandler.GetEmployeeDetails)
+	employee.GET("", s.employeeHandler.GetEmployeeDetails)
+
 	employee.GET("/schedule") // Get Employee Schedule
 	employee.PUT("/schedule") // Edit Employee Schedule
+
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
-	perferences := organization.Group("/preferences") // Employees only
-	perferences.GET("/")                              // Get Current Employee Perfrences
-	perferences.PUT("/")                              // Edit current perferences and refresh schedule
+	preferences := organization.Group("/preferences")                           // Employees only
+	preferences.GET("", s.preferencesHandler.GetCurrentEmployeePreferences)     // Get Current Employee Preferences
+	preferences.POST("", s.preferencesHandler.UpdateCurrentEmployeePreferences) // Edit current preferences
 
-	rules := organization.Group("/rules") // Rules of the organization
-	rules.GET("/")                        // Get all the rules of the organization
-	rules.PUT("/")                        // Edit the rules of the organization
+	rules := organization.Group("/rules")                  // Rules of the organization
+	rules.GET("", s.rulesHandler.GetOrganizationRules)     // Get all the rules of the organization
+	rules.POST("", s.rulesHandler.UpdateOrganizationRules) // Edit the rules of the organization
 
+	r.NoRoute(s.notFoundHandler)
 	return r
 }
 
@@ -129,30 +144,6 @@ func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
 
-
-/*
-Admin (Organization) 
-- Schedule: All employees at each segment of time 
-- Demand Heat Map: Weekly 
-- General Insights & Statistics
-- Staffing Recommendations (Layoffs or Hiring)
-- Campaigns Suggestions
-- Current Manager shift
-- Employees Now in shift
-- Change settings for the organization (shift hours, weekly rate, hourly rate)
-- Set his rules
-Manager
-- Schedule for his shifts with the number of employees in his shift
-- Demand Heat map
-- General Insights
-- Current Employees in shift
-- Demand Suggestions
-- Current Employees in his shift 
-- Perferences for shifts
-- Current Requests 
-Employee
-- Schedule for only them
-- Perference settings
-- Request suggestions
-- General insights on working hours
-*/
+func (s *Server) notFoundHandler(c *gin.Context) {
+	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
+}

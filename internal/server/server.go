@@ -17,16 +17,20 @@ import (
 )
 
 type Server struct {
-	port            int
-	db              database.Service
-	orgHandler      *api.OrgHandler
-	staffingHandler *api.StaffingHandler
-	employeeHandler *api.EmployeeHandler
-	insightHandler  *api.InsightHandler
-	userStore       database.UserStore
-	orgStore        database.OrgStore
-	requestStore    database.RequestStore
-	Logger          *slog.Logger
+	port               int
+	db                 database.Service
+	orgHandler         *api.OrgHandler
+	staffingHandler    *api.StaffingHandler
+	employeeHandler    *api.EmployeeHandler
+	insightHandler     *api.InsightHandler
+	preferencesHandler *api.PreferencesHandler
+	rulesHandler       *api.RulesHandler
+	userStore          database.UserStore
+	orgStore           database.OrgStore
+	requestStore       database.RequestStore
+	preferencesStore   database.PreferencesStore
+	rulesStore         database.RulesStore
+	Logger             *slog.Logger
 }
 
 func NewServer(Logger *slog.Logger) *http.Server {
@@ -45,6 +49,9 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	userStore := database.NewPostgresUserStore(dbService.GetDB(), Logger)
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
+	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
+	rulesStore := database.NewPostgresRulesStore(dbService.GetDB(), Logger)
+	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
@@ -52,17 +59,24 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
-
+	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
+	rulesHandler := api.NewRulesHandler(rulesStore, Logger)
+	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	NewServer := &Server{
-		port:            port,
-		db:              dbService,
-		userStore:       userStore,
-		orgStore:        orgStore,
-		requestStore:    requestStore,
-		orgHandler:      orgHandler,
-		staffingHandler: staffingHandler,
-		employeeHandler: employeeHandler,
-		Logger:          Logger,
+		port:               port,
+		db:                 dbService,
+		userStore:          userStore,
+		orgStore:           orgStore,
+		requestStore:       requestStore,
+		preferencesStore:   preferencesStore,
+		rulesStore:         rulesStore,
+		orgHandler:         orgHandler,
+		staffingHandler:    staffingHandler,
+		employeeHandler:    employeeHandler,
+		preferencesHandler: preferencesHandler,
+		rulesHandler:       rulesHandler,
+		insightHandler:     insightHandler,
+		Logger:             Logger,
 	}
 
 	// Declare Server config

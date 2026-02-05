@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users(
     user_role VARCHAR(50) NOT NULL,
     organization_id UUID REFERENCES organizations(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    salary_per_hour DECIMAL(10,2) CHECK((user_role = 'admin' AND salary IS NULL) OR (user_role != 'admin' AND salary IS NOT NULL)), 
+    salary_per_hour DECIMAL(10,2) CHECK((user_role = 'admin' AND salary_per_hour IS NULL) OR (user_role != 'admin' AND salary_per_hour IS NOT NULL)), 
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id, user_role) REFERENCES organizations_roles(organization_id,role)
 );

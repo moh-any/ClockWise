@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -15,9 +16,9 @@ type Organization struct {
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-	HexCode1 string `json:"hex1"`
-	HexCode2 string `json:"hex2"`
-	HexCode3 string `json:"hex3"`
+	HexCode1  string    `json:"hex1"`
+	HexCode2  string    `json:"hex2"`
+	HexCode3  string    `json:"hex3"`
 }
 
 type OrgStore interface {
@@ -47,17 +48,9 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 		org.Email = user.Email
 	}
 
-	queryOrg := `INSERT INTO organizations (id, name, address, email, created_at, updated_at,hex_code1,hex_code2,hex_code3) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9)`
-	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt,org.HexCode1,org.HexCode2,org.HexCode3); err != nil {
+	queryOrg := `INSERT INTO organizations (id, name, address, email, created_at, updated_at, hex_code1, hex_code2, hex_code3) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt, org.HexCode1, org.HexCode2, org.HexCode3); err != nil {
 		return fmt.Errorf("failed to insert org: %w", err)
-	}
-
-	roles := []string{"admin", "manager", "employee"}
-	queryRoles := `INSERT INTO organizations_roles (organization_id, role) VALUES ($1, $2)`
-	for _, role := range roles {
-		if _, err := tx.Exec(queryRoles, org.ID, role); err != nil {
-			return fmt.Errorf("failed to insert role %s: %w", role, err)
-		}
 	}
 
 	user.ID = uuid.New()
@@ -81,8 +74,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 
 func (s *PostgresOrgStore) GetOrganizationByID(id uuid.UUID) (*Organization, error) {
 	var org Organization
-	query := `SELECT id, name, address, email, created_at, updated_at FROM organizations WHERE id = $1`
-	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Email, &org.CreatedAt, &org.UpdatedAt)
+	query := `SELECT id, name, address, email, hex_code1, hex_code2, hex_code3, created_at, updated_at FROM organizations WHERE id = $1`
+	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Email, &org.HexCode1, &org.HexCode2, &org.HexCode3, &org.CreatedAt, &org.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
