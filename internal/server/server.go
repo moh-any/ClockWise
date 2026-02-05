@@ -25,6 +25,7 @@ type Server struct {
 	insightHandler     *api.InsightHandler
 	preferencesHandler *api.PreferencesHandler
 	rulesHandler       *api.RulesHandler
+	profileHandler     *api.ProfileHandler
 	userStore          database.UserStore
 	orgStore           database.OrgStore
 	requestStore       database.RequestStore
@@ -46,6 +47,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		panic(fmt.Sprintf("failed to run database migrations: %s", err))
 	}
 
+	// Stores for database retrieval
 	userStore := database.NewPostgresUserStore(dbService.GetDB(), Logger)
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
@@ -53,15 +55,19 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	rulesStore := database.NewPostgresRulesStore(dbService.GetDB(), Logger)
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
+	// Services 
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
 
+	// Handlers for Endpoints
 	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
 	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
 	rulesHandler := api.NewRulesHandler(rulesStore, Logger)
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
+	profileHandler := api.NewProfileHandler(userStore,Logger)
+
 	NewServer := &Server{
 		port:               port,
 		db:                 dbService,
@@ -76,6 +82,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		preferencesHandler: preferencesHandler,
 		rulesHandler:       rulesHandler,
 		insightHandler:     insightHandler,
+		profileHandler:     profileHandler,
 		Logger:             Logger,
 	}
 

@@ -41,7 +41,7 @@ type RegisterOrgRequest struct {
 type DelegateUserRequest struct {
 	FullName      string  `json:"full_name" binding:"required"`
 	Email         string  `json:"email" binding:"required,email"`
-	Role          string  `json:"role" binding:"required,oneof=manager staff"`
+	Role          string  `json:"role" binding:"required,oneof=manager"`
 	SalaryPerHour float64 `json:"salary_per_hour" binding:"required"`
 }
 
