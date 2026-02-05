@@ -78,6 +78,7 @@ class SchedulerInput:
     
     # Mode
     fixed_shifts: bool = False
+    meet_all_demand: bool = False  # If True, demand satisfaction is a hard constraint
 
 
 # =============================================================================
@@ -205,8 +206,9 @@ class SchedulerCPSAT:
         for e in E:
             self.hours_dev[e] = self.model.NewIntVar(0, max_slots, f'hours_dev_{e}')
         
-        # Fairness: average slots and max deviation
-        self.avg_slots = self.model.NewIntVar(0, max_slots, 'avg_slots')
+        # Fairness: max and min slots for range-based fairness (avoids integer division issues)
+        self.max_work_slots = self.model.NewIntVar(0, max_slots, 'max_work_slots')
+        self.min_work_slots = self.model.NewIntVar(0, max_slots, 'min_work_slots')
         self.fairness_dev = self.model.NewIntVar(0, max_slots, 'fairness_dev')
     
     def _add_constraints(self):
@@ -410,8 +412,14 @@ class SchedulerCPSAT:
         for d in D:
             for t in T:
                 demand_scaled = int(data.demand.get((d, t), 0) * SCALE)
-                # supply + unmet >= demand
-                self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)
+                if data.meet_all_demand:
+                    # Hard constraint: supply must meet demand exactly
+                    self.model.Add(self.supply[d, t] >= demand_scaled)
+                    # Force unmet to zero
+                    self.model.Add(self.v[d, t] == 0)
+                else:
+                    # Soft constraint: supply + unmet >= demand (unmet penalized in objective)
+                    self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)
     
     def _add_auxiliary_constraints(self):
         """Add auxiliary variable definitions for objective."""
@@ -455,17 +463,14 @@ class SchedulerCPSAT:
                             # No preference, satisfaction is 0
                             self.model.Add(self.pref_sat[e_idx, d, t] == 0)
         
-        # Fairness: average slots (approximated for integer math)
-        # avg_slots * |E| = sum work_slots
-        num_employees = len(data.employees)
-        self.model.Add(
-            self.avg_slots * num_employees == sum(self.work_slots[e] for e in E)
-        )
-        
-        # fairness_dev >= |work_slots[e] - avg_slots| for all e
+        # Fairness: range-based (max - min work slots)
+        # This avoids integer division issues with avg_slots * |E| = sum
         for e_idx in E:
-            self.model.Add(self.fairness_dev >= self.work_slots[e_idx] - self.avg_slots)
-            self.model.Add(self.fairness_dev >= self.avg_slots - self.work_slots[e_idx])
+            self.model.Add(self.max_work_slots >= self.work_slots[e_idx])
+            self.model.Add(self.min_work_slots <= self.work_slots[e_idx])
+        
+        # fairness_dev = max - min (minimizing this spreads work evenly)
+        self.model.Add(self.fairness_dev >= self.max_work_slots - self.min_work_slots)
     
     def _set_objective(self):
         """Set the objective function."""
@@ -607,7 +612,7 @@ def create_sample_data() -> SchedulerInput:
         Role(id='cashier', producing=False, items_per_hour=0, min_present=0, is_independent=True),
         Role(id='prep', producing=True, items_per_hour=20, min_present=0, is_independent=False),
         Role(id='cook', producing=True, items_per_hour=15, min_present=0, is_independent=False),
-        Role(id='server', producing=True, items_per_hour=30, min_present=0, is_independent=True),  # Changed to 0
+        Role(id='server', producing=True, items_per_hour=30, min_present=0, is_independent=True),
     ]
     
     # Define production chain: prep -> cook
@@ -712,6 +717,186 @@ def create_sample_data() -> SchedulerInput:
             availability={(d, t): True for d in range(7) for t in range(12)},
             slot_preferences={(3, 0): True, (4, 0): True}
         ),
+        Employee(
+            id='diana7',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana8',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana9',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana10',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana11',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana12',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana13',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana14',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana15',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana16',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana17',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana18',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana19',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana20',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana21',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana22',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana23',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
+        Employee(
+            id='diana24',
+            wage=17.0,
+            max_hours_per_week=40,
+            max_consec_slots=8,
+            pref_hours=36,
+            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
+            availability={(d, t): True for d in range(7) for t in range(12)},
+            slot_preferences={(3, 0): True, (4, 0): True}
+        ),
     ]
     
     # Define demand (items per slot)
@@ -720,9 +905,9 @@ def create_sample_data() -> SchedulerInput:
         for t in range(12):
             # Higher demand during lunch (slots 4-6) and dinner (slots 8-10)
             if 4 <= t <= 6 or 8 <= t <= 10:
-                demand[(d, t)] = 30.0
+                demand[(d, t)] = 300.0
             else:
-                demand[(d, t)] = 15.0
+                demand[(d, t)] = 150.0
     
     return SchedulerInput(
         employees=employees,
@@ -731,7 +916,7 @@ def create_sample_data() -> SchedulerInput:
         num_slots_per_day=12,
         chains=chains,
         slot_len_hour=1.0,
-        min_rest_slots=2,
+        min_rest_slots=1,
         min_shift_length_slots=3,
         demand=demand,
         w_unmet=10000,
@@ -739,7 +924,8 @@ def create_sample_data() -> SchedulerInput:
         w_hours=50,
         w_fair=10,
         w_slot=1,
-        fixed_shifts=False
+        fixed_shifts=False,
+        meet_all_demand=True  # Hard constraint
     )
 
 
