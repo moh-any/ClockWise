@@ -2,9 +2,26 @@ import { useState, useEffect, useRef } from "react"
 import "./AdminDashboard.css"
 import api from "./services/api"
 
+// Import SVG icons
+import HomeIcon from "./Icons/Home_Icon.svg"
+import ScheduleIcon from "./Icons/Schedule_Icon.svg"
+import AnalyticsIcon from "./Icons/Analytics_Icon.svg"
+import PlanningIcon from "./Icons/Planning_Icon.svg"
+import SettingsIcon from "./Icons/Settings_Icon.svg"
+import InfoIcon from "./Icons/Info_Icon.svg"
+import ChartUpIcon from "./Icons/Chart-Up-Icon.svg"
+import ChartDownIcon from "./Icons/Chart-down-Icon.svg"
+import TargetHitIcon from "./Icons/Target-Hit-Icon.svg"
+import MissedTargetIcon from "./Icons/Missed-Target-Icon.svg"
+import LocationIcon from "./Icons/location-Icon.svg"
+import CloudUploadIcon from "./Icons/Cloud-Upload-Icon.svg"
+import ConfigurationIcon from "./Icons/Configuration-Icon.svg"
+import EmployeeIcon from "./Icons/Employee-Icon.svg"
+
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
   const [requiredInfoSubTab, setRequiredInfoSubTab] = useState("location")
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [primaryColor, setPrimaryColor] = useState("#4A90E2")
   const [secondaryColor, setSecondaryColor] = useState("#7B68EE")
   const [accentColor, setAccentColor] = useState("#FF6B6B")
@@ -29,18 +46,21 @@ function AdminDashboard() {
       priority: "high",
       message: "High demand predicted for Friday; 4 additional hires suggested",
       timestamp: "2 hours ago",
+      dismissed: false,
     },
     {
       id: 2,
       priority: "medium",
       message: "Monday morning shift is understaffed by 15%",
       timestamp: "5 hours ago",
+      dismissed: false,
     },
     {
       id: 3,
       priority: "low",
       message: "Labor costs trending 3% below budget this week",
       timestamp: "1 day ago",
+      dismissed: false,
     },
   ])
 
@@ -66,6 +86,15 @@ function AdminDashboard() {
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+  const navigationItems = [
+    { id: "home", label: "Dashboard", icon: HomeIcon },
+    { id: "schedule", label: "Schedule", icon: ScheduleIcon },
+    { id: "analytics", label: "Analytics", icon: AnalyticsIcon },
+    { id: "planning", label: "Planning", icon: PlanningIcon },
+    { id: "settings", label: "Settings", icon: SettingsIcon },
+    { id: "requiredinfo", label: "Setup", icon: InfoIcon },
+  ]
+
   const getContrastColor = (hexColor) => {
     const hex = hexColor.replace("#", "")
     const r = parseInt(hex.substr(0, 2), 16)
@@ -75,48 +104,43 @@ function AdminDashboard() {
     return luminance > 0.5 ? "#000000" : "#FFFFFF"
   }
 
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : null
+  }
+
   const getHeatColor = (intensity) => {
-    const hex = secondaryColor.replace("#", "")
-    const r = parseInt(hex.substr(0, 2), 16)
-    const g = parseInt(hex.substr(2, 2), 16)
-    const b = parseInt(hex.substr(4, 2), 16)
-
-    const accentHex = accentColor.replace("#", "")
-    const accentR = parseInt(accentHex.substr(0, 2), 16)
-    const accentG = parseInt(accentHex.substr(2, 2), 16)
-    const accentB = parseInt(accentHex.substr(4, 2), 16)
-
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    const rgb = hexToRgb(secondaryColor)
+    const accentRgb = hexToRgb(accentColor)
+    if (!rgb || !accentRgb) return `rgba(123, 104, 238, ${intensity / 100})`
 
     const factor = intensity / 100
 
-    if (luminance > 0.6) {
-      const newR = Math.round(255 - (255 - r) * factor)
-      const newG = Math.round(255 - (255 - g) * factor)
-      const newB = Math.round(255 - (255 - b) * factor)
-
-      if (intensity > 80) {
-        const accentMix = ((intensity - 80) / 20) * 0.15
-        return `rgb(${Math.round(newR * (1 - accentMix) + accentR * accentMix)}, ${Math.round(newG * (1 - accentMix) + accentG * accentMix)}, ${Math.round(newB * (1 - accentMix) + accentB * accentMix)})`
-      }
-
-      return `rgb(${newR}, ${newG}, ${newB})`
-    } else {
-      const baseR = Math.round(r + (255 - r) * 0.85)
-      const baseG = Math.round(g + (255 - g) * 0.85)
-      const baseB = Math.round(b + (255 - b) * 0.85)
-
-      const newR = Math.round(baseR - (baseR - r) * factor)
-      const newG = Math.round(baseG - (baseG - g) * factor)
-      const newB = Math.round(baseB - (baseB - b) * factor)
-
-      if (intensity > 80) {
-        const accentMix = ((intensity - 80) / 20) * 0.15
-        return `rgb(${Math.round(newR * (1 - accentMix) + accentR * accentMix)}, ${Math.round(newG * (1 - accentMix) + accentG * accentMix)}, ${Math.round(newB * (1 - accentMix) + accentB * accentMix)})`
-      }
-
-      return `rgb(${newR}, ${newG}, ${newB})`
+    if (intensity > 80) {
+      const accentMix = ((intensity - 80) / 20) * 0.3
+      return `rgba(${Math.round(rgb.r * (1 - accentMix) + accentRgb.r * accentMix)}, ${Math.round(rgb.g * (1 - accentMix) + accentRgb.g * accentMix)}, ${Math.round(rgb.b * (1 - accentMix) + accentRgb.b * accentMix)}, ${0.3 + factor * 0.7})`
     }
+
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${0.2 + factor * 0.8})`
+  }
+
+  const getHeatTextColor = (intensity) => {
+    const bgColor = getHeatColor(intensity)
+    const rgba = bgColor.match(/\d+/g)
+    if (!rgba) return "#000000"
+
+    const r = parseInt(rgba[0])
+    const g = parseInt(rgba[1])
+    const b = parseInt(rgba[2])
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+
+    return luminance > 0.5 ? "#000000" : "#FFFFFF"
   }
 
   useEffect(() => {
@@ -131,21 +155,16 @@ function AdminDashboard() {
       setSecondaryColor(secondary)
       setAccentColor(accent)
 
-      const wrapper = document.querySelector(".admin-dashboard-wrapper")
-      if (wrapper) {
-        wrapper.style.setProperty("--primary-color", primary)
-        wrapper.style.setProperty("--secondary-color", secondary)
-        wrapper.style.setProperty("--accent-color", accent)
-        wrapper.style.setProperty(
-          "--primary-contrast",
-          getContrastColor(primary),
-        )
-        wrapper.style.setProperty(
-          "--secondary-contrast",
-          getContrastColor(secondary),
-        )
-        wrapper.style.setProperty("--accent-contrast", getContrastColor(accent))
-      }
+      const root = document.documentElement
+      root.style.setProperty("--color-primary", primary)
+      root.style.setProperty("--color-secondary", secondary)
+      root.style.setProperty("--color-accent", accent)
+      root.style.setProperty("--primary-contrast", getContrastColor(primary))
+      root.style.setProperty(
+        "--secondary-contrast",
+        getContrastColor(secondary),
+      )
+      root.style.setProperty("--accent-contrast", getContrastColor(accent))
     }
 
     fetchStaffingData()
@@ -246,7 +265,6 @@ function AdminDashboard() {
     const file = event.target.files[0]
     if (file) {
       console.log("Configuration file selected:", file.name)
-      // TODO: Process file upload
     }
   }
 
@@ -254,125 +272,223 @@ function AdminDashboard() {
     const file = event.target.files[0]
     if (file) {
       console.log("Roster file selected:", file.name)
-      // TODO: Process file upload
     }
   }
 
+  const dismissAlert = (id) => {
+    setAiAlerts((prev) =>
+      prev.map((alert) =>
+        alert.id === id ? { ...alert, dismissed: true } : alert,
+      ),
+    )
+  }
+
+  const renderSkeletonLoader = () => (
+    <div className="skeleton-container">
+      <div className="skeleton-header"></div>
+      <div className="skeleton-grid">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="skeleton-card">
+            <div className="skeleton-line skeleton-title"></div>
+            <div className="skeleton-line skeleton-value"></div>
+            <div className="skeleton-line skeleton-subtitle"></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   const renderHomeDashboard = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Organization Pulse</h1>
-
-      {/* KPI Cards */}
-      <div className="admin-kpi-grid">
-        <div
-          className="admin-kpi-card"
-          style={{ borderLeftColor: primaryColor }}
-        >
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Total Headcount</span>
-            <span className="admin-kpi-icon">ICON</span>
-          </div>
-          <div className="admin-kpi-value">{totalHeadcount}</div>
-          <div className="admin-kpi-subtitle">Active Employees</div>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Organization Pulse</h1>
+          <p className="page-subtitle">
+            Real-time insights into your workforce
+          </p>
         </div>
-
-        <div
-          className="admin-kpi-card"
-          style={{ borderLeftColor: secondaryColor }}
-        >
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Labor Cost vs Revenue</span>
-            <span className="admin-kpi-icon">ICON</span>
-          </div>
-          <div className="admin-kpi-value">
-            ${(laborCost / 1000).toFixed(1)}k / ${(revenue / 1000).toFixed(0)}k
-          </div>
-          <div className="admin-kpi-subtitle">
-            {((laborCost / revenue) * 100).toFixed(1)}% Labor Cost Ratio
-          </div>
-        </div>
-
-        <div
-          className="admin-kpi-card"
-          style={{ borderLeftColor: accentColor }}
-        >
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Current Live Status</span>
-            <span className="admin-kpi-icon">ICON</span>
-          </div>
-          <div className="admin-kpi-value">
-            {currentlyClocked} / {expectedClocked}
-          </div>
-          <div className="admin-kpi-subtitle">
-            {((currentlyClocked / expectedClocked) * 100).toFixed(0)}% Clocked
-            In
-          </div>
-        </div>
+        <button className="btn-primary">
+          <span>Export Report</span>
+        </button>
       </div>
 
-      {/* AI Alerts */}
-      <div className="admin-section">
-        <h2 className="admin-section-title">Urgent Insights</h2>
-        <div className="admin-alerts-container">
-          {aiAlerts.map((alert) => (
-            <div
-              key={alert.id}
-              className={`admin-alert admin-alert-${alert.priority}`}
-              style={{
-                borderLeftColor:
-                  alert.priority === "high"
-                    ? accentColor
-                    : alert.priority === "medium"
-                      ? secondaryColor
-                      : primaryColor,
-              }}
+      {/* Premium KPI Cards */}
+      <div className="kpi-grid">
+        <div className="kpi-card kpi-card-primary" data-animation="slide-up">
+          <div className="kpi-icon-wrapper">
+            <svg
+              className="kpi-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
             >
-              <div className="admin-alert-header">
-                <span className="admin-alert-priority">
-                  {alert.priority.toUpperCase()}
-                </span>
-                <span className="admin-alert-time">{alert.timestamp}</span>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+          </div>
+          <div className="kpi-content">
+            <h3 className="kpi-label">Total Headcount</h3>
+            <div className="kpi-value-wrapper">
+              <div className="kpi-value">{totalHeadcount}</div>
+              <div className="kpi-trend trend-up">
+                <span className="trend-icon">↑</span>
+                <span className="trend-value">12%</span>
               </div>
-              <div className="admin-alert-message">{alert.message}</div>
             </div>
-          ))}
+            <p className="kpi-subtitle">Active employees this week</p>
+          </div>
+          <div className="kpi-sparkline"></div>
+        </div>
+
+        <div
+          className="kpi-card kpi-card-secondary"
+          data-animation="slide-up"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <div className="kpi-icon-wrapper">
+            <svg
+              className="kpi-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div className="kpi-content">
+            <h3 className="kpi-label">Labor Cost</h3>
+            <div className="kpi-value-wrapper">
+              <div className="kpi-value">${(laborCost / 1000).toFixed(1)}K</div>
+              <div className="kpi-trend trend-down">
+                <span className="trend-icon">↓</span>
+                <span className="trend-value">3%</span>
+              </div>
+            </div>
+            <p className="kpi-subtitle">Weekly expenditure</p>
+          </div>
+          <div className="kpi-sparkline"></div>
+        </div>
+
+        <div
+          className="kpi-card kpi-card-accent"
+          data-animation="slide-up"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <div className="kpi-icon-wrapper">
+            <svg
+              className="kpi-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <div className="kpi-content">
+            <h3 className="kpi-label">Revenue Impact</h3>
+            <div className="kpi-value-wrapper">
+              <div className="kpi-value">${(revenue / 1000).toFixed(1)}K</div>
+              <div className="kpi-trend trend-up">
+                <span className="trend-icon">↑</span>
+                <span className="trend-value">8%</span>
+              </div>
+            </div>
+            <p className="kpi-subtitle">Generated this week</p>
+          </div>
+          <div className="kpi-sparkline"></div>
         </div>
       </div>
 
-      {/* Demand Heat Map */}
-      <div className="admin-section">
-        <h2 className="admin-section-title">Weekly Demand Heat Map</h2>
-        <p className="admin-section-description">
-          Peak hours analysis across the organization - darker cells indicate
-          higher demand
-        </p>
-        <div className="admin-heatmap-container">
-          <div className="admin-heatmap-wrapper">
-            <div className="admin-heatmap-row admin-heatmap-header">
-              <div className="admin-heatmap-cell admin-heatmap-corner">
-                Hour
+      {/* AI Alerts Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <h2 className="section-title">
+            <img src={InfoIcon} alt="Alerts" className="title-icon-svg" />
+            Intelligent Alerts
+          </h2>
+          <span className="badge badge-primary">
+            {aiAlerts.filter((a) => !a.dismissed).length} Active
+          </span>
+        </div>
+        <div className="alerts-grid">
+          {aiAlerts
+            .filter((a) => !a.dismissed)
+            .map((alert) => (
+              <div
+                key={alert.id}
+                className={`alert-card alert-${alert.priority}`}
+                data-animation="fade-in"
+              >
+                <div className="alert-header">
+                  <div className={`alert-badge priority-${alert.priority}`}>
+                    {alert.priority.toUpperCase()}
+                  </div>
+                  <span className="alert-timestamp">{alert.timestamp}</span>
+                </div>
+                <p className="alert-message">{alert.message}</p>
+                <div className="alert-actions">
+                  <button className="btn-link">View Details</button>
+                  <button
+                    className="btn-link"
+                    onClick={() => dismissAlert(alert.id)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
+            ))}
+        </div>
+      </div>
+
+      {/* Heat Map Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">Weekly Demand Heat Map</h2>
+            <p className="section-description">
+              Peak hours analysis - hover for detailed metrics
+            </p>
+          </div>
+          <div className="section-actions">
+            <button className="btn-secondary">Export Data</button>
+          </div>
+        </div>
+        <div className="heatmap-wrapper">
+          <div className="heatmap-table">
+            <div className="heatmap-header-row">
+              <div className="heatmap-corner-cell">Hour</div>
               {days.map((day) => (
-                <div
-                  key={day}
-                  className="admin-heatmap-cell admin-heatmap-day-header"
-                >
+                <div key={day} className="heatmap-day-header">
                   {day}
                 </div>
               ))}
             </div>
             {heatMapData.map((row, hourIndex) => (
-              <div key={hourIndex} className="admin-heatmap-row">
-                <div className="admin-heatmap-cell admin-heatmap-hour-label">
+              <div key={hourIndex} className="heatmap-data-row">
+                <div className="heatmap-hour-label">
                   {String(hourIndex).padStart(2, "0")}:00
                 </div>
                 {row.map((intensity, dayIndex) => (
                   <div
                     key={dayIndex}
-                    className="admin-heatmap-cell admin-heatmap-data-cell"
+                    className="heatmap-data-cell"
                     style={{
                       backgroundColor: getHeatColor(intensity),
-                      color: getContrastColor(getHeatColor(intensity)),
+                      color: getHeatTextColor(intensity),
                     }}
                     title={`${days[dayIndex]} ${String(hourIndex).padStart(2, "0")}:00 - ${intensity}% capacity`}
                   >
@@ -382,15 +498,10 @@ function AdminDashboard() {
               </div>
             ))}
           </div>
-          <div className="admin-heatmap-legend">
-            <span className="admin-legend-label">Low Demand</span>
-            <div
-              className="admin-legend-gradient"
-              style={{
-                background: `linear-gradient(to right, ${getHeatColor(0)}, ${getHeatColor(100)})`,
-              }}
-            ></div>
-            <span className="admin-legend-label">High Demand</span>
+          <div className="heatmap-legend">
+            <span className="legend-label">Low</span>
+            <div className="legend-gradient"></div>
+            <span className="legend-label">High</span>
           </div>
         </div>
       </div>
@@ -398,129 +509,200 @@ function AdminDashboard() {
   )
 
   const renderMasterSchedule = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Master Schedule</h1>
-      <div className="admin-filters-bar">
-        <select
-          className="admin-filter-select"
-          style={{ borderColor: primaryColor }}
-        >
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Master Schedule</h1>
+          <p className="page-subtitle">Comprehensive workforce calendar</p>
+        </div>
+        <button className="btn-primary">Add Shift</button>
+      </div>
+
+      <div className="filter-bar">
+        <select className="filter-select">
           <option>All Departments</option>
           <option>Sales</option>
           <option>Operations</option>
           <option>Customer Service</option>
           <option>IT</option>
         </select>
-        <select
-          className="admin-filter-select"
-          style={{ borderColor: primaryColor }}
-        >
+        <select className="filter-select">
           <option>All Segments</option>
           <option>Morning Shift</option>
           <option>Evening Shift</option>
           <option>Night Shift</option>
         </select>
-        <button
-          className="admin-btn-primary"
-          style={{
-            backgroundColor: primaryColor,
-            color: getContrastColor(primaryColor),
-          }}
-        >
-          Export Schedule
-        </button>
+        <button className="btn-secondary">Export Schedule</button>
       </div>
-      <div className="admin-placeholder-content">
-        <div className="admin-placeholder-icon">CALENDAR</div>
-        <p>Full organization calendar view will be displayed here</p>
-        <p className="admin-placeholder-subtitle">
-          Filterable by departments and segments
-        </p>
+
+      <div className="empty-state">
+        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
+        <h3>Schedule View Coming Soon</h3>
+        <p>Full organization calendar with drag-and-drop scheduling</p>
       </div>
     </div>
   )
 
   const renderAnalytics = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Analytics & Reports</h1>
-      <div className="admin-analytics-grid">
-        <div className="admin-analytics-card">
-          <h3>Labor Cost Trends</h3>
-          <div className="admin-placeholder-chart">CHART_ICON</div>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Analytics & Reports</h1>
+          <p className="page-subtitle">Data-driven workforce insights</p>
         </div>
-        <div className="admin-analytics-card">
-          <h3>Attendance Patterns</h3>
-          <div className="admin-placeholder-chart">CHART_ICON</div>
+        <button className="btn-primary">Generate Report</button>
+      </div>
+
+      <div className="analytics-grid">
+        <div className="chart-card">
+          <h3 className="chart-title">Labor Cost Trends</h3>
+          <div className="chart-placeholder">
+            <svg
+              className="chart-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+              />
+            </svg>
+            <p>Chart visualization</p>
+          </div>
         </div>
-        <div className="admin-analytics-card">
-          <h3>Department Performance</h3>
-          <div className="admin-placeholder-chart">CHART_ICON</div>
+        <div className="chart-card">
+          <h3 className="chart-title">Attendance Patterns</h3>
+          <div className="chart-placeholder">
+            <svg
+              className="chart-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <p>Chart visualization</p>
+          </div>
         </div>
-        <div className="admin-analytics-card">
-          <h3>Revenue vs Labor Cost</h3>
-          <div className="admin-placeholder-chart">CHART_ICON</div>
+        <div className="chart-card">
+          <h3 className="chart-title">Department Performance</h3>
+          <div className="chart-placeholder">
+            <svg
+              className="chart-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            <p>Chart visualization</p>
+          </div>
+        </div>
+        <div className="chart-card">
+          <h3 className="chart-title">Revenue vs Labor Cost</h3>
+          <div className="chart-placeholder">
+            <svg
+              className="chart-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
+            </svg>
+            <p>Chart visualization</p>
+          </div>
         </div>
       </div>
     </div>
   )
 
   const renderPlanning = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Workforce Planning</h1>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Workforce Planning</h1>
+          <p className="page-subtitle">Strategic insights for growth</p>
+        </div>
+        <button className="btn-primary">Create Campaign</button>
+      </div>
 
-      <div className="admin-planning-section">
-        <h2 className="admin-section-title">Long-term Trends</h2>
-        <div className="admin-planning-card">
-          <div className="admin-placeholder-chart">TREND_CHART</div>
+      <div className="planning-metrics">
+        <div className="metric-card metric-success">
+          <img src={ChartUpIcon} alt="Hires" className="metric-icon-svg" />
+          <div className="metric-content">
+            <h4>Recent Hires</h4>
+            <div className="metric-value">24</div>
+            <p className="metric-label">Last 30 days</p>
+          </div>
+        </div>
+        <div className="metric-card metric-warning">
+          <img
+            src={ChartDownIcon}
+            alt="Attrition"
+            className="metric-icon-svg"
+          />
+          <div className="metric-content">
+            <h4>Attrition Rate</h4>
+            <div className="metric-value">5.2%</div>
+            <p className="metric-label">Below industry avg</p>
+          </div>
+        </div>
+        <div className="metric-card metric-info">
+          <img src={TargetHitIcon} alt="Goal" className="metric-icon-svg" />
+          <div className="metric-content">
+            <h4>Hiring Goal</h4>
+            <div className="metric-value">85%</div>
+            <p className="metric-label">On track</p>
+          </div>
         </div>
       </div>
 
-      <div className="admin-planning-section">
-        <h2 className="admin-section-title">Hiring & Layoff Data</h2>
-        <div className="admin-planning-grid">
-          <div className="admin-planning-metric">
-            <span className="admin-metric-label">Planned Hires (Q1)</span>
-            <span
-              className="admin-metric-value"
-              style={{ color: primaryColor }}
-            >
-              12
-            </span>
+      <div className="section-wrapper">
+        <h2 className="section-title">AI-Powered Campaign Suggestions</h2>
+        <div className="campaigns-list">
+          <div className="campaign-card">
+            <div className="campaign-priority priority-high">High Priority</div>
+            <h3 className="campaign-title">Black Friday Hiring Blitz</h3>
+            <p className="campaign-description">
+              Projected 40% demand increase. Recommend hiring 15 additional
+              staff by Nov 1st.
+            </p>
+            <div className="campaign-footer">
+              <button className="btn-primary btn-sm">Launch Campaign</button>
+              <button className="btn-link">View Forecast</button>
+            </div>
           </div>
-          <div className="admin-planning-metric">
-            <span className="admin-metric-label">Open Positions</span>
-            <span
-              className="admin-metric-value"
-              style={{ color: secondaryColor }}
-            >
-              7
-            </span>
-          </div>
-          <div className="admin-planning-metric">
-            <span className="admin-metric-label">Turnover Rate</span>
-            <span className="admin-metric-value" style={{ color: accentColor }}>
-              8.5%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="admin-planning-section">
-        <h2 className="admin-section-title">Campaign Suggestions</h2>
-        <div className="admin-campaigns-list">
-          <div
-            className="admin-campaign-item"
-            style={{ borderLeftColor: primaryColor }}
-          >
-            <h4>Summer Staffing Drive</h4>
-            <p>Increase headcount by 15% for seasonal demand spike</p>
-          </div>
-          <div
-            className="admin-campaign-item"
-            style={{ borderLeftColor: secondaryColor }}
-          >
-            <h4>Training Initiative</h4>
-            <p>Upskill 30 employees for cross-functional coverage</p>
+          <div className="campaign-card">
+            <div className="campaign-priority priority-medium">
+              Medium Priority
+            </div>
+            <h3 className="campaign-title">Q2 Expansion Prep</h3>
+            <p className="campaign-description">
+              New location opening requires 8-10 trained staff. Start
+              recruitment Q1.
+            </p>
+            <div className="campaign-footer">
+              <button className="btn-primary btn-sm">Launch Campaign</button>
+              <button className="btn-link">View Details</button>
+            </div>
           </div>
         </div>
       </div>
@@ -528,672 +710,339 @@ function AdminDashboard() {
   )
 
   const renderOrgSettings = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">
-        Organization Settings - Control Tower
-      </h1>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Organization Settings</h1>
+          <p className="page-subtitle">Configure system parameters</p>
+        </div>
+      </div>
 
-      <div className="admin-settings-section">
-        <h2 className="admin-section-title">Hourly Rates</h2>
-        <div className="admin-settings-grid">
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">Base Hourly Rate</label>
+      <div className="settings-section">
+        <h2 className="section-title">Hourly Rates</h2>
+        <div className="settings-grid">
+          <div className="setting-item">
+            <label className="setting-label">Base Rate</label>
             <input
               type="number"
-              className="admin-setting-input"
-              placeholder="15.00"
-              style={{ borderColor: primaryColor }}
+              className="setting-input"
+              placeholder="$15.00"
             />
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">Overtime Multiplier</label>
+          <div className="setting-item">
+            <label className="setting-label">Overtime Rate</label>
             <input
               type="number"
-              className="admin-setting-input"
-              placeholder="1.5"
-              style={{ borderColor: primaryColor }}
+              className="setting-input"
+              placeholder="$22.50"
             />
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">Weekend Rate</label>
+          <div className="setting-item">
+            <label className="setting-label">Weekend Premium</label>
             <input
               type="number"
-              className="admin-setting-input"
-              placeholder="18.00"
-              style={{ borderColor: primaryColor }}
+              className="setting-input"
+              placeholder="$18.00"
             />
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">Holiday Rate</label>
+          <div className="setting-item">
+            <label className="setting-label">Holiday Rate</label>
             <input
               type="number"
-              className="admin-setting-input"
-              placeholder="22.50"
-              style={{ borderColor: primaryColor }}
+              className="setting-input"
+              placeholder="$30.00"
             />
           </div>
         </div>
       </div>
 
-      <div className="admin-settings-section">
-        <h2 className="admin-section-title">Shift Rules</h2>
-        <div className="admin-settings-grid">
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">
-              Minimum Shift Duration (hours)
-            </label>
-            <input
-              type="number"
-              className="admin-setting-input"
-              placeholder="4"
-              style={{ borderColor: primaryColor }}
-            />
+      <div className="settings-section">
+        <h2 className="section-title">Shift Rules</h2>
+        <div className="settings-grid">
+          <div className="setting-item">
+            <label className="setting-label">Minimum Shift Length</label>
+            <select className="setting-input">
+              <option>4 hours</option>
+              <option>6 hours</option>
+              <option>8 hours</option>
+            </select>
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">
-              Maximum Shift Duration (hours)
-            </label>
-            <input
-              type="number"
-              className="admin-setting-input"
-              placeholder="12"
-              style={{ borderColor: primaryColor }}
-            />
+          <div className="setting-item">
+            <label className="setting-label">Maximum Shift Length</label>
+            <select className="setting-input">
+              <option>8 hours</option>
+              <option>10 hours</option>
+              <option>12 hours</option>
+            </select>
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">
-              Break Duration (minutes)
-            </label>
-            <input
-              type="number"
-              className="admin-setting-input"
-              placeholder="30"
-              style={{ borderColor: primaryColor }}
-            />
+          <div className="setting-item">
+            <label className="setting-label">Break Duration</label>
+            <select className="setting-input">
+              <option>15 minutes</option>
+              <option>30 minutes</option>
+              <option>60 minutes</option>
+            </select>
           </div>
-          <div className="admin-setting-item">
-            <label className="admin-setting-label">Max Weekly Hours</label>
-            <input
-              type="number"
-              className="admin-setting-input"
-              placeholder="40"
-              style={{ borderColor: primaryColor }}
-            />
+          <div className="setting-item">
+            <label className="setting-label">Grace Period</label>
+            <select className="setting-input">
+              <option>5 minutes</option>
+              <option>10 minutes</option>
+              <option>15 minutes</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <div className="admin-settings-section">
-        <h2 className="admin-section-title">System Logic</h2>
-        <div className="admin-settings-list">
-          <div className="admin-setting-toggle">
-            <span className="admin-toggle-label">
-              Enable AI Recommendations
-            </span>
-            <label className="admin-toggle-switch">
-              <input type="checkbox" defaultChecked />
-              <span
-                className="admin-toggle-slider"
-                style={{ backgroundColor: primaryColor }}
-              ></span>
-            </label>
-          </div>
-          <div className="admin-setting-toggle">
-            <span className="admin-toggle-label">
-              Auto-approve Time-off Requests
-            </span>
-            <label className="admin-toggle-switch">
+      <div className="settings-section">
+        <h2 className="section-title">System Logic</h2>
+        <div className="settings-toggles">
+          <div className="toggle-item">
+            <div className="toggle-content">
+              <h4 className="toggle-title">Auto-Approve Shifts</h4>
+              <p className="toggle-description">
+                Automatically approve all shift requests
+              </p>
+            </div>
+            <label className="toggle-switch">
               <input type="checkbox" />
-              <span className="admin-toggle-slider"></span>
+              <span className="toggle-slider"></span>
             </label>
           </div>
-          <div className="admin-setting-toggle">
-            <span className="admin-toggle-label">
-              Send Weekly Analytics Reports
-            </span>
-            <label className="admin-toggle-switch">
+          <div className="toggle-item">
+            <div className="toggle-content">
+              <h4 className="toggle-title">Overtime Alerts</h4>
+              <p className="toggle-description">
+                Notify managers when overtime is approaching
+              </p>
+            </div>
+            <label className="toggle-switch">
               <input type="checkbox" defaultChecked />
-              <span
-                className="admin-toggle-slider"
-                style={{ backgroundColor: primaryColor }}
-              ></span>
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+          <div className="toggle-item">
+            <div className="toggle-content">
+              <h4 className="toggle-title">AI Recommendations</h4>
+              <p className="toggle-description">
+                Enable intelligent scheduling suggestions
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" defaultChecked />
+              <span className="toggle-slider"></span>
             </label>
           </div>
         </div>
       </div>
 
-      <button
-        className="admin-btn-primary admin-btn-save"
-        style={{
-          backgroundColor: primaryColor,
-          color: getContrastColor(primaryColor),
-        }}
-      >
-        Save All Settings
-      </button>
+      <div className="settings-footer">
+        <button className="btn-secondary">Reset to Defaults</button>
+        <button className="btn-primary">Save All Changes</button>
+      </div>
     </div>
   )
 
   const renderRequiredInfo = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Required Information</h1>
-
-      <div className="admin-filters-bar">
-        <button
-          className={`admin-sub-tab ${requiredInfoSubTab === "location" ? "active" : ""}`}
-          onClick={() => setRequiredInfoSubTab("location")}
-          style={
-            requiredInfoSubTab === "location"
-              ? {
-                  backgroundColor: primaryColor,
-                  color: getContrastColor(primaryColor),
-                }
-              : {}
-          }
-        >
-          Location
-        </button>
-        <button
-          className={`admin-sub-tab ${requiredInfoSubTab === "dataupload" ? "active" : ""}`}
-          onClick={() => setRequiredInfoSubTab("dataupload")}
-          style={
-            requiredInfoSubTab === "dataupload"
-              ? {
-                  backgroundColor: primaryColor,
-                  color: getContrastColor(primaryColor),
-                }
-              : {}
-          }
-        >
-          Data Upload
-        </button>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Setup & Configuration</h1>
+          <p className="page-subtitle">
+            Required information for system initialization
+          </p>
+        </div>
       </div>
 
-      {/* Location Section */}
+      <div className="tabs-wrapper">
+        <div className="tabs-nav">
+          <button
+            className={`tab-button ${requiredInfoSubTab === "location" ? "active" : ""}`}
+            onClick={() => setRequiredInfoSubTab("location")}
+          >
+            <img src={LocationIcon} alt="Location" className="tab-icon-svg" />
+            Location
+          </button>
+          <button
+            className={`tab-button ${requiredInfoSubTab === "dataupload" ? "active" : ""}`}
+            onClick={() => setRequiredInfoSubTab("dataupload")}
+          >
+            <img src={CloudUploadIcon} alt="Upload" className="tab-icon-svg" />
+            Data Upload
+          </button>
+        </div>
+      </div>
+
       {requiredInfoSubTab === "location" && (
-        <div className="admin-section">
-          <h2 className="admin-section-title">Select Organization Location</h2>
-          <p className="admin-section-description">
-            Click anywhere on the globe to select your organization's location
+        <div className="section-wrapper">
+          <h2 className="section-title">Select Organization Location</h2>
+          <p className="section-description">
+            Click anywhere on the map to set your primary business location
           </p>
 
-          {/* Coordinates Display Box */}
           {selectedCoords.lat && selectedCoords.lng && (
-            <div
-              className="admin-coords-display"
-              style={{ borderColor: primaryColor }}
-            >
-              <div className="admin-coords-title">Selected Coordinates</div>
-              <div className="admin-coords-values">
-                Latitude: {selectedCoords.lat} | Longitude: {selectedCoords.lng}
+            <div className="coords-display">
+              <div className="coords-item">
+                <span className="coords-label">Latitude:</span>
+                <span className="coords-value">{selectedCoords.lat}</span>
               </div>
-              <button
-                className="admin-btn-primary"
-                style={{
-                  backgroundColor: primaryColor,
-                  color: getContrastColor(primaryColor),
-                }}
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    `${selectedCoords.lat}, ${selectedCoords.lng}`,
-                  )
-                  alert("Coordinates copied to clipboard!")
-                }}
-              >
-                Copy Coordinates
-              </button>
+              <div className="coords-item">
+                <span className="coords-label">Longitude:</span>
+                <span className="coords-value">{selectedCoords.lng}</span>
+              </div>
+              <button className="btn-primary btn-sm">Confirm Location</button>
             </div>
           )}
 
-          <div id="location-map" className="admin-map-container">
-            {!selectedCoords.lat && (
-              <div className="admin-map-loading">Loading map...</div>
-            )}
-          </div>
+          <div id="location-map" className="map-container"></div>
 
           {!selectedCoords.lat && (
-            <p className="admin-map-hint">
-              Click anywhere on the map to get latitude and longitude
-              coordinates
-            </p>
+            <div className="map-hint">
+              <p>👆 Click on the map to select your location</p>
+            </div>
           )}
         </div>
       )}
 
-      {/* Data Upload Section */}
       {requiredInfoSubTab === "dataupload" && (
-        <div className="admin-section">
-          <h2 className="admin-section-title">Data Upload</h2>
-          <p className="admin-section-description">
-            Upload configuration and employee data files
+        <div className="section-wrapper">
+          <h2 className="section-title">Data Import</h2>
+          <p className="section-description">
+            Upload your configuration files to initialize the system
           </p>
 
-          {/* Upload Slot 1 */}
-          <div
-            className="admin-upload-card"
-            style={{ borderColor: primaryColor }}
-          >
-            <div className="admin-upload-header">
-              <div
-                className="admin-upload-number"
-                style={{
-                  backgroundColor: primaryColor,
-                  color: getContrastColor(primaryColor),
-                }}
+          <div className="upload-grid">
+            <div className="upload-card">
+              <input
+                type="file"
+                ref={configFileInput}
+                onChange={handleConfigUpload}
+                style={{ display: "none" }}
+                accept=".csv,.xlsx,.json"
+              />
+              <img
+                src={ConfigurationIcon}
+                alt="Configuration"
+                className="upload-icon-svg"
+              />
+              <h3 className="upload-title">Configuration File</h3>
+              <p className="upload-description">
+                Upload your organization structure, departments, and roles
+              </p>
+              <ul className="upload-specs">
+                <li>Supported formats: CSV, XLSX, JSON</li>
+                <li>Maximum size: 10MB</li>
+                <li>Must include: department_id, role_name, base_rate</li>
+              </ul>
+              <button
+                className="btn-primary"
+                onClick={() => configFileInput.current?.click()}
               >
-                1
-              </div>
-              <div>
-                <h3 className="admin-upload-title">Configuration & Roles</h3>
-                <p className="admin-upload-subtitle">
-                  Place details and job definitions
-                </p>
-              </div>
+                Choose File
+              </button>
             </div>
 
-            <div className="admin-upload-body">
-              <div className="admin-upload-formats">
-                <span className="admin-format-tag admin-format-json">
-                  .json
-                </span>
-                <span className="admin-format-tag admin-format-xlsx">
-                  .xlsx
-                </span>
-              </div>
-
-              <details className="admin-upload-schema">
-                <summary>View Schema</summary>
-                <div className="admin-schema-content">
-                  <div className="admin-schema-section">
-                    <strong>Place Fields:</strong>
-                    <code>placeId, placeName, type, openingHours</code>
-                  </div>
-                  <div className="admin-schema-section">
-                    <strong>Role Fields:</strong>
-                    <code>
-                      roleId, roleName, producing, itemsPerEmployeePerHour,
-                      minPresent
-                    </code>
-                  </div>
-                  <div className="admin-schema-note">
-                    Note: itemsPerEmployeePerHour required only if producing is
-                    true
-                  </div>
-                </div>
-              </details>
-            </div>
-
-            <input
-              ref={configFileInput}
-              type="file"
-              accept=".json,.xlsx"
-              onChange={handleConfigUpload}
-              style={{ display: "none" }}
-            />
-            <button
-              className="admin-btn-primary"
-              style={{
-                backgroundColor: primaryColor,
-                color: getContrastColor(primaryColor),
-              }}
-              onClick={() => configFileInput.current.click()}
-            >
-              Select File
-            </button>
-          </div>
-
-          {/* Upload Slot 2 */}
-          <div
-            className="admin-upload-card"
-            style={{ borderColor: secondaryColor }}
-          >
-            <div className="admin-upload-header">
-              <div
-                className="admin-upload-number"
-                style={{
-                  backgroundColor: secondaryColor,
-                  color: getContrastColor(secondaryColor),
-                }}
+            <div className="upload-card">
+              <input
+                type="file"
+                ref={rosterFileInput}
+                onChange={handleRosterUpload}
+                style={{ display: "none" }}
+                accept=".csv,.xlsx,.json"
+              />
+              <img
+                src={EmployeeIcon}
+                alt="Employees"
+                className="upload-icon-svg"
+              />
+              <h3 className="upload-title">Employee Roster</h3>
+              <p className="upload-description">
+                Import your complete employee list with contact details
+              </p>
+              <ul className="upload-specs">
+                <li>Supported formats: CSV, XLSX, JSON</li>
+                <li>Maximum size: 25MB</li>
+                <li>Must include: employee_id, name, email, role</li>
+              </ul>
+              <button
+                className="btn-primary"
+                onClick={() => rosterFileInput.current?.click()}
               >
-                2
-              </div>
-              <div>
-                <h3 className="admin-upload-title">Staff Roster</h3>
-                <p className="admin-upload-subtitle">
-                  Employee availability data
-                </p>
-              </div>
+                Choose File
+              </button>
             </div>
-
-            <div className="admin-upload-body">
-              <div className="admin-upload-formats">
-                <span className="admin-format-tag admin-format-csv">.csv</span>
-                <span className="admin-format-tag admin-format-xlsx">
-                  .xlsx
-                </span>
-              </div>
-
-              <details className="admin-upload-schema">
-                <summary>View Schema</summary>
-                <div className="admin-schema-content">
-                  <div className="admin-schema-section">
-                    <strong>Required Columns:</strong>
-                    <code>
-                      employeeId, roleIds, availableDays, preferredDays,
-                      availableHours, preferredHours
-                    </code>
-                  </div>
-                  <div className="admin-schema-note">
-                    Note: roleIds must match existing roles from Configuration
-                  </div>
-                </div>
-              </details>
-            </div>
-
-            <input
-              ref={rosterFileInput}
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={handleRosterUpload}
-              style={{ display: "none" }}
-            />
-            <button
-              className="admin-btn-primary"
-              style={{
-                backgroundColor: secondaryColor,
-                color: getContrastColor(secondaryColor),
-              }}
-              onClick={() => rosterFileInput.current.click()}
-            >
-              Select File
-            </button>
           </div>
         </div>
       )}
-    </div>
-  )
-
-  const renderProfile = () => (
-    <div className="admin-dashboard-content">
-      <h1 className="admin-page-title">Admin Profile</h1>
-
-      <div className="admin-profile-container">
-        <div className="admin-profile-header">
-          <div
-            className="admin-profile-avatar"
-            style={{
-              backgroundColor: primaryColor,
-              color: getContrastColor(primaryColor),
-            }}
-          >
-            AVATAR
-          </div>
-          <div className="admin-profile-info">
-            <h2 className="admin-profile-name">Administrator</h2>
-            <p className="admin-profile-role">System Administrator</p>
-          </div>
-        </div>
-
-        <div className="admin-profile-section">
-          <h3 className="admin-profile-section-title">Personal Information</h3>
-          <div className="admin-settings-grid">
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">Full Name</label>
-              <input
-                type="text"
-                className="admin-setting-input"
-                placeholder="John Doe"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">Email</label>
-              <input
-                type="email"
-                className="admin-setting-input"
-                placeholder="admin@organization.com"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">Phone</label>
-              <input
-                type="tel"
-                className="admin-setting-input"
-                placeholder="+1 (555) 123-4567"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">Department</label>
-              <input
-                type="text"
-                className="admin-setting-input"
-                placeholder="Administration"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="admin-profile-section">
-          <h3 className="admin-profile-section-title">Security</h3>
-          <div className="admin-settings-grid">
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">Current Password</label>
-              <input
-                type="password"
-                className="admin-setting-input"
-                placeholder="••••••••"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">New Password</label>
-              <input
-                type="password"
-                className="admin-setting-input"
-                placeholder="••••••••"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-            <div className="admin-setting-item">
-              <label className="admin-setting-label">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                className="admin-setting-input"
-                placeholder="••••••••"
-                style={{ borderColor: primaryColor }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="admin-profile-section">
-          <h3 className="admin-profile-section-title">Organization Theme</h3>
-          <div className="admin-color-preview-grid">
-            <div className="admin-color-preview-item">
-              <div
-                className="admin-color-preview-box"
-                style={{ backgroundColor: primaryColor }}
-              ></div>
-              <span className="admin-color-preview-label">Primary</span>
-              <span className="admin-color-preview-value">{primaryColor}</span>
-            </div>
-            <div className="admin-color-preview-item">
-              <div
-                className="admin-color-preview-box"
-                style={{ backgroundColor: secondaryColor }}
-              ></div>
-              <span className="admin-color-preview-label">Secondary</span>
-              <span className="admin-color-preview-value">
-                {secondaryColor}
-              </span>
-            </div>
-            <div className="admin-color-preview-item">
-              <div
-                className="admin-color-preview-box"
-                style={{ backgroundColor: accentColor }}
-              ></div>
-              <span className="admin-color-preview-label">Accent</span>
-              <span className="admin-color-preview-value">{accentColor}</span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          className="admin-btn-primary admin-btn-save"
-          style={{
-            backgroundColor: primaryColor,
-            color: getContrastColor(primaryColor),
-          }}
-        >
-          Update Profile
-        </button>
-      </div>
     </div>
   )
 
   return (
-    <div className="admin-dashboard-wrapper">
-      {/* Sidebar Navigation */}
-      <aside className="admin-sidebar">
-        <div className="admin-logo-section">
-          <h1 className="admin-logo">ClockWise</h1>
-          <p className="admin-logo-subtitle">Admin Dashboard</p>
+    <div className="dashboard-wrapper">
+      {/* Premium Sidebar */}
+      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="sidebar-header">
+          <div className="logo-wrapper">
+            <h1 className="logo">ClockWise</h1>
+            {!sidebarCollapsed && <span className="logo-badge">Admin</span>}
+          </div>
+          <button
+            className="collapse-btn"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
+            {sidebarCollapsed ? "→" : "←"}
+          </button>
         </div>
 
-        <nav className="admin-nav">
-          <button
-            className={`admin-nav-item ${activeTab === "home" ? "active" : ""}`}
-            onClick={() => setActiveTab("home")}
-            style={
-              activeTab === "home"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Home
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "schedule" ? "active" : ""}`}
-            onClick={() => setActiveTab("schedule")}
-            style={
-              activeTab === "schedule"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Master Schedule
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "analytics" ? "active" : ""}`}
-            onClick={() => setActiveTab("analytics")}
-            style={
-              activeTab === "analytics"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Analytics
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "planning" ? "active" : ""}`}
-            onClick={() => setActiveTab("planning")}
-            style={
-              activeTab === "planning"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Planning
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => setActiveTab("settings")}
-            style={
-              activeTab === "settings"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Org Settings
-          </button>
-
-          <button
-            className={`admin-nav-item ${activeTab === "requiredinfo" ? "active" : ""}`}
-            onClick={() => setActiveTab("requiredinfo")}
-            style={
-              activeTab === "requiredinfo"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Required Info
-          </button>
+        <nav className="nav-menu">
+          {navigationItems.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-item ${activeTab === item.id ? "active" : ""}`}
+              onClick={() => setActiveTab(item.id)}
+            >
+              <img src={item.icon} alt={item.label} className="nav-icon" />
+              {!sidebarCollapsed && (
+                <span className="nav-label">{item.label}</span>
+              )}
+              {activeTab === item.id && (
+                <div className="active-indicator"></div>
+              )}
+            </button>
+          ))}
         </nav>
 
-        <div className="admin-sidebar-footer">
-          <button
-            className={`admin-nav-item ${activeTab === "profile" ? "active" : ""}`}
-            onClick={() => setActiveTab("profile")}
-            style={
-              activeTab === "profile"
-                ? {
-                    backgroundColor: primaryColor,
-                    color: getContrastColor(primaryColor),
-                  }
-                : {}
-            }
-          >
-            Profile
-          </button>
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="user-avatar">AD</div>
+            {!sidebarCollapsed && (
+              <div className="user-info">
+                <div className="user-name">Admin</div>
+                <div className="user-role">System Admin</div>
+              </div>
+            )}
+          </div>
+          {!sidebarCollapsed && <button className="logout-btn">Logout</button>}
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="admin-main-content">
-        {loading && (
-          <div className="admin-loading-overlay">
-            <div className="admin-loading-spinner"></div>
-            <p>Loading dashboard data...</p>
-          </div>
-        )}
-
+      {/* Main Content */}
+      <main className="main-content">
+        {loading && renderSkeletonLoader()}
         {error && !loading && (
-          <div className="admin-error-banner">
-            <span className="admin-error-icon">!</span>
-            <span>{error}</span>
-            <button className="admin-error-retry" onClick={fetchStaffingData}>
+          <div className="error-state">
+            <img
+              src={MissedTargetIcon}
+              alt="Error"
+              className="error-icon-svg"
+            />
+            <h3>Error Loading Dashboard</h3>
+            <p>{error}</p>
+            <button className="btn-primary" onClick={fetchStaffingData}>
               Retry
             </button>
           </div>
         )}
-
         {!loading && (
           <>
             {activeTab === "home" && renderHomeDashboard()}
@@ -1202,10 +1051,23 @@ function AdminDashboard() {
             {activeTab === "planning" && renderPlanning()}
             {activeTab === "settings" && renderOrgSettings()}
             {activeTab === "requiredinfo" && renderRequiredInfo()}
-            {activeTab === "profile" && renderProfile()}
           </>
         )}
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-nav">
+        {navigationItems.slice(0, 5).map((item) => (
+          <button
+            key={item.id}
+            className={`mobile-nav-item ${activeTab === item.id ? "active" : ""}`}
+            onClick={() => setActiveTab(item.id)}
+          >
+            <img src={item.icon} alt={item.label} className="mobile-nav-icon" />
+            <span className="mobile-nav-label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }

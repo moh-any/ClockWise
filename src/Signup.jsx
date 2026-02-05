@@ -1,8 +1,10 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import "./Signup.css"
 import api from "./services/api"
 
 function Signup({ onClose, onSwitchToLogin, isClosing }) {
+  const navigate = useNavigate()
   const [organizationName, setOrganizationName] = useState("")
   const [address, setAddress] = useState("")
   const [email, setEmail] = useState("")
@@ -47,25 +49,28 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
         admin_email: email,
         admin_full_name: fullName,
         admin_password: password,
+        hex1: color1.replace("#", ""),
+        hex2: color2.replace("#", ""),
+        hex3: color3.replace("#", ""),
       }
 
       const response = await api.auth.register(registrationData)
 
       console.log("Registration successful:", response)
 
-      // Auto-login after registration
-      await api.auth.login({ email, password })
+      // Auto-login after registration using the same credentials
+      const loginResponse = await api.auth.login({ email, password })
 
-      // Fetch user information after successful login
-      const userInfo = await api.auth.getCurrentUser()
+      console.log("Login successful:", loginResponse)
 
-      // Store user data in localStorage
-      if (userInfo.user) {
-        localStorage.setItem("user_info", JSON.stringify(userInfo.user))
-      }
+      // Display the access token in an alert
+      alert(
+        `Registration and login successful!\n\nAccess Token:\n${loginResponse.access_token}`,
+      )
 
-      // Redirect to admin dashboard
-      window.location.href = "/admin"
+      // Close the signup modal and navigate back to home page
+      onClose()
+      navigate("/")
     } catch (err) {
       console.error("Registration error:", err)
       setError(err.message || "Registration failed. Please try again.")

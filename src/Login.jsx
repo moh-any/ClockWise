@@ -18,14 +18,11 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
     try {
       const response = await api.auth.login({ email, password })
 
-      const userInfo = await api.auth.getCurrentUser()
-
-      if (userInfo.user) {
-        localStorage.setItem("user_info", JSON.stringify(userInfo.user))
-      }
+      // Display the access token in an alert
+      alert(`Login successful!\n\nAccess Token:\n${response.access_token}`)
 
       onClose()
-      navigate("/admin")
+      navigate("/")
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.")
     } finally {
