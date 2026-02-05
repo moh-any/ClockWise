@@ -45,6 +45,7 @@ func payloadFunc() func(data any) gojwt.MapClaims {
 				"email":           v.Email,
 				"user_role":       v.UserRole,
 				"organization_id": v.OrganizationID.String(),
+				"salary_per_hour": v.SalaryPerHour,
 			}
 		}
 		return gojwt.MapClaims{}
@@ -54,12 +55,19 @@ func payloadFunc() func(data any) gojwt.MapClaims {
 func identityHandler() func(c *gin.Context) any {
 	return func(c *gin.Context) any {
 		claims := jwt.ExtractClaims(c)
+		var salaryPerHour *float64
+		if salary, ok := claims["salary_per_hour"]; ok && salary != nil {
+			if s, ok := salary.(float64); ok {
+				salaryPerHour = &s
+			}
+		}
 		return &database.User{
 			ID:             uuid.MustParse(claims["id"].(string)),
 			FullName:       claims["full_name"].(string),
 			Email:          claims["email"].(string),
 			UserRole:       claims["user_role"].(string),
 			OrganizationID: uuid.MustParse(claims["organization_id"].(string)),
+			SalaryPerHour:  salaryPerHour,
 		}
 	}
 }
