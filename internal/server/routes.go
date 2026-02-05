@@ -128,6 +128,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	rules.GET("")                         // Get all the rules of the organization
 	rules.POST("")                        // Edit the rules of the organization
 
+	r.NoRoute(s.notFoundHandler)
 	return r
 }
 
@@ -142,3 +143,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
+
+func (s *Server) notFoundHandler(c *gin.Context) {
+	c.JSON(http.StatusNotFound,gin.H{"error":"404 Not Found"})
+}
+

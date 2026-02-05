@@ -48,6 +48,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orgStore := database.NewPostgresOrgStore(dbService.GetDB(), Logger)
 	requestStore := database.NewPostgresRequestStore(dbService.GetDB(), Logger)
 	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
+	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
@@ -56,7 +57,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
 	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
-
+	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	NewServer := &Server{
 		port:               port,
 		db:                 dbService,
@@ -68,6 +69,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		staffingHandler:    staffingHandler,
 		employeeHandler:    employeeHandler,
 		preferencesHandler: preferencesHandler,
+		insightHandler:     insightHandler,
 		Logger:             Logger,
 	}
 
