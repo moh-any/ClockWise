@@ -215,34 +215,7 @@ class ScheduleInput(BaseModel):
 
 
 # ============================================================================
-# SEPARATE REQUEST MODELS
-# ============================================================================
-
-class DemandPredictionRequest(BaseModel):
-    """Request for demand prediction only"""
-    place: PlaceData
-    orders: List[OrderData] = Field(..., description="Historical orders (at least 7 days recommended)")
-    campaigns: List[CampaignData] = Field(default=[], description="Active/past campaigns")
-    prediction_start_date: str = Field(..., description="Start date for predictions (YYYY-MM-DD)")
-    prediction_days: int = Field(7, description="Number of days to predict (default: 7)")
-
-
-class SchedulingRequest(BaseModel):
-    """Request for scheduling only"""
-    place: PlaceData
-    schedule_input: ScheduleInput
-    demand_predictions: List[DayPrediction] = Field(..., description="Demand predictions to schedule against")
-    prediction_start_date: str = Field(..., description="Start date matching demand predictions")
-
-
-class CombinedRequest(BaseModel):
-    """Combined request (backward compatibility)"""
-    demand_input: DemandInput
-    schedule_input: ScheduleInput
-
-
-# ============================================================================
-# RESPONSE MODELS
+# RESPONSE MODELS (Define BEFORE request models that use them)
 # ============================================================================
 
 class HourPrediction(BaseModel):
@@ -278,12 +251,41 @@ class ScheduleOutput(BaseModel):
 
 
 # ============================================================================
-# SEPARATE RESPONSE MODELS
+# SEPARATE REQUEST MODELS (Define AFTER response models)
+# ============================================================================
+
+class DemandPredictionRequest(BaseModel):
+    """Request for demand prediction only"""
+    place: PlaceData
+    orders: List[OrderData] = Field(..., description="Historical orders (at least 7 days recommended)")
+    campaigns: List[CampaignData] = Field(default=[], description="Active/past campaigns")
+    prediction_start_date: str = Field(..., description="Start date for predictions (YYYY-MM-DD)")
+    prediction_days: int = Field(7, description="Number of days to predict (default: 7)")
+
+
+class SchedulingRequest(BaseModel):
+    """Request for scheduling only"""
+    place: PlaceData
+    schedule_input: ScheduleInput
+    demand_predictions: List[DayPrediction] = Field(..., description="Demand predictions to schedule against")
+    prediction_start_date: str = Field(..., description="Start date matching demand predictions")
+
+
+class CombinedRequest(BaseModel):
+    """Combined request (backward compatibility)"""
+    demand_input: DemandInput
+    schedule_input: ScheduleInput
+
+
+# ============================================================================
+# RESPONSE MODELS FOR NEW ENDPOINTS
 # ============================================================================
 
 class DemandPredictionResponse(BaseModel):
     """Response for demand prediction"""
     demand_output: DemandOutput
+
+
 class SchedulingResponse(BaseModel):
     """Response for scheduling"""
     schedule_output: ScheduleOutput
@@ -291,6 +293,12 @@ class SchedulingResponse(BaseModel):
     schedule_message: Optional[str] = Field(None, description="Explanation or error message")
     objective_value: Optional[float] = Field(None, description="Objective function value")
 
+
+class PredictionResponse(BaseModel):
+    """Complete prediction and scheduling response (deprecated - use separate endpoints)"""
+    demand_output: DemandOutput
+    schedule_output: ScheduleOutput
+    
 
 # ============================================================================
 # MODEL LOADING
@@ -1257,7 +1265,7 @@ def predict_schedule_only(request: SchedulingRequest):
         )
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict_demand_and_schedule(request: PredictionRequest):
+def predict_demand_and_schedule(request: CombinedRequest):    
     """
     Main prediction and scheduling endpoint
     
