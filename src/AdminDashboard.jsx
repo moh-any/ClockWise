@@ -46,6 +46,35 @@ function AdminDashboard() {
   const configFileInput = useRef(null)
   const rosterFileInput = useRef(null)
 
+  // Staffing state
+  const [employees, setEmployees] = useState([])
+  const [showDelegateModal, setShowDelegateModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showCsvUploadModal, setShowCsvUploadModal] = useState(false)
+  const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [employeeRequests, setEmployeeRequests] = useState([])
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [roles, setRoles] = useState([
+    { role: "waiter", min_needed_per_shift: 2 },
+    { role: "chef", min_needed_per_shift: 1 },
+    { role: "host", min_needed_per_shift: 1 },
+    { role: "bartender", min_needed_per_shift: 1 },
+    { role: "manager", min_needed_per_shift: 1 },
+  ])
+  const [confirmLayoff, setConfirmLayoff] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMessage, setActionMessage] = useState(null)
+  const [delegateForm, setDelegateForm] = useState({
+    full_name: "",
+    email: "",
+    role: "",
+    salary_per_hour: "",
+  })
+  const [delegateLoading, setDelegateLoading] = useState(false)
+  const [delegateError, setDelegateError] = useState("")
+  const csvFileInput = useRef(null)
+
   const [aiAlerts, setAiAlerts] = useState([
     {
       id: 1,
@@ -97,6 +126,7 @@ function AdminDashboard() {
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
     { id: "analytics", label: "Analytics", icon: AnalyticsIcon },
     { id: "planning", label: "Planning", icon: PlanningIcon },
+    { id: "staffing", label: "Staffing", icon: EmployeeIcon },
     { id: "settings", label: "Settings", icon: SettingsIcon },
     { id: "requiredinfo", label: "Setup", icon: InfoIcon },
   ]
@@ -179,7 +209,9 @@ function AdminDashboard() {
     } else {
       document.documentElement.classList.remove("dark-mode")
     }
+  }, [darkMode])
 
+  useEffect(() => {
     fetchStaffingData()
 
     if (!document.getElementById("mapbox-gl-js")) {
@@ -194,7 +226,7 @@ function AdminDashboard() {
       link.rel = "stylesheet"
       document.head.appendChild(link)
     }
-  }, [darkMode])
+  }, [])
 
   const toggleDarkMode = () => {
     const newMode = !darkMode
@@ -862,6 +894,781 @@ function AdminDashboard() {
     </div>
   )
 
+  // ============================================================================
+  // STAFFING PANEL - Employee Management
+  // ============================================================================
+
+  // Fetch employees
+  const fetchEmployees = async () => {
+    try {
+      setLoading(true)
+      const data = await api.staffing.getAllEmployees()
+      setEmployees(data.employees || [])
+    } catch (err) {
+      setError(err.message || "Failed to load employees")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch roles
+  const fetchRoles = async () => {
+    try {
+      const data = await api.roles.getAll()
+      if (data.data && data.data.length > 0) {
+        setRoles(data.data)
+      }
+      // Keep hardcoded roles as fallback if API fails or returns empty
+    } catch (err) {
+      console.error("Failed to load roles:", err)
+      // Keep hardcoded default roles
+    }
+  }
+
+  // Handle CSV upload
+  const handleCsvUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      console.log("Employee CSV file selected:", file.name)
+      // TODO: Implement CSV parsing and bulk upload
+      setActionMessage({
+        type: "success",
+        text: `File "${file.name}" ready for upload. Implementation pending.`,
+      })
+      setTimeout(() => setActionMessage(null), 4000)
+      setShowCsvUploadModal(false)
+    }
+  }
+
+  // Fetch employee requests
+  const fetchEmployeeRequests = async (employeeId) => {
+    try {
+      setRequestsLoading(true)
+      const data = await api.requests.getEmployeeRequests(employeeId)
+      setEmployeeRequests(data.requests || [])
+    } catch (err) {
+      console.error("Failed to load requests:", err)
+      setEmployeeRequests([])
+    } finally {
+      setRequestsLoading(false)
+    }
+  }
+
+  // Handle delegate submit
+  const handleDelegateSubmit = async (e) => {
+    e.preventDefault()
+    setDelegateLoading(true)
+    setDelegateError("")
+
+    try {
+      await api.staffing.createEmployee({
+        ...delegateForm,
+        salary_per_hour: parseFloat(delegateForm.salary_per_hour),
+      })
+      setShowDelegateModal(false)
+      setDelegateForm({
+        full_name: "",
+        email: "",
+        role: "",
+        salary_per_hour: "",
+      })
+      setActionMessage({
+        type: "success",
+        text: "Employee delegated successfully. Email sent!",
+      })
+      fetchEmployees()
+      setTimeout(() => setActionMessage(null), 4000)
+    } catch (err) {
+      setDelegateError(err.message || "Failed to delegate employee")
+    } finally {
+      setDelegateLoading(false)
+    }
+  }
+
+  // Handle layoff
+  const handleLayoff = async (employeeId) => {
+    setActionLoading(true)
+    try {
+      await api.staffing.layoffEmployee(employeeId)
+      setConfirmLayoff(null)
+      setShowDetailModal(false)
+      setActionMessage({
+        type: "success",
+        text: "Employee laid off successfully.",
+      })
+      fetchEmployees()
+      setTimeout(() => setActionMessage(null), 4000)
+    } catch (err) {
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to lay off employee",
+      })
+      setTimeout(() => setActionMessage(null), 4000)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Handle approve request
+  const handleApproveRequest = async (employeeId, requestId) => {
+    try {
+      await api.requests.approveRequest(employeeId, requestId)
+      fetchEmployeeRequests(employeeId)
+      setActionMessage({ type: "success", text: "Request approved." })
+      setTimeout(() => setActionMessage(null), 3000)
+    } catch (err) {
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to approve request",
+      })
+      setTimeout(() => setActionMessage(null), 3000)
+    }
+  }
+
+  // Handle decline request
+  const handleDeclineRequest = async (employeeId, requestId) => {
+    try {
+      await api.requests.declineRequest(employeeId, requestId)
+      fetchEmployeeRequests(employeeId)
+      setActionMessage({ type: "success", text: "Request declined." })
+      setTimeout(() => setActionMessage(null), 3000)
+    } catch (err) {
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to decline request",
+      })
+      setTimeout(() => setActionMessage(null), 3000)
+    }
+  }
+
+  // Open employee detail
+  const openEmployeeDetail = (emp) => {
+    setSelectedEmployee(emp)
+    setShowDetailModal(true)
+    fetchEmployeeRequests(emp.id)
+  }
+
+  // Load employees and roles when staffing tab is active
+  useEffect(() => {
+    if (activeTab === "staffing") {
+      fetchEmployees()
+      fetchRoles()
+    }
+  }, [activeTab])
+
+  const renderStaffing = () => {
+    const filteredEmployees = employees.filter(
+      (emp) =>
+        emp.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.user_role?.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+
+    const availableRoles = roles.filter((r) => r.role !== "admin")
+
+    const thStyle = {
+      textAlign: "left",
+      padding: "var(--space-4)",
+      fontSize: "var(--text-sm)",
+      fontWeight: 600,
+      color: "var(--gray-600)",
+      textTransform: "uppercase",
+      letterSpacing: "0.05em",
+    }
+
+    const tdStyle = {
+      padding: "var(--space-4)",
+      fontSize: "var(--text-base)",
+      color: "var(--gray-700)",
+      verticalAlign: "middle",
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Staffing Management</h1>
+            <p className="page-subtitle">Manage your workforce</p>
+          </div>
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setShowCsvUploadModal(true)}
+            >
+              📄 Upload CSV
+            </button>
+            <button
+              className="btn-primary"
+              onClick={() => setShowDelegateModal(true)}
+            >
+              + Delegate Employee
+            </button>
+          </div>
+        </div>
+
+        {/* Action Message Toast */}
+        {actionMessage && (
+          <div
+            className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
+            style={{ marginBottom: "var(--space-6)" }}
+          >
+            <p className="alert-message">{actionMessage.text}</p>
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="filter-bar">
+          <input
+            type="text"
+            className="filter-select"
+            placeholder="Search employees by name, email, or role..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ flex: 1, minWidth: 300 }}
+          />
+        </div>
+
+        {/* Employees Table */}
+        <div className="section-wrapper">
+          <div className="section-header">
+            <h2 className="section-title">
+              Employees ({filteredEmployees.length})
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="skeleton-grid">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton-card">
+                  <div className="skeleton-line skeleton-title"></div>
+                  <div className="skeleton-line skeleton-value"></div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="empty-state">
+              <h3>Error Loading Employees</h3>
+              <p>{error}</p>
+              <button className="btn-primary" onClick={fetchEmployees}>
+                Retry
+              </button>
+            </div>
+          ) : filteredEmployees.length === 0 ? (
+            <div className="empty-state">
+              <h3>No Employees Found</h3>
+              <p>
+                {searchTerm
+                  ? "Try a different search term"
+                  : "Delegate your first employee to get started"}
+              </p>
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                    <th style={thStyle}>Name</th>
+                    <th style={thStyle}>Email</th>
+                    <th style={thStyle}>Role</th>
+                    <th style={thStyle}>Salary/hr</th>
+                    <th style={thStyle}>Joined</th>
+                    <th style={thStyle}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEmployees.map((emp) => (
+                    <tr
+                      key={emp.id}
+                      style={{
+                        borderBottom: "1px solid var(--gray-200)",
+                        cursor: "pointer",
+                        transition: "background var(--transition-fast)",
+                      }}
+                      onClick={() => openEmployeeDetail(emp)}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = "var(--primary-50)")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "transparent")
+                      }
+                    >
+                      <td style={tdStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "var(--space-3)",
+                          }}
+                        >
+                          <div
+                            className="user-avatar"
+                            style={{
+                              width: 32,
+                              height: 32,
+                              fontSize: "var(--text-xs)",
+                            }}
+                          >
+                            {emp.full_name
+                              ?.split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </div>
+                          {emp.full_name}
+                        </div>
+                      </td>
+                      <td style={tdStyle}>{emp.email}</td>
+                      <td style={tdStyle}>
+                        <span className="badge badge-primary">
+                          {emp.user_role}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        {emp.salary_per_hour != null
+                          ? `$${emp.salary_per_hour}`
+                          : "—"}
+                      </td>
+                      <td style={tdStyle}>
+                        {emp.created_at
+                          ? new Date(emp.created_at).toLocaleDateString()
+                          : "—"}
+                      </td>
+                      <td style={tdStyle}>
+                        {emp.user_role !== "admin" && (
+                          <button
+                            className="btn-link"
+                            style={{ color: "var(--color-accent)" }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setConfirmLayoff(emp)
+                            }}
+                          >
+                            Lay Off
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Delegate Employee Modal */}
+        {showDelegateModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowDelegateModal(false)}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Delegate New Employee</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowDelegateModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              {delegateError && (
+                <div
+                  className="login-error-message"
+                  style={{ marginBottom: "var(--space-4)" }}
+                >
+                  {delegateError}
+                </div>
+              )}
+              <form onSubmit={handleDelegateSubmit}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-4)",
+                  }}
+                >
+                  <div className="setting-item">
+                    <label className="setting-label">Full Name</label>
+                    <input
+                      className="setting-input"
+                      type="text"
+                      value={delegateForm.full_name}
+                      onChange={(e) =>
+                        setDelegateForm({
+                          ...delegateForm,
+                          full_name: e.target.value,
+                        })
+                      }
+                      placeholder="Employee full name"
+                      required
+                    />
+                  </div>
+                  <div className="setting-item">
+                    <label className="setting-label">Email</label>
+                    <input
+                      className="setting-input"
+                      type="email"
+                      value={delegateForm.email}
+                      onChange={(e) =>
+                        setDelegateForm({
+                          ...delegateForm,
+                          email: e.target.value,
+                        })
+                      }
+                      placeholder="Employee email"
+                      required
+                    />
+                  </div>
+                  <div className="setting-item">
+                    <label className="setting-label">Role</label>
+                    <select
+                      className="setting-input"
+                      value={delegateForm.role}
+                      onChange={(e) =>
+                        setDelegateForm({
+                          ...delegateForm,
+                          role: e.target.value,
+                        })
+                      }
+                      required
+                    >
+                      <option value="">Select a role...</option>
+                      {availableRoles.map((r) => (
+                        <option key={r.role} value={r.role}>
+                          {r.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="setting-item">
+                    <label className="setting-label">Salary per Hour ($)</label>
+                    <input
+                      className="setting-input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={delegateForm.salary_per_hour}
+                      onChange={(e) =>
+                        setDelegateForm({
+                          ...delegateForm,
+                          salary_per_hour: e.target.value,
+                        })
+                      }
+                      placeholder="15.50"
+                      required
+                    />
+                  </div>
+                </div>
+                <div
+                  className="settings-footer"
+                  style={{ marginTop: "var(--space-6)" }}
+                >
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowDelegateModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={delegateLoading}
+                  >
+                    {delegateLoading ? "Sending..." : "Delegate Employee"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Employee Detail Modal */}
+        {showDetailModal && selectedEmployee && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowDetailModal(false)}
+          >
+            <div
+              className="modal-content modal-wide"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2 className="section-title">{selectedEmployee.full_name}</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowDetailModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div
+                className="kpi-grid"
+                style={{ marginBottom: "var(--space-6)" }}
+              >
+                <div className="kpi-card">
+                  <div className="kpi-content">
+                    <h3 className="kpi-label">Role</h3>
+                    <div
+                      className="kpi-value"
+                      style={{ fontSize: "var(--text-xl)" }}
+                    >
+                      {selectedEmployee.user_role}
+                    </div>
+                  </div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-content">
+                    <h3 className="kpi-label">Email</h3>
+                    <div
+                      className="kpi-value"
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        wordBreak: "break-all",
+                      }}
+                    >
+                      {selectedEmployee.email}
+                    </div>
+                  </div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-content">
+                    <h3 className="kpi-label">Salary/hr</h3>
+                    <div
+                      className="kpi-value"
+                      style={{ fontSize: "var(--text-xl)" }}
+                    >
+                      {selectedEmployee.salary_per_hour != null
+                        ? `$${selectedEmployee.salary_per_hour}`
+                        : "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requests Section */}
+              <div
+                className="section-wrapper"
+                style={{
+                  boxShadow: "none",
+                  border: "1px solid var(--gray-200)",
+                }}
+              >
+                <div className="section-header">
+                  <h2
+                    className="section-title"
+                    style={{ fontSize: "var(--text-lg)" }}
+                  >
+                    Requests
+                  </h2>
+                </div>
+                {requestsLoading ? (
+                  <div className="skeleton-grid">
+                    <div className="skeleton-card">
+                      <div className="skeleton-line skeleton-title"></div>
+                    </div>
+                  </div>
+                ) : employeeRequests.length === 0 ? (
+                  <p
+                    style={{
+                      color: "var(--gray-500)",
+                      textAlign: "center",
+                      padding: "var(--space-4)",
+                    }}
+                  >
+                    No requests from this employee
+                  </p>
+                ) : (
+                  <div className="alerts-grid">
+                    {employeeRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className={`alert-card ${req.status === "pending" ? "alert-medium" : req.status === "approved" ? "alert-low" : "alert-high"}`}
+                      >
+                        <div className="alert-header">
+                          <div
+                            className={`alert-badge ${req.status === "pending" ? "priority-medium" : req.status === "approved" ? "priority-low" : "priority-high"}`}
+                          >
+                            {req.status?.toUpperCase()}
+                          </div>
+                          <span className="alert-timestamp">
+                            {req.request_type}
+                          </span>
+                        </div>
+                        <p className="alert-message">
+                          {req.reason || "No reason provided"} —{" "}
+                          {req.start_date} to {req.end_date}
+                        </p>
+                        {req.status === "pending" && (
+                          <div className="alert-actions">
+                            <button
+                              className="btn-primary btn-sm"
+                              onClick={() =>
+                                handleApproveRequest(
+                                  selectedEmployee.id,
+                                  req.id,
+                                )
+                              }
+                            >
+                              Approve
+                            </button>
+                            <button
+                              className="btn-link"
+                              style={{ color: "var(--color-accent)" }}
+                              onClick={() =>
+                                handleDeclineRequest(
+                                  selectedEmployee.id,
+                                  req.id,
+                                )
+                              }
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selectedEmployee.user_role !== "admin" && (
+                <div className="settings-footer">
+                  <button
+                    className="btn-secondary"
+                    style={{
+                      borderColor: "var(--color-accent)",
+                      color: "var(--color-accent)",
+                    }}
+                    onClick={() => setConfirmLayoff(selectedEmployee)}
+                  >
+                    Lay Off Employee
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Layoff Modal */}
+        {confirmLayoff && (
+          <div className="modal-overlay" onClick={() => setConfirmLayoff(null)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 440 }}
+            >
+              <div className="modal-header">
+                <h2
+                  className="section-title"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  Confirm Layoff
+                </h2>
+              </div>
+              <p
+                style={{
+                  color: "var(--text-primary)",
+                  marginBottom: "var(--space-6)",
+                  lineHeight: 1.6,
+                }}
+              >
+                Are you sure you want to lay off{" "}
+                <strong>{confirmLayoff.full_name}</strong>? This action cannot
+                be undone.
+              </p>
+              <div className="settings-footer">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setConfirmLayoff(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn-primary"
+                  style={{ background: "var(--color-accent)" }}
+                  onClick={() => handleLayoff(confirmLayoff.id)}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? "Processing..." : "Confirm Layoff"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Upload Modal */}
+        {showCsvUploadModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowCsvUploadModal(false)}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Employee CSV</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowCsvUploadModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div
+                className="upload-card"
+                style={{
+                  border: "2px dashed var(--gray-300)",
+                  marginBottom: "var(--space-4)",
+                }}
+              >
+                <input
+                  type="file"
+                  ref={csvFileInput}
+                  onChange={handleCsvUpload}
+                  style={{ display: "none" }}
+                  accept=".csv,.xlsx"
+                />
+                <img
+                  src={EmployeeIcon}
+                  alt="Employees"
+                  className="upload-icon-svg"
+                />
+                <h3 className="upload-title">Employee Roster CSV</h3>
+                <p className="upload-description">
+                  Import your complete employee list with contact details
+                </p>
+                <ul className="upload-specs">
+                  <li>Supported formats: CSV, XLSX</li>
+                  <li>Maximum size: 25MB</li>
+                  <li>
+                    Required columns: full_name, email, role, salary_per_hour
+                  </li>
+                  <li>
+                    Optional: max_hours_per_week, preferred_hours_per_week
+                  </li>
+                </ul>
+                <button
+                  className="btn-primary"
+                  onClick={() => csvFileInput.current?.click()}
+                >
+                  Choose File
+                </button>
+              </div>
+              <div className="settings-footer">
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowCsvUploadModal(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderRequiredInfo = () => (
     <div className="premium-content fade-in">
       <div className="content-header">
@@ -956,36 +1763,6 @@ function AdminDashboard() {
               <button
                 className="btn-primary"
                 onClick={() => configFileInput.current?.click()}
-              >
-                Choose File
-              </button>
-            </div>
-
-            <div className="upload-card">
-              <input
-                type="file"
-                ref={rosterFileInput}
-                onChange={handleRosterUpload}
-                style={{ display: "none" }}
-                accept=".csv,.xlsx,.json"
-              />
-              <img
-                src={EmployeeIcon}
-                alt="Employees"
-                className="upload-icon-svg"
-              />
-              <h3 className="upload-title">Employee Roster</h3>
-              <p className="upload-description">
-                Import your complete employee list with contact details
-              </p>
-              <ul className="upload-specs">
-                <li>Supported formats: CSV, XLSX, JSON</li>
-                <li>Maximum size: 25MB</li>
-                <li>Must include: employee_id, name, email, role</li>
-              </ul>
-              <button
-                className="btn-primary"
-                onClick={() => rosterFileInput.current?.click()}
               >
                 Choose File
               </button>
@@ -1111,6 +1888,7 @@ function AdminDashboard() {
             {activeTab === "schedule" && renderMasterSchedule()}
             {activeTab === "analytics" && renderAnalytics()}
             {activeTab === "planning" && renderPlanning()}
+            {activeTab === "staffing" && renderStaffing()}
             {activeTab === "settings" && renderOrgSettings()}
             {activeTab === "requiredinfo" && renderRequiredInfo()}
           </>

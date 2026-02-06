@@ -317,6 +317,23 @@ export const requestsAPI = {
 }
 
 // ============================================================================
+// ROLES API
+// ============================================================================
+
+export const rolesAPI = {
+  /**
+   * Get all roles for the organization
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAll: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/roles`, {
+      method: "GET",
+    })
+  },
+}
+
+// ============================================================================
 // HEALTH API
 // ============================================================================
 
@@ -341,6 +358,7 @@ const api = {
   auth: authAPI,
   staffing: staffingAPI,
   requests: requestsAPI,
+  roles: rolesAPI,
   health: healthAPI,
 }
 
