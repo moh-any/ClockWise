@@ -82,8 +82,29 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
-	organization.GET("")          // Get organization details
-	organization.POST("/request") // Request Calloff. An employee can request a calloff from their organization
+	organization.GET("",s.orgHandler.GetOrganizationDetails)          // Get organization details
+	organization.POST("/request",s.employeeHandler.RequestCalloffHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
+
+	// Orders Management
+	orders := organization.Group("/orders")
+	orders.GET("",s.orderHandler.GetOrdersInsights)
+	orders.POST("/upload/orders",s.orderHandler.UploadAllPastOrdersCSV)
+	orders.POST("/upload/items",s.orderHandler.UploadOrderItemsCSV)
+	orders.GET("/all",s.orderHandler.GetAllOrders)
+	orders.GET("/week",s.orderHandler.GetAllOrdersForLastWeek)
+	orders.GET("/today",s.orderHandler.GetAllOrdersToday)
+
+	deliveries := organization.Group("/deliveries")
+	deliveries.GET("",s.orderHandler.GetDeliveryInsights)
+	deliveries.POST("/upload",s.orderHandler.UploadAllPastDeliveriesCSV)
+	deliveries.GET("/all",s.orderHandler.GetAllDeliveries)
+	deliveries.GET("/week",s.orderHandler.GetAllDeliveriesForLastWeek)
+	deliveries.GET("/today",s.orderHandler.GetAllDeliveriesToday)
+
+	items := organization.Group("/items")
+	items.GET("",s.orderHandler.GetItemsInsights)
+	items.POST("/upload",s.orderHandler.UploadItemsCSV)
+	items.GET("/all",s.orderHandler.GetAllItems)
 
 	// Role management
 	roles := organization.Group("/roles")
@@ -94,17 +115,21 @@ func (s *Server) RegisterRoutes() http.Handler {
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
+	// Dashboard which includes schedule, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("") // Change according to the current user
+	dashboard.POST("/demand",s.dashboardHandler.GetDemandHeatMapHandler) // Send data and fetch demand from demand service
 
+	// Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("")          // Get Schedule
-	schedule.PUT("")          // Edit Schedule
-	schedule.POST("/refresh") // Refresh Schedule
+	schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
+	schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
 
+	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
 	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
 
+	// Staffing Management Done by Managers and admins
 	staffing := organization.Group("/staffing")
 	staffing.GET("", s.staffingHandler.GetStaffingSummary)
 	staffing.POST("", s.orgHandler.DelegateUser)
@@ -117,21 +142,23 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-	employee.GET("/schedule") // Get Employee Schedule
-	employee.PUT("/schedule") // Edit Employee Schedule
+	employee.GET("/schedule",s.scheduleHandler.GetScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
+	// Preferences set by managers and employees
 	preferences := organization.Group("/preferences")                           // Employees only
 	preferences.GET("", s.preferencesHandler.GetCurrentEmployeePreferences)     // Get Current Employee Preferences
 	preferences.POST("", s.preferencesHandler.UpdateCurrentEmployeePreferences) // Edit current preferences
 
+	// Rules set by the organization to be used in the scheduler and reccommendors
 	rules := organization.Group("/rules")                  // Rules of the organization
 	rules.GET("", s.rulesHandler.GetOrganizationRules)     // Get all the rules of the organization
 	rules.POST("", s.rulesHandler.UpdateOrganizationRules) // Edit the rules of the organization
 
+	// Not found handling
 	r.NoRoute(s.notFoundHandler)
 	return r
 }
@@ -148,6 +175,14 @@ func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
 
+// healthHandler godoc
+// @Summary      Not found Handling
+// @Description  Returns 404 not found
+// @Tags         Health
+// @Accept       json
+// @Produce      json
+// @Success      404 {object} map[string]interface{} "404 Not Found"
+// @Router       any
 func (s *Server) notFoundHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
 }
