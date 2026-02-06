@@ -4,18 +4,23 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/google/uuid"
 )
 
 // OrganizationRules represents the scheduling rules for an organization
 type OrganizationRules struct {
-	OrganizationID uuid.UUID `json:"organization_id"`
-	ShiftMaxHours  int       `json:"shift_max_hours"`
-	ShiftMinHours  int       `json:"shift_min_hours"`
-	MaxWeeklyHours int       `json:"max_weekly_hours"`
-	MinWeeklyHours int       `json:"min_weekly_hours"`
+	OrganizationID       uuid.UUID `json:"organization_id"`
+	ShiftMaxHours        int       `json:"shift_max_hours"`
+	ShiftMinHours        int       `json:"shift_min_hours"`
+	MaxWeeklyHours       int       `json:"max_weekly_hours"`
+	MinWeeklyHours       int       `json:"min_weekly_hours"`
+	FixedShifts          bool      `json:"fixed_shifts"`
+	NumberOfShiftsPerDay *int      `json:"number_of_shifts_per_day"`
+	MeetAllDemand        bool      `json:"meet_all_demand"`
+	MinRestSlots         int       `json:"min_rest_slots"`
+	SlotLenHour          float64   `json:"slot_len_hour"`
+	MinShiftLengthSlots  int       `json:"min_shift_length_slots"`
 }
 
 // RulesStore defines the interface for organization rules data operations
@@ -43,8 +48,9 @@ func NewPostgresRulesStore(db *sql.DB, logger *slog.Logger) *PostgresRulesStore 
 // CreateRules creates a new rules record for an organization
 func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 	query := `INSERT INTO organizations_rules 
-		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours) 
-		VALUES ($1, $2, $3, $4, $5)`
+		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, 
+		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 	_, err := s.db.Exec(query,
 		rules.OrganizationID,
@@ -52,6 +58,12 @@ func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 		rules.ShiftMinHours,
 		rules.MaxWeeklyHours,
 		rules.MinWeeklyHours,
+		rules.FixedShifts,
+		rules.NumberOfShiftsPerDay,
+		rules.MeetAllDemand,
+		rules.MinRestSlots,
+		rules.SlotLenHour,
+		rules.MinShiftLengthSlots,
 	)
 	if err != nil {
 		s.Logger.Error("failed to create rules", "error", err, "organization_id", rules.OrganizationID)
@@ -66,7 +78,8 @@ func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 func (s *PostgresRulesStore) GetRulesByOrganizationID(orgID uuid.UUID) (*OrganizationRules, error) {
 	var rules OrganizationRules
 
-	query := `SELECT organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours 
+	query := `SELECT organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours,
+		fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots 
 		FROM organizations_rules WHERE organization_id = $1`
 
 	err := s.db.QueryRow(query, orgID).Scan(
@@ -75,6 +88,12 @@ func (s *PostgresRulesStore) GetRulesByOrganizationID(orgID uuid.UUID) (*Organiz
 		&rules.ShiftMinHours,
 		&rules.MaxWeeklyHours,
 		&rules.MinWeeklyHours,
+		&rules.FixedShifts,
+		&rules.NumberOfShiftsPerDay,
+		&rules.MeetAllDemand,
+		&rules.MinRestSlots,
+		&rules.SlotLenHour,
+		&rules.MinShiftLengthSlots,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -93,7 +112,13 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 		shift_max_hours = $2, 
 		shift_min_hours = $3, 
 		max_weekly_hours = $4, 
-		min_weekly_hours = $5 
+		min_weekly_hours = $5,
+		fixed_shifts = $6,
+		number_of_shifts_per_day = $7,
+		meet_all_demand = $8,
+		min_rest_slots = $9,
+		slot_len_hour = $10,
+		min_shift_length_slots = $11 
 		WHERE organization_id = $1`
 
 	result, err := s.db.Exec(query,
@@ -102,6 +127,12 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 		rules.ShiftMinHours,
 		rules.MaxWeeklyHours,
 		rules.MinWeeklyHours,
+		rules.FixedShifts,
+		rules.NumberOfShiftsPerDay,
+		rules.MeetAllDemand,
+		rules.MinRestSlots,
+		rules.SlotLenHour,
+		rules.MinShiftLengthSlots,
 	)
 	if err != nil {
 		s.Logger.Error("failed to update rules", "error", err, "organization_id", rules.OrganizationID)
@@ -120,13 +151,20 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 // UpsertRules creates or updates rules for an organization
 func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 	query := `INSERT INTO organizations_rules 
-		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours) 
-		VALUES ($1, $2, $3, $4, $5)
+		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours,
+		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (organization_id) DO UPDATE SET 
 		shift_max_hours = EXCLUDED.shift_max_hours,
 		shift_min_hours = EXCLUDED.shift_min_hours,
 		max_weekly_hours = EXCLUDED.max_weekly_hours,
-		min_weekly_hours = EXCLUDED.min_weekly_hours`
+		min_weekly_hours = EXCLUDED.min_weekly_hours,
+		fixed_shifts = EXCLUDED.fixed_shifts,
+		number_of_shifts_per_day = EXCLUDED.number_of_shifts_per_day,
+		meet_all_demand = EXCLUDED.meet_all_demand,
+		min_rest_slots = EXCLUDED.min_rest_slots,
+		slot_len_hour = EXCLUDED.slot_len_hour,
+		min_shift_length_slots = EXCLUDED.min_shift_length_slots`
 
 	_, err := s.db.Exec(query,
 		rules.OrganizationID,
@@ -134,6 +172,12 @@ func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 		rules.ShiftMinHours,
 		rules.MaxWeeklyHours,
 		rules.MinWeeklyHours,
+		rules.FixedShifts,
+		rules.NumberOfShiftsPerDay,
+		rules.MeetAllDemand,
+		rules.MinRestSlots,
+		rules.SlotLenHour,
+		rules.MinShiftLengthSlots,
 	)
 	if err != nil {
 		s.Logger.Error("failed to upsert rules", "error", err, "organization_id", rules.OrganizationID)
@@ -142,36 +186,4 @@ func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 
 	s.Logger.Info("rules upserted", "organization_id", rules.OrganizationID)
 	return nil
-}
-
-// OperatingHours represents the operating hours for a specific day
-type OperatingHours struct {
-	OrganizationID uuid.UUID `json:"organization_id"`
-	Weekday        string    `json:"weekday"`
-	OpeningTime    time.Time `json:"opening_time"`
-	ClosingTime    time.Time `json:"closing_time"`
-}
-
-// GetOperatingHoursByOrganizationID retrieves all operating hours for an organization
-func (s *PostgresRulesStore) GetOperatingHoursByOrganizationID(orgID uuid.UUID) ([]*OperatingHours, error) {
-	query := `SELECT organization_id, weekday, opening_time, closing_time 
-		FROM organizations_operating_hours WHERE organization_id = $1 ORDER BY weekday`
-
-	rows, err := s.db.Query(query, orgID)
-	if err != nil {
-		s.Logger.Error("failed to get operating hours", "error", err, "organization_id", orgID)
-		return nil, err
-	}
-	defer rows.Close()
-
-	var hours []*OperatingHours
-	for rows.Next() {
-		var h OperatingHours
-		if err := rows.Scan(&h.OrganizationID, &h.Weekday, &h.OpeningTime, &h.ClosingTime); err != nil {
-			return nil, err
-		}
-		hours = append(hours, &h)
-	}
-
-	return hours, nil
 }
