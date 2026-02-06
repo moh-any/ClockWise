@@ -184,6 +184,8 @@ def add_lag_features(df: pd.DataFrame, target_col: str = 'item_count') -> pd.Dat
     """
     Add lag and rolling average features for time series prediction.
     
+    ===== FIX: Shift rolling features to avoid data leakage =====
+    
     Parameters:
     df: DataFrame with 'place_id', 'datetime', and target column
     target_col: Column to create lag features from (default: 'item_count')
@@ -200,13 +202,14 @@ def add_lag_features(df: pd.DataFrame, target_col: str = 'item_count') -> pd.Dat
     df['prev_week_items'] = df.groupby('place_id')[target_col].shift(168)  # 7*24
     df['prev_month_items'] = df.groupby('place_id')[target_col].shift(720)  # 30*24
     
-    # Rolling averages
+    # ===== FIX: Rolling averages should NOT include current value =====
+    # Shift by 1 to use only past data
     df['rolling_7d_avg_items'] = df.groupby('place_id')[target_col].transform(
-        lambda x: x.rolling(window=168, min_periods=1).mean()
+        lambda x: x.rolling(window=168, min_periods=1).mean().shift(1)
     )
     
     # Fill NaN in lag features with 0
-    lag_cols = ['prev_hour_items', 'prev_day_items', 'prev_week_items', 'prev_month_items']
+    lag_cols = ['prev_hour_items', 'prev_day_items', 'prev_week_items', 'prev_month_items', 'rolling_7d_avg_items']
     df[lag_cols] = df[lag_cols].fillna(0)
     
     print(f"-> Added lag features (prev_hour, prev_day, prev_week, prev_month, rolling_7d)")
