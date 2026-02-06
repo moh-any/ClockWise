@@ -45,6 +45,11 @@ func (oh *OrderHandler) GetAllOrders(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access orders"})
+		return
+	}
+
 	oh.Logger.Info("getting all orders", "org_id", user.OrganizationID)
 
 	orders, err := oh.OrderStore.GetAllOrders(user.OrganizationID)
@@ -75,6 +80,11 @@ func (oh *OrderHandler) GetAllOrders(c *gin.Context) {
 func (oh *OrderHandler) GetAllOrdersForLastWeek(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access orders"})
 		return
 	}
 
@@ -111,6 +121,11 @@ func (oh *OrderHandler) GetAllOrdersToday(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access orders"})
+		return
+	}
+
 	oh.Logger.Info("getting today's orders", "org_id", user.OrganizationID)
 
 	orders, err := oh.OrderStore.GetTodaysOrder(user.OrganizationID)
@@ -141,6 +156,11 @@ func (oh *OrderHandler) GetAllOrdersToday(c *gin.Context) {
 func (oh *OrderHandler) GetOrdersInsights(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access orders"})
 		return
 	}
 
@@ -176,6 +196,11 @@ func (oh *OrderHandler) GetOrdersInsights(c *gin.Context) {
 func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can upload orders"})
 		return
 	}
 
@@ -316,6 +341,11 @@ func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can upload order items"})
+		return
+	}
+
 	oh.Logger.Info("uploading order items CSV", "org_id", user.OrganizationID)
 
 	// Get the file from the request
@@ -430,6 +460,11 @@ func (oh *OrderHandler) GetAllDeliveries(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access deliveries"})
+		return
+	}
+
 	oh.Logger.Info("getting all deliveries", "org_id", user.OrganizationID)
 
 	deliveries, err := oh.OrderStore.GetAllDeliveries(user.OrganizationID)
@@ -460,6 +495,11 @@ func (oh *OrderHandler) GetAllDeliveries(c *gin.Context) {
 func (oh *OrderHandler) GetAllDeliveriesForLastWeek(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access deliveries"})
 		return
 	}
 
@@ -496,6 +536,11 @@ func (oh *OrderHandler) GetAllDeliveriesToday(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access deliveries"})
+		return
+	}
+
 	oh.Logger.Info("getting today's deliveries", "org_id", user.OrganizationID)
 
 	deliveries, err := oh.OrderStore.GetTodaysDeliveries(user.OrganizationID)
@@ -526,6 +571,11 @@ func (oh *OrderHandler) GetAllDeliveriesToday(c *gin.Context) {
 func (oh *OrderHandler) GetDeliveryInsights(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access deliveries"})
 		return
 	}
 
@@ -561,6 +611,11 @@ func (oh *OrderHandler) GetDeliveryInsights(c *gin.Context) {
 func (oh *OrderHandler) UploadAllPastDeliveriesCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can upload deliveries"})
 		return
 	}
 
@@ -706,6 +761,11 @@ func (oh *OrderHandler) GetItemsInsights(c *gin.Context) {
 		return
 	}
 
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access items"})
+		return
+	}
+
 	oh.Logger.Info("getting items insights", "org_id", user.OrganizationID)
 
 	insights, err := oh.OrderStore.GetItemsInsights(user.OrganizationID)
@@ -738,6 +798,11 @@ func (oh *OrderHandler) GetItemsInsights(c *gin.Context) {
 func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can upload items"})
 		return
 	}
 
@@ -838,6 +903,11 @@ func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 func (oh *OrderHandler) GetAllItems(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
+		return
+	}
+
+	if user.UserRole != "admin" && user.UserRole != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can access items"})
 		return
 	}
 

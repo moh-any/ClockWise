@@ -180,7 +180,8 @@ Authorization: Bearer <access_token>
   "salary_per_hour": null,
   "max_hours_per_week": 40,
   "preferred_hours_per_week": 35,
-  "max_consec_slots": 8
+  "max_consec_slots": 8,
+  "on_call" : ok
 }
 ```
 
@@ -782,7 +783,8 @@ Authorization: Bearer <access_token>
     "user_roles": ["waiter"],
     "max_hours_per_week": 40,
     "preferred_hours_per_week": 35,
-    "max_consec_slots": 8
+    "max_consec_slots": 8,
+    "on_call": true
   }
 }
 ```
@@ -830,7 +832,8 @@ Content-Type: application/json
   "user_roles": ["string (role names)"],
   "max_hours_per_week": "integer (optional)",
   "preferred_hours_per_week": "integer (optional)",
-  "max_consec_slots": "integer (optional)"
+  "max_consec_slots": "integer (optional)",
+  "on_call": "boolean (optional)"
 }
 ```
 
@@ -854,7 +857,8 @@ Content-Type: application/json
   "user_roles": ["waiter"],
   "max_hours_per_week": 40,
   "preferred_hours_per_week": 35,
-  "max_consec_slots": 8
+  "max_consec_slots": 8,
+  "on_call" : true,
 }
 ```
 
@@ -914,6 +918,7 @@ Authorization: Bearer <access_token>
         "max_hours_per_week": 40,
         "preferred_hours_per_week": 35,
         "max_consec_slots": 8,
+        "on_call": false,
         "created_at": "2026-02-06T09:47:57.291686Z",
         "updated_at": "2026-02-06T09:49:40.762669Z"
       }
@@ -955,6 +960,7 @@ Content-Type: application/json
   "max_hours_per_week": "integer (optional)",
   "preferred_hours_per_week": "integer (optional)",
   "max_consec_slots": "integer (optional)",
+  "on_call" : "boolean (optional,default=false)",
   "user_roles": ["string (optional - additional roles)"]
 }
 ```
@@ -1029,6 +1035,7 @@ Authorization: Bearer <access_token>
       "max_hours_per_week": 40,
       "preferred_hours_per_week": 35,
       "max_consec_slots": 8,
+      "on_call" : false,
       "created_at": "2026-02-06T09:47:57.291686Z",
       "updated_at": "2026-02-06T09:49:40.762669Z"
     }
