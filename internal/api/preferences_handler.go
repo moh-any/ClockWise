@@ -45,6 +45,7 @@ type PreferencesRequest struct {
 	MaxHoursPerWeek       *int                   `json:"max_hours_per_week"`
 	PreferredHoursPerWeek *int                   `json:"preferred_hours_per_week"`
 	MaxConsecSlots        *int                   `json:"max_consec_slots"`
+	OnCall                *bool                  `json:"on_call"`
 }
 
 // PreferencesResponse represents the response for preferences GET
@@ -54,6 +55,7 @@ type PreferencesResponse struct {
 	MaxHoursPerWeek       *int                           `json:"max_hours_per_week"`
 	PreferredHoursPerWeek *int                           `json:"preferred_hours_per_week"`
 	MaxConsecSlots        *int                           `json:"max_consec_slots"`
+	OnCall                *bool                          `json:"on_call"`
 }
 
 // GetCurrentEmployeePreferences godoc
@@ -113,6 +115,7 @@ func (h *PreferencesHandler) GetCurrentEmployeePreferences(c *gin.Context) {
 		MaxHoursPerWeek:       fullUser.MaxHoursPerWeek,
 		PreferredHoursPerWeek: fullUser.PreferredHoursPerWeek,
 		MaxConsecSlots:        fullUser.MaxConsecSlots,
+		OnCall:                fullUser.OnCall,
 	}
 
 	h.Logger.Info("preferences retrieved", "employee_id", user.ID, "day_count", len(prefs), "roles_count", len(roles))
@@ -218,8 +221,8 @@ func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 		}
 	}
 
-	// Update user settings (max_hours, preferred_hours, max_consec_slots) if any provided
-	if req.MaxHoursPerWeek != nil || req.PreferredHoursPerWeek != nil || req.MaxConsecSlots != nil {
+	// Update user settings (max_hours, preferred_hours, max_consec_slots, on_call) if any provided
+	if req.MaxHoursPerWeek != nil || req.PreferredHoursPerWeek != nil || req.MaxConsecSlots != nil || req.OnCall != nil {
 		// Get current user to update
 		fullUser, err := h.userStore.GetUserByID(user.ID)
 		if err != nil {
@@ -237,6 +240,9 @@ func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 		}
 		if req.MaxConsecSlots != nil {
 			fullUser.MaxConsecSlots = req.MaxConsecSlots
+		}
+		if req.OnCall != nil {
+			fullUser.OnCall = req.OnCall
 		}
 
 		if err := h.userStore.UpdateUser(fullUser); err != nil {

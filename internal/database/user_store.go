@@ -58,6 +58,7 @@ type User struct {
 	MaxHoursPerWeek       *int      `json:"max_hours_per_week,omitempty"`
 	PreferredHoursPerWeek *int      `json:"preferred_hours_per_week,omitempty"`
 	MaxConsecSlots        *int      `json:"max_consec_slots,omitempty"`
+	OnCall                *bool     `json:"on_call"`
 	CreatedAt             time.Time `json:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at"`
 }
@@ -115,8 +116,8 @@ func (pgus *PostgresUserStore) CreateUser(user *User) error {
 
 	query :=
 		`insert into users
-	(id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at) 
-	values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id, created_at, updated_at`
+	(id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, on_call, created_at, updated_at) 
+	values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id, created_at, updated_at`
 
 	err := pgus.db.QueryRow(query,
 		user.ID,
@@ -129,6 +130,7 @@ func (pgus *PostgresUserStore) CreateUser(user *User) error {
 		user.MaxHoursPerWeek,
 		user.PreferredHoursPerWeek,
 		user.MaxConsecSlots,
+		user.OnCall,
 		user.CreatedAt,
 		user.UpdatedAt,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
@@ -143,7 +145,7 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 	var user User
 	query :=
 		`select 
-	id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
+	id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, on_call, created_at, updated_at 
 	from users where email=$1`
 
 	var hash []byte
@@ -159,6 +161,7 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 		&user.MaxHoursPerWeek,
 		&user.PreferredHoursPerWeek,
 		&user.MaxConsecSlots,
+		&user.OnCall,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -172,9 +175,9 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 	query :=
 		`update users 
-	set full_name=$1, email=$2, user_role=$3, organization_id=$4, salary_per_hour=$5, max_hours_per_week=$6, preferred_hours_per_week=$7, max_consec_slots=$8, updated_at=CURRENT_TIMESTAMP where id=$9 
+	set full_name=$1, email=$2, user_role=$3, organization_id=$4, salary_per_hour=$5, max_hours_per_week=$6, preferred_hours_per_week=$7, max_consec_slots=$8, on_call=$9, updated_at=CURRENT_TIMESTAMP where id=$10 
 	returning updated_at`
-	res, err := pgus.db.Exec(query, user.FullName, user.Email, user.UserRole, user.OrganizationID, user.SalaryPerHour, user.MaxHoursPerWeek, user.PreferredHoursPerWeek, user.MaxConsecSlots, user.ID)
+	res, err := pgus.db.Exec(query, user.FullName, user.Email, user.UserRole, user.OrganizationID, user.SalaryPerHour, user.MaxHoursPerWeek, user.PreferredHoursPerWeek, user.MaxConsecSlots, user.OnCall, user.ID)
 	if err != nil {
 		return err
 	}
@@ -190,7 +193,7 @@ func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 
 func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 	var user User
-	query := `SELECT id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
+	query := `SELECT id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, on_call, created_at, updated_at 
 		FROM users WHERE id=$1`
 
 	var hash []byte
@@ -205,6 +208,7 @@ func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 		&user.MaxHoursPerWeek,
 		&user.PreferredHoursPerWeek,
 		&user.MaxConsecSlots,
+		&user.OnCall,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -216,7 +220,7 @@ func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 }
 
 func (pgus *PostgresUserStore) GetUsersByOrganization(orgID uuid.UUID) ([]*User, error) {
-	query := `SELECT id, full_name, email, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
+	query := `SELECT id, full_name, email, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, on_call, created_at, updated_at 
 		FROM users WHERE organization_id=$1 ORDER BY created_at DESC`
 
 	rows, err := pgus.db.Query(query, orgID)
@@ -238,6 +242,7 @@ func (pgus *PostgresUserStore) GetUsersByOrganization(orgID uuid.UUID) ([]*User,
 			&user.MaxHoursPerWeek,
 			&user.PreferredHoursPerWeek,
 			&user.MaxConsecSlots,
+			&user.OnCall,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)

@@ -53,6 +53,7 @@ func payloadFunc() func(data any) gojwt.MapClaims {
 				"max_hours_per_week":       v.MaxHoursPerWeek,
 				"preferred_hours_per_week": v.PreferredHoursPerWeek,
 				"max_consec_slots":         v.MaxConsecSlots,
+				"on_call":                  v.OnCall,
 			}
 		}
 		return gojwt.MapClaims{}
@@ -74,7 +75,7 @@ func identityHandler() func(c *gin.Context) any {
 		// Extract optional int pointers
 		var maxHoursPerWeek *int
 		if v, ok := claims["max_hours_per_week"]; ok && v != nil {
-			if f, ok := v.(float64); ok {
+			if f, ok := v.(int); ok {
 				i := int(f)
 				maxHoursPerWeek = &i
 			}
@@ -82,7 +83,7 @@ func identityHandler() func(c *gin.Context) any {
 
 		var preferredHoursPerWeek *int
 		if v, ok := claims["preferred_hours_per_week"]; ok && v != nil {
-			if f, ok := v.(float64); ok {
+			if f, ok := v.(int); ok {
 				i := int(f)
 				preferredHoursPerWeek = &i
 			}
@@ -90,12 +91,19 @@ func identityHandler() func(c *gin.Context) any {
 
 		var maxConsecSlots *int
 		if v, ok := claims["max_consec_slots"]; ok && v != nil {
-			if f, ok := v.(float64); ok {
+			if f, ok := v.(int); ok {
 				i := int(f)
 				maxConsecSlots = &i
 			}
 		}
 
+		var OnCall *bool
+		if v, ok := claims["on_call"]; ok && v != nil {
+			if f, ok := v.(bool); ok {
+				i := bool(f)
+				OnCall = &i
+			}
+		}
 		return &database.User{
 			ID:                    uuid.MustParse(claims["id"].(string)),
 			FullName:              claims["full_name"].(string),
@@ -106,6 +114,7 @@ func identityHandler() func(c *gin.Context) any {
 			MaxHoursPerWeek:       maxHoursPerWeek,
 			PreferredHoursPerWeek: preferredHoursPerWeek,
 			MaxConsecSlots:        maxConsecSlots,
+			OnCall:                OnCall,
 		}
 	}
 }
