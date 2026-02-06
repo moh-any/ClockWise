@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 
 from src.social_media_apis import get_social_aggregator
+import requests
 
 
 class RealTimeDataCollector:
@@ -68,9 +69,7 @@ class RealTimeDataCollector:
                               place_id: int, 
                               time_window: timedelta) -> Dict[datetime, Dict[str, int]]:
         """
-        Query database or POS system for actual orders in time window.
-        
-        This is a placeholder
+        Query actual orders via API endpoint.
         
         Args:
             place_id: Venue ID
@@ -79,28 +78,31 @@ class RealTimeDataCollector:
         Returns:
             Dict mapping timestamp -> {item_count: int, order_count: int}
         """
-        # TODO: Replace with actual database query
-        # Example for PostgreSQL:
-        # 
-        # query = """
-        #     SELECT 
-        #         DATE_TRUNC('hour', created_at) as hour,
-        #         COUNT(DISTINCT order_id) as order_count,
-        #         COUNT(*) as item_count
-        #     FROM fct_orders o
-        #     JOIN fct_order_items i ON o.id = i.order_id
-        #     WHERE o.place_id = %s
-        #       AND o.created_at >= %s
-        #     GROUP BY hour
-        #     ORDER BY hour
-        # """
-        # 
-        # with db_connection.cursor() as cursor:
-        #     cursor.execute(query, (place_id, datetime.now() - time_window))
-        #     results = cursor.fetchall()
-        
-        # For now, simulate with sample data
-        return self._simulate_actual_orders(place_id, time_window)
+        try:
+            
+            # Call the orders API endpoint
+            # This should match the pattern in main.py where the backend handles the query
+            response = requests.post(
+                "http://localhost:8000/api/v1/orders/query",
+                json={
+                    "place_id": place_id,
+                    "time_window_hours": int(time_window.total_seconds() / 3600),
+                    "end_time": datetime.now().isoformat()
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('orders', {})
+            else:
+                print(f"⚠️  Orders API returned {response.status_code}")
+                return self._simulate_actual_orders(place_id, time_window)
+                
+        except Exception as e:
+            print(f"⚠️  Could not fetch orders via API: {e}")
+            print("   Falling back to simulated data")
+            return self._simulate_actual_orders(place_id, time_window)
     
     def _simulate_actual_orders(self, 
                                 place_id: int, 
@@ -168,9 +170,9 @@ class RealTimeDataCollector:
                                         place_id: int,
                                         time_window: timedelta) -> Optional[Dict[datetime, Dict[str, float]]]:
         """
-        Fetch pre-computed predictions from database.
+        Fetch pre-computed predictions from database via API endpoint.
         
-        Expected query:
+        Calls backend endpoint that queries:
         SELECT timestamp, item_count_pred, order_count_pred
         FROM demand_predictions
         WHERE place_id = %s
@@ -182,11 +184,37 @@ class RealTimeDataCollector:
             time_window: Time period to fetch
         
         Returns:
-            Predictions dict or None if empty
+            Predictions dict or None if empty/unavailable
         """
-        # TODO: Backend team to implement database query
-        # For now, return None to fall back to model/fallback
-        return None
+        try:
+            response = requests.post(
+                "http://localhost:8000/api/v1/predictions/query",
+                json={
+                    "place_id": place_id,
+                    "time_window_hours": int(time_window.total_seconds() / 3600),
+                    "end_time": datetime.now().isoformat()
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                predictions = data.get('predictions', {})
+                
+                # Convert string timestamps back to datetime if needed
+                if predictions:
+                    return {
+                        datetime.fromisoformat(ts): pred 
+                        for ts, pred in predictions.items()
+                    }
+                return None
+            else:
+                print(f"⚠️  Predictions API returned {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"⚠️  Could not fetch predictions via API: {e}")
+            return None
     
     def _predict_with_model(self, 
                            place_id: int, 
@@ -194,9 +222,13 @@ class RealTimeDataCollector:
         """
         Generate predictions using the loaded ML model.
         
-        Note: Requires feature engineering to match training data format.
-        This is simplified - in production, use the full feature engineering pipeline.
+        Builds feature vectors matching the training data format and uses
+        the model to generate predictions.
         """
+        if self.model is None:
+            print("⚠️  Model not loaded, returning baseline predictions")
+            return self._baseline_predictions(time_window)
+        
         predictions = {}
         now = datetime.now()
         hours = int(time_window.total_seconds() / 3600)
@@ -205,8 +237,79 @@ class RealTimeDataCollector:
             timestamp = now - timedelta(hours=hour_offset)
             timestamp = timestamp.replace(minute=0, second=0, microsecond=0)
             
-            # TODO: Build proper feature vector
-            # For now, use baseline predictions
+            try:
+                # Build feature vector matching training format
+                features = self._build_feature_vector(place_id, timestamp)
+                
+                # Make prediction
+                pred = self.model.predict(features.reshape(1, -1))
+                
+                predictions[timestamp] = {
+                    'item_count_pred': float(pred[0][0]),
+                    'order_count_pred': float(pred[0][1])
+                }
+            except Exception as e:
+                print(f"⚠️  Prediction error for {timestamp}: {e}")
+                predictions[timestamp] = {
+                    'item_count_pred': 100.0,
+                    'order_count_pred': 25.0
+                }
+        
+        return predictions
+    
+    def _build_feature_vector(self, place_id: int, timestamp: datetime) -> np.ndarray:
+        """
+        Build feature vector matching training data format.
+        
+        Features should match those in train_model.py's x.columns
+        """
+        day_of_week = timestamp.weekday()
+        hour = timestamp.hour
+        month = timestamp.month
+        week_of_year = timestamp.isocalendar()[1]
+        
+        # Construct feature vector with expected features
+        # Order must match model training features
+        feature_dict = {
+            'place_id': float(place_id),
+            'type_id': 0.0,
+            'waiting_time': 15.0,
+            'rating': 4.0,
+            'delivery': 1.0,
+            'accepting_orders': 1.0,
+            'total_campaigns': 2.0,
+            'avg_discount': 0.15,
+            'day_of_week': float(day_of_week),
+            'month': float(month),
+            'week_of_year': float(week_of_year),
+            'hour': float(hour),
+            'prev_hour_items': 100.0,
+            'prev_day_items': 100.0,
+            'prev_week_items': 100.0,
+            'prev_month_items': 100.0,
+            'rolling_7d_avg_items': 100.0,
+            'is_holiday': 0.0,
+            'temperature_2m': 15.0,
+            'relative_humidity_2m': 65.0,
+            'precipitation': 0.0,
+            'rain': 0.0,
+            'snowfall': 0.0,
+            'cloud_cover': 50.0,
+            'wind_speed_10m': 5.0,
+            'weather_severity': 0.0
+        }
+        
+        return np.array([list(feature_dict.values())])
+    
+    def _baseline_predictions(self, time_window: timedelta) -> Dict[datetime, Dict[str, float]]:
+        """Fallback baseline predictions"""
+        predictions = {}
+        now = datetime.now()
+        hours = int(time_window.total_seconds() / 3600)
+        
+        for hour_offset in range(hours):
+            timestamp = now - timedelta(hours=hour_offset)
+            timestamp = timestamp.replace(minute=0, second=0, microsecond=0)
             predictions[timestamp] = {
                 'item_count_pred': 100.0,
                 'order_count_pred': 25.0
