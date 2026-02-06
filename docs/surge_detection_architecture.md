@@ -52,23 +52,23 @@ Social media can cause **unpredictable demand surges** that exceed normal predic
 │                     SURGE DETECTION SYSTEM                               │
 └─────────────────────────────────────────────────────────────────────────┘
 
-┌──────────────────────────────────────────────────────────────────────────┐
-│  LAYER 1: DATA COLLECTION (Continuous Background Process)                │
-├──────────────────────────────────────────────────────────────────────────┤
+┌───────────────────────────────────────────────────────────────────────────┐
+│  LAYER 1: DATA COLLECTION (Continuous Background Process)                 │
+├───────────────────────────────────────────────────────────────────────────┤
 │                                                                           │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────┐        │
-│  │ Real-time Orders│  │ Demand Predictions│  │ Social Media APIs│        │
-│  │ Stream (POS)    │  │ (From ML Model)   │  │ (Background)     │        │
-│  │                 │  │                   │  │                  │        │
-│  │ • Order count   │  │ • Predicted items │  │ • Google Trends  │        │
-│  │ • Items ordered │  │ • Predicted orders│  │ • Twitter counts │        │
-│  │ • Timestamp     │  │ • Confidence bands│  │ • Instagram eng. │        │
-│  │ • Place ID      │  │                   │  │ • Event calendar │        │
-│  └────────┬────────┘  └─────────┬─────────┘  └─────────┬────────┘        │
-│           │                     │                       │                 │
-│           └─────────────────────┼───────────────────────┘                 │
+│  ┌─────────────────┐  ┌───────────────────┐  ┌──────────────────┐         │
+│  │ Real-time Orders│  │ Demand Predictions│  │ Social Media APIs│         │
+│  │ Stream (POS)    │  │ (From ML Model)   │  │ (Background)     │         │
+│  │                 │  │                   │  │                  │         │
+│  │ • Order count   │  │ • Predicted items │  │ • Google Trends  │         │
+│  │ • Items ordered │  │ • Predicted orders│  │ • Twitter counts │         │
+│  │ • Timestamp     │  │ • Confidence bands│  │ • Instagram eng. │         │
+│  │ • Place ID      │  │                   │  │ • Event calendar │         │
+│  └────────┬────────┘  └─────────┬─────────┘  └─────────┬────────┘         │
+│           │                     │                      │                  │
+│           └─────────────────────┼──────────────────────┘                  │
 │                                 ▼                                         │
-│                    ┌─────────────────────────┐                            │
+│                    ┌──────────────────────────┐                           │
 │                    │   Redis Time-Series DB   │                           │
 │                    │   (5-minute resolution)  │                           │
 │                    │                          │                           │
@@ -80,7 +80,7 @@ Social media can cause **unpredictable demand surges** that exceed normal predic
 │                    │    social_signals: {...} │                           │
 │                    │  }                       │                           │
 │                    │  TTL: 7 days             │                           │
-│                    └─────────────────────────┘                            │
+│                    └──────────────────────────┘                           │
 └───────────────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼

@@ -1261,6 +1261,259 @@ def get_example_request():
 
 
 # ============================================================================
+# DATA COLLECTION API - LAYER 1 (SURGE DETECTION)
+# ============================================================================
+
+# Import data collector
+try:
+    from src.data_collector import RealTimeDataCollector, load_venues_from_database
+    DATA_COLLECTOR_AVAILABLE = True
+    logger.info("Data collector imported successfully")
+    
+    # Initialize collector instance (shared across requests)
+    data_collector = RealTimeDataCollector()
+    
+except ImportError as e:
+    DATA_COLLECTOR_AVAILABLE = False
+    logger.warning(f"Data collector not available: {e}")
+
+
+class VenueRequest(BaseModel):
+    """Request model for single venue metrics"""
+    place_id: int = Field(..., description="Venue/restaurant ID")
+    name: str = Field(..., description="Venue name")
+    latitude: float = Field(..., description="Venue latitude", ge=-90, le=90)
+    longitude: float = Field(..., description="Venue longitude", ge=-180, le=180)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "place_id": 123,
+                "name": "Sample Restaurant",
+                "latitude": 55.6761,
+                "longitude": 12.5683
+            }
+        }
+
+
+class VenueMetrics(BaseModel):
+    """Response model for venue metrics"""
+    place_id: int
+    timestamp: str
+    actual_items: int
+    actual_orders: int
+    predicted_items: float
+    predicted_orders: float
+    ratio: float
+    excess_demand: float
+    social_signals: Dict[str, float]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "place_id": 123,
+                "timestamp": "2026-02-06T14:30:00",
+                "actual_items": 150,
+                "actual_orders": 35,
+                "predicted_items": 100.0,
+                "predicted_orders": 25.0,
+                "ratio": 1.5,
+                "excess_demand": 50.0,
+                "social_signals": {
+                    "composite_score": 0.75,
+                    "twitter_mentions": 10,
+                    "instagram_posts": 5
+                }
+            }
+        }
+
+
+class BatchVenueRequest(BaseModel):
+    """Request model for batch venue metrics collection"""
+    venues: List[VenueRequest] = Field(..., description="List of venues to collect data for")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "venues": [
+                    {
+                        "place_id": 123,
+                        "name": "Sample Restaurant 1",
+                        "latitude": 55.6761,
+                        "longitude": 12.5683
+                    },
+                    {
+                        "place_id": 124,
+                        "name": "Sample Restaurant 2",
+                        "latitude": 55.6867,
+                        "longitude": 12.5700
+                    }
+                ]
+            }
+        }
+
+
+class BatchMetricsResponse(BaseModel):
+    """Response model for batch metrics collection"""
+    metrics: List[VenueMetrics]
+    summary: Dict[str, Union[int, float]]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "metrics": [
+                    {
+                        "place_id": 123,
+                        "timestamp": "2026-02-06T14:30:00",
+                        "actual_items": 150,
+                        "actual_orders": 35,
+                        "predicted_items": 100.0,
+                        "predicted_orders": 25.0,
+                        "ratio": 1.5,
+                        "excess_demand": 50.0,
+                        "social_signals": {"composite_score": 0.75}
+                    }
+                ],
+                "summary": {
+                    "total_venues": 2,
+                    "successful": 2,
+                    "failed": 0,
+                    "duration_seconds": 1.23,
+                    "avg_time_per_venue": 0.615
+                }
+            }
+        }
+
+
+@app.post("/api/v1/collect/venue", 
+          response_model=VenueMetrics,
+          tags=["Data Collection"],
+          summary="Collect real-time metrics for a single venue")
+async def collect_venue_metrics(venue: VenueRequest):
+    """
+    Collect real-time metrics for a single venue.
+    
+    **Purpose**: Backend team calls this endpoint to get current metrics for a venue.
+    
+    **Data collected**:
+    - Actual orders (last hour)
+    - Predicted demand (from ML model)
+    - Social media signals
+    - Demand ratio and excess demand
+    
+    **Usage**: Call this every 5 minutes for each active venue, then store the response in your database.
+    
+    **Returns**: Current metrics dictionary with all collected data.
+    """
+    if not DATA_COLLECTOR_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Data collector module not available. Please ensure all dependencies are installed."
+        )
+    
+    try:
+        metrics = data_collector.get_single_venue_metrics(
+            place_id=venue.place_id,
+            venue_name=venue.name,
+            latitude=venue.latitude,
+            longitude=venue.longitude
+        )
+        
+        if metrics is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to collect metrics for venue {venue.place_id}. Check logs for details."
+            )
+        
+        return metrics
+        
+    except Exception as e:
+        logger.error(f"Error collecting metrics for venue {venue.place_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal error while collecting metrics: {str(e)}"
+        )
+
+
+@app.post("/api/v1/collect/batch",
+          response_model=BatchMetricsResponse,
+          tags=["Data Collection"],
+          summary="Collect metrics for multiple venues in one call")
+async def collect_batch_metrics(batch: BatchVenueRequest):
+    """
+    Collect real-time metrics for multiple venues in a single batch request.
+    
+    **Purpose**: Efficient bulk collection for all active venues.
+    
+    **Usage**: 
+    1. Backend service queries database for all active venues
+    2. Sends batch request with venue list
+    3. Receives metrics for all venues
+    4. Stores each venue's metrics in database
+    
+    **Recommended**: Use this endpoint instead of individual calls for better performance.
+    
+    **Returns**: 
+    - `metrics`: List of metrics for each venue
+    - `summary`: Statistics about the collection run
+    """
+    if not DATA_COLLECTOR_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Data collector module not available. Please ensure all dependencies are installed."
+        )
+    
+    try:
+        # Convert Pydantic models to dicts
+        venues_list = [
+            {
+                'place_id': v.place_id,
+                'name': v.name,
+                'latitude': v.latitude,
+                'longitude': v.longitude
+            }
+            for v in batch.venues
+        ]
+        
+        result = data_collector.collect_for_all_venues(venues_list)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error collecting batch metrics: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal error while collecting batch metrics: {str(e)}"
+        )
+
+
+@app.get("/api/v1/collect/health",
+         tags=["Data Collection"],
+         summary="Check data collector health")
+async def collector_health():
+    """
+    Health check endpoint for the data collection service.
+    
+    **Returns**: Status of data collector and its dependencies (ML model, social APIs, etc.)
+    """
+    if not DATA_COLLECTOR_AVAILABLE:
+        return {
+            "status": "unavailable",
+            "data_collector": False,
+            "message": "Data collector module not loaded"
+        }
+    
+    return {
+        "status": "healthy",
+        "data_collector": True,
+        "ml_model_loaded": data_collector.model is not None,
+        "social_apis": True,
+        "update_interval_seconds": data_collector.update_interval,
+        "message": "Data collector ready"
+    }
+
+
+# ============================================================================
 # RUN SERVER
 # ============================================================================
 
