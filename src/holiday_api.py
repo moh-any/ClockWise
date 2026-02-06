@@ -125,6 +125,8 @@ def add_holiday_feature(df: pd.DataFrame,
     """
     Add is_holiday column to a DataFrame based on date and location.
     
+    ===== FIX: Batch API calls by unique (date, lat, lon) combinations =====
+    
     Args:
         df: DataFrame with date, latitude, and longitude columns
         date_column: Name of the date column
@@ -140,26 +142,47 @@ def add_holiday_feature(df: pd.DataFrame,
     result_df = df.copy()
     
     # Fill NaN lat/lon with defaults
-    lat_values = result_df[latitude_column].fillna(default_latitude)
-    lon_values = result_df[longitude_column].fillna(default_longitude)
+    result_df[latitude_column] = result_df[latitude_column].fillna(default_latitude)
+    result_df[longitude_column] = result_df[longitude_column].fillna(default_longitude)
     
     # Convert date column to date if needed
     if not pd.api.types.is_datetime64_any_dtype(result_df[date_column]):
-        date_values = pd.to_datetime(result_df[date_column]).dt.date
+        result_df['_date_for_holiday'] = pd.to_datetime(result_df[date_column]).dt.date
     else:
-        date_values = result_df[date_column].dt.date
+        result_df['_date_for_holiday'] = result_df[date_column].dt.date
     
     # Initialize checker
     checker = HolidayChecker()
     
-    # Apply holiday check to each row
-    def check_row(row_idx):
-        check_date = date_values.iloc[row_idx]
-        lat = lat_values.iloc[row_idx]
-        lon = lon_values.iloc[row_idx]
-        result = checker.is_holiday(check_date, lat, lon)
-        return result.get('is_holiday', False)
+    # ===== FIX: Get unique combinations and batch lookup =====
+    unique_combos = result_df[['_date_for_holiday', latitude_column, longitude_column]].drop_duplicates()
     
-    result_df['is_holiday'] = [check_row(i) for i in range(len(result_df))]
+    print(f"Checking holidays for {len(unique_combos)} unique (date, location) combinations...")
+    
+    holiday_lookup = {}
+    for idx, row in unique_combos.iterrows():
+        check_date = row['_date_for_holiday']
+        lat = row[latitude_column]
+        lon = row[longitude_column]
+        
+        result = checker.is_holiday(check_date, lat, lon)
+        holiday_lookup[(check_date, lat, lon)] = result.get('is_holiday', False)
+        
+        if (idx + 1) % 100 == 0:
+            print(f"  Processed {idx + 1}/{len(unique_combos)} combinations")
+    
+    # Map back to full dataframe
+    result_df['is_holiday'] = result_df.apply(
+        lambda row: holiday_lookup.get(
+            (row['_date_for_holiday'], row[latitude_column], row[longitude_column]), 
+            False
+        ),
+        axis=1
+    )
+    
+    # Clean up temporary column
+    result_df = result_df.drop(columns=['_date_for_holiday'])
+    
+    print(f"Found {result_df['is_holiday'].sum()} holiday records out of {len(result_df)} total")
     
     return result_df

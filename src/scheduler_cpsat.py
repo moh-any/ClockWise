@@ -344,81 +344,83 @@ class SchedulerCPSAT:
                 sum(self.z[e_idx, k] * data.shifts[k].length_slots for k in K) <= max_slots
             )
     
-    def _add_supply_constraints(self):
-        """Add production capacity and supply constraints."""
-        E, R, D, T = self._get_sets()
-        data = self.data
-        
-        # Scale factor for floating point -> integer (x100)
-        SCALE = 100
-        
-        # ----- Step 4a: Compute capacity per role -----
-        for r_idx, role in enumerate(data.roles):
-            items_scaled = int(role.items_per_hour * data.slot_len_hour * SCALE)
-            for d in D:
-                for t in T:
-                    if not data.fixed_shifts:
-                        # capacity = sum_e y[e,r,d,t] * items_r * slot_len
-                        self.model.Add(
-                            self.capacity[r_idx, d, t] == 
-                            sum(self.y[e, r_idx, d, t] * items_scaled for e in E)
-                        )
-                    else:
-                        # For fixed shifts, capacity is based on z variables
-                        # Simplified: count eligible employees assigned to overlapping shifts
-                        overlapping_shifts = [
-                            k for k, s in enumerate(data.shifts) 
-                            if s.day == d and s.start_slot <= t < s.end_slot
-                        ]
-                        eligible = [e for e, emp in enumerate(data.employees) if role.id in emp.role_eligibility]
-                        self.model.Add(
-                            self.capacity[r_idx, d, t] == 
-                            sum(self.z[e, k] * items_scaled for e in eligible for k in overlapping_shifts)
-                        )
-        
-        # ----- Step 4b & 4c: Supply from independent roles and chains -----
-        independent_roles = [r for r, role in enumerate(data.roles) if role.is_independent]
-        
-        for d in D:
-            for t in T:
-                supply_terms = []
-                
-                # Independent roles contribute directly
-                for r_idx in independent_roles:
-                    supply_terms.append(self.capacity[r_idx, d, t])
-                
-                # Chain output (bottleneck)
-                for c_idx, chain in enumerate(data.chains):
-                    chain_role_indices = [self.role_idx[rid] for rid in chain.roles if rid in self.role_idx]
-                    
-                    # chain_output <= capacity of each role in chain
-                    for r_idx in chain_role_indices:
-                        self.model.Add(
-                            self.chain_output[c_idx, d, t] <= self.capacity[r_idx, d, t]
-                        )
-                    
-                    # Add to supply with contribution factor
-                contrib_scaled = int(chain.contrib_factor * 100)
-                supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // 100)
-                # Total supply
-                if supply_terms:
-                    self.model.Add(self.supply[d, t] == sum(supply_terms))
-                else:
-                    self.model.Add(self.supply[d, t] == 0)
-        
-        # ----- Step 4e: Demand satisfaction -----
-        for d in D:
-            for t in T:
-                demand_scaled = int(data.demand.get((d, t), 0) * SCALE)
-                if data.meet_all_demand:
-                    # Hard constraint: supply must meet demand exactly
-                    self.model.Add(self.supply[d, t] >= demand_scaled)
-                    # Force unmet to zero
-                    self.model.Add(self.v[d, t] == 0)
-                else:
-                    # Soft constraint: supply + unmet >= demand (unmet penalized in objective)
-                    self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)
+def _add_supply_constraints(self):
+    """Add production capacity and supply constraints."""
+    E, R, D, T = self._get_sets()
+    data = self.data
     
+    # Scale factor for floating point -> integer (x100)
+    SCALE = 100
+    
+    # ----- Step 4a: Compute capacity per role -----
+    for r_idx, role in enumerate(data.roles):
+        items_scaled = int(role.items_per_hour * data.slot_len_hour * SCALE)
+        for d in D:
+            for t in T:
+                if not data.fixed_shifts:
+                    # capacity = sum_e y[e,r,d,t] * items_r * slot_len
+                    self.model.Add(
+                        self.capacity[r_idx, d, t] == 
+                        sum(self.y[e, r_idx, d, t] * items_scaled for e in E)
+                    )
+                else:
+                    # For fixed shifts, capacity is based on z variables
+                    overlapping_shifts = [
+                        k for k, s in enumerate(data.shifts) 
+                        if s.day == d and s.start_slot <= t < s.end_slot
+                    ]
+                    eligible = [e for e, emp in enumerate(data.employees) if role.id in emp.role_eligibility]
+                    self.model.Add(
+                        self.capacity[r_idx, d, t] == 
+                        sum(self.z[e, k] * items_scaled for e in eligible for k in overlapping_shifts)
+                    )
+    
+    # ----- Step 4b & 4c: Supply from independent roles and chains -----
+    independent_roles = [r for r, role in enumerate(data.roles) if role.is_independent]
+    
+    for d in D:
+        for t in T:
+            supply_terms = []
+            
+            # Independent roles contribute directly
+            for r_idx in independent_roles:
+                supply_terms.append(self.capacity[r_idx, d, t])
+            
+            # ===== FIX: Chain output equals bottleneck (minimum capacity) =====
+            for c_idx, chain in enumerate(data.chains):
+                chain_role_indices = [self.role_idx[rid] for rid in chain.roles if rid in self.role_idx]
+                
+                if len(chain_role_indices) == 0:
+                    continue
+                
+                # Use AddMinEquality to set chain output to minimum capacity
+                capacity_vars = [self.capacity[r_idx, d, t] for r_idx in chain_role_indices]
+                self.model.AddMinEquality(self.chain_output[c_idx, d, t], capacity_vars)
+                
+                # Add to supply with contribution factor (keep scaling consistent)
+                contrib_scaled = int(chain.contrib_factor * SCALE)
+                # Don't divide - keep everything scaled
+                supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // SCALE)
+            
+            # Total supply
+            if supply_terms:
+                self.model.Add(self.supply[d, t] == sum(supply_terms))
+            else:
+                self.model.Add(self.supply[d, t] == 0)
+    
+    # ----- Step 4e: Demand satisfaction -----
+    for d in D:
+        for t in T:
+            demand_scaled = int(data.demand.get((d, t), 0) * SCALE)
+            if data.meet_all_demand:
+                # Hard constraint: supply must meet demand exactly
+                self.model.Add(self.supply[d, t] >= demand_scaled)
+                # Force unmet to zero
+                self.model.Add(self.v[d, t] == 0)
+            else:
+                # Soft constraint: supply + unmet >= demand (unmet penalized in objective)
+                self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)    
+                
     def _add_auxiliary_constraints(self):
         """Add auxiliary variable definitions for objective."""
         E, R, D, T = self._get_sets()
@@ -478,7 +480,6 @@ class SchedulerCPSAT:
         objective_terms = []
         
         # W_wage * sum(wage[e] * work_hours[e])
-        # work_hours = work_slots * slot_len_hour, wage is per hour
         for e_idx, emp in enumerate(data.employees):
             wage_per_slot = int(emp.wage * data.slot_len_hour * 100)  # Scale by 100
             objective_terms.append(data.w_wage * wage_per_slot * self.work_slots[e_idx])
@@ -492,18 +493,20 @@ class SchedulerCPSAT:
         for e_idx in E:
             objective_terms.append(data.w_hours * self.hours_dev[e_idx])
         
-        # -W_slot * sum(pref_sat[e,d,t]) (negative because we maximize satisfaction)
+        # ===== FIX: Positive weight for preference satisfaction (reward, not penalize) =====
         if not data.fixed_shifts:
             for e_idx in E:
                 for d in D:
                     for t in T:
+                        # Positive weight = we want to MAXIMIZE satisfaction
+                        # But we're minimizing objective, so we SUBTRACT
                         objective_terms.append(-data.w_slot * self.pref_sat[e_idx, d, t])
         
         # W_fair * fairness_dev
         objective_terms.append(data.w_fair * self.fairness_dev)
         
         self.model.Minimize(sum(objective_terms))
-    
+        
     def solve(self, time_limit_seconds: int = 60) -> Optional[Dict]:
         """Solve the model and return the solution."""
         solver = cp_model.CpSolver()

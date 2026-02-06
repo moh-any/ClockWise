@@ -280,24 +280,13 @@ def get_weather_for_demand_data(
     place_col: str = "place_id",
     lat_col: str = "latitude", 
     lon_col: str = "longitude",
-    default_latitude: float = 55.6761,  # Copenhagen default
+    default_latitude: float = 55.6761,
     default_longitude: float = 12.5683
 ) -> pd.DataFrame:
     """
     Fetch and merge weather data with demand prediction dataset.
     
-    Args:
-        demand_df: DataFrame with demand data
-        date_col: Name of date column
-        hour_col: Name of hour column
-        place_col: Name of place ID column
-        lat_col: Name of latitude column
-        lon_col: Name of longitude column
-        default_latitude: Default latitude for missing coordinates (default: Copenhagen)
-        default_longitude: Default longitude for missing coordinates (default: Copenhagen)
-        
-    Returns:
-        DataFrame with weather features merged
+    ===== FIX: Add default weather on failure instead of NaN =====
     """
     
     # Fill NaN coordinates with defaults BEFORE grouping
@@ -305,13 +294,43 @@ def get_weather_for_demand_data(
     demand_df[lat_col] = demand_df[lat_col].fillna(default_latitude)
     demand_df[lon_col] = demand_df[lon_col].fillna(default_longitude)
     
-    # Now group by filled coordinates
+    # Group by coordinates
     location_groups = demand_df.groupby([place_col, lat_col, lon_col])[date_col].apply(
         lambda x: x.astype(str).unique().tolist()
     ).reset_index()
     
     all_weather = []
     default_api = WeatherAPI(latitude=default_latitude, longitude=default_longitude)
+    
+    # ===== FIX: Create default weather data in case of failure =====
+    def create_default_weather(place_id, dates, lat, lon):
+        """Create default weather when API fails"""
+        default_rows = []
+        for date_str in dates:
+            date_obj = pd.to_datetime(date_str).date()
+            for hour in range(24):
+                default_rows.append({
+                    'date': date_obj,
+                    'hour': hour,
+                    place_col: place_id,
+                    'temperature_2m': 15.0,
+                    'relative_humidity_2m': 70.0,
+                    'precipitation': 0.0,
+                    'rain': 0.0,
+                    'snowfall': 0.0,
+                    'weather_code': 1,
+                    'cloud_cover': 50.0,
+                    'wind_speed_10m': 15.0,
+                    'is_rainy': 0,
+                    'is_snowy': 0,
+                    'is_cold': 0,
+                    'is_hot': 0,
+                    'is_cloudy': 0,
+                    'is_windy': 0,
+                    'good_weather': 1,
+                    'weather_severity': 0
+                })
+        return pd.DataFrame(default_rows)
     
     print(f"Fetching weather data for {len(location_groups)} location groups...")
     
@@ -326,10 +345,18 @@ def get_weather_for_demand_data(
             if pd.notna(lat) and pd.notna(lon):
                 api = WeatherAPI(latitude=lat, longitude=lon)
             else:
-                api = default_api  # Use Copenhagen for missing coordinates
+                api = default_api
             
             weather = api.get_weather_for_dates(dates)
-            weather[place_col] = place_id
+            
+            if weather.empty:
+                print(f"  Warning: No weather data returned for place {place_id}, using defaults")
+                weather = create_default_weather(place_id, dates, lat, lon)
+            else:
+                weather[place_col] = place_id
+                # Add weather features
+                weather = api.add_weather_features(weather)
+            
             all_weather.append(weather)
             
             # Small delay to avoid rate limiting
@@ -341,15 +368,14 @@ def get_weather_for_demand_data(
         
         except Exception as e:
             print(f"  Warning: Failed to fetch weather for place {place_id}: {e}")
-            # Continue with other locations instead of failing completely
+            print(f"  Using default weather values for place {place_id}")
+            # Use default weather instead of failing
+            weather = create_default_weather(place_id, dates, lat, lon)
+            all_weather.append(weather)
             continue
     
     if all_weather:
         weather_df = pd.concat(all_weather, ignore_index=True)
-        
-        # Add weather features
-        api = WeatherAPI()
-        weather_df = api.add_weather_features(weather_df)
         
         # Merge with demand data
         demand_df[date_col] = pd.to_datetime(demand_df[date_col]).dt.date
@@ -368,6 +394,38 @@ def get_weather_for_demand_data(
         if "date_x" in merged_df.columns:
             merged_df = merged_df.rename(columns={"date_x": date_col})
         
+        # Fill any remaining NaN weather values with defaults
+        weather_cols = [
+            'temperature_2m', 'relative_humidity_2m', 'precipitation', 'rain',
+            'snowfall', 'weather_code', 'cloud_cover', 'wind_speed_10m',
+            'is_rainy', 'is_snowy', 'is_cold', 'is_hot', 'is_cloudy', 'is_windy',
+            'good_weather', 'weather_severity'
+        ]
+        
+        default_values = {
+            'temperature_2m': 15.0,
+            'relative_humidity_2m': 70.0,
+            'precipitation': 0.0,
+            'rain': 0.0,
+            'snowfall': 0.0,
+            'weather_code': 1,
+            'cloud_cover': 50.0,
+            'wind_speed_10m': 15.0,
+            'is_rainy': 0,
+            'is_snowy': 0,
+            'is_cold': 0,
+            'is_hot': 0,
+            'is_cloudy': 0,
+            'is_windy': 0,
+            'good_weather': 1,
+            'weather_severity': 0
+        }
+        
+        for col in weather_cols:
+            if col in merged_df.columns:
+                merged_df[col] = merged_df[col].fillna(default_values.get(col, 0))
+        
         return merged_df
     
+    print("  ERROR: Could not fetch any weather data")
     return demand_df

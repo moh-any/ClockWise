@@ -215,11 +215,28 @@ class ScheduleInput(BaseModel):
 
 
 # ============================================================================
-# COMPLETE REQUEST MODEL
+# SEPARATE REQUEST MODELS
 # ============================================================================
 
-class PredictionRequest(BaseModel):
-    """Complete prediction and scheduling request"""
+class DemandPredictionRequest(BaseModel):
+    """Request for demand prediction only"""
+    place: PlaceData
+    orders: List[OrderData] = Field(..., description="Historical orders (at least 7 days recommended)")
+    campaigns: List[CampaignData] = Field(default=[], description="Active/past campaigns")
+    prediction_start_date: str = Field(..., description="Start date for predictions (YYYY-MM-DD)")
+    prediction_days: int = Field(7, description="Number of days to predict (default: 7)")
+
+
+class SchedulingRequest(BaseModel):
+    """Request for scheduling only"""
+    place: PlaceData
+    schedule_input: ScheduleInput
+    demand_predictions: List[DayPrediction] = Field(..., description="Demand predictions to schedule against")
+    prediction_start_date: str = Field(..., description="Start date matching demand predictions")
+
+
+class CombinedRequest(BaseModel):
+    """Combined request (backward compatibility)"""
     demand_input: DemandInput
     schedule_input: ScheduleInput
 
@@ -260,10 +277,19 @@ class ScheduleOutput(BaseModel):
     sunday: List[Dict[str, List[str]]] = Field(default=[], description="Sunday shifts")
 
 
-class PredictionResponse(BaseModel):
-    """Complete prediction and scheduling response"""
+# ============================================================================
+# SEPARATE RESPONSE MODELS
+# ============================================================================
+
+class DemandPredictionResponse(BaseModel):
+    """Response for demand prediction"""
     demand_output: DemandOutput
+class SchedulingResponse(BaseModel):
+    """Response for scheduling"""
     schedule_output: ScheduleOutput
+    schedule_status: str = Field(..., description="Status: optimal, feasible, infeasible, error")
+    schedule_message: Optional[str] = Field(None, description="Explanation or error message")
+    objective_value: Optional[float] = Field(None, description="Objective function value")
 
 
 # ============================================================================
@@ -685,13 +711,6 @@ def convert_api_data_to_scheduler_input(
 ) -> SchedulerInput:
     """
     Convert API request data to scheduler input format
-    
-    Handles:
-    - Role conversion
-    - Production chain conversion
-    - Employee availability mapping (calendar days -> prediction period days)
-    - Demand dictionary building
-    - Shift parsing
     """
     
     # Get scheduler config or use defaults
@@ -724,16 +743,20 @@ def convert_api_data_to_scheduler_input(
     num_days = len(unique_dates)
     num_slots_per_day = int(24 / config.slot_len_hour)
     
-    # Map calendar days to prediction period days
+    # ===== FIX: Map calendar days to ALL matching prediction period days =====
     prediction_start = pd.to_datetime(prediction_start_date).date()
-    calendar_day_to_pred_day = {}
+    calendar_day_to_pred_days = {}  # day_name -> [list of day indices]
+    
     for i in range(num_days):
         current_date = prediction_start + timedelta(days=i)
         calendar_day_name = current_date.strftime('%A').lower()
-        calendar_day_to_pred_day[calendar_day_name] = i
+        
+        if calendar_day_name not in calendar_day_to_pred_days:
+            calendar_day_to_pred_days[calendar_day_name] = []
+        calendar_day_to_pred_days[calendar_day_name].append(i)
     
     logger.info(f"Prediction period: {num_days} days, {num_slots_per_day} slots/day")
-    logger.info(f"Calendar day mapping: {calendar_day_to_pred_day}")
+    logger.info(f"Calendar day mapping: {calendar_day_to_pred_days}")
     
     # Convert employees
     logger.info("Converting employees...")
@@ -746,15 +769,18 @@ def convert_api_data_to_scheduler_input(
             for slot in range(num_slots_per_day):
                 availability[(day_idx, slot)] = False
         
-        # Set available slots to True based on employee's available_days and available_hours
+        # ===== FIX: Set available slots to True for ALL matching prediction days =====
         for calendar_day_name in emp_data.available_days:
-            # Map calendar day to prediction period day
-            pred_day_idx = calendar_day_to_pred_day.get(calendar_day_name.lower())
-            if pred_day_idx is None:
-                continue  # Day not in prediction period
+            # Map calendar day to ALL prediction period days
+            pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
+            
+            if not pred_day_indices:
+                logger.warning(f"Calendar day '{calendar_day_name}' not in prediction period")
+                continue
             
             # Get hours for this day
             if calendar_day_name.lower() not in emp_data.available_hours:
+                logger.warning(f"No available_hours specified for {emp_data.employee_id} on {calendar_day_name}")
                 continue
             
             hours = emp_data.available_hours[calendar_day_name.lower()]
@@ -770,15 +796,17 @@ def convert_api_data_to_scheduler_input(
             if end_hour % config.slot_len_hour > 0:
                 end_slot += 1
             
-            # Mark slots as available
-            for slot in range(start_slot, min(end_slot, num_slots_per_day)):
-                availability[(pred_day_idx, slot)] = True
+            # Mark slots as available for ALL matching prediction days
+            for pred_day_idx in pred_day_indices:
+                for slot in range(start_slot, min(end_slot, num_slots_per_day)):
+                    availability[(pred_day_idx, slot)] = True
         
-        # Build preferences (similar logic)
+        # Build preferences (same logic)
         preferences = {}
         for calendar_day_name in emp_data.preferred_days:
-            pred_day_idx = calendar_day_to_pred_day.get(calendar_day_name.lower())
-            if pred_day_idx is None:
+            pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
+            
+            if not pred_day_indices:
                 continue
             
             if calendar_day_name.lower() not in emp_data.preferred_hours:
@@ -796,8 +824,10 @@ def convert_api_data_to_scheduler_input(
             if end_hour % config.slot_len_hour > 0:
                 end_slot += 1
             
-            for slot in range(start_slot, min(end_slot, num_slots_per_day)):
-                preferences[(pred_day_idx, slot)] = True
+            # Mark preferences for ALL matching prediction days
+            for pred_day_idx in pred_day_indices:
+                for slot in range(start_slot, min(end_slot, num_slots_per_day)):
+                    preferences[(pred_day_idx, slot)] = True
         
         scheduler_employees.append(Employee(
             id=emp_data.employee_id,
@@ -829,11 +859,11 @@ def convert_api_data_to_scheduler_input(
     
     logger.info(f"Built demand dict with {len(demand_dict)} entries")
     
-    # Parse shifts if fixed_shifts is True
+    # ===== FIX: Parse shifts with proper day mapping =====
     shifts = []
     if place.fixed_shifts:
         logger.info("Parsing fixed shifts...")
-        shifts = parse_shift_times(place.shift_times, place)
+        shifts = parse_shift_times_fixed(place.shift_times, place, calendar_day_to_pred_days)
     
     return SchedulerInput(
         employees=scheduler_employees,
@@ -855,6 +885,60 @@ def convert_api_data_to_scheduler_input(
         meet_all_demand=config.meet_all_demand
     )
 
+
+def parse_shift_times_fixed(
+    shift_times: List[str], 
+    place: PlaceData, 
+    calendar_day_to_pred_days: Dict[str, List[int]]
+) -> List[Shift]:
+    """
+    Parse shift time strings into Shift objects with proper day mapping
+    
+    Args:
+        shift_times: List of shift time strings (e.g., "06:00-14:00")
+        place: Place data with opening hours
+        calendar_day_to_pred_days: Mapping from calendar day names to prediction day indices
+    
+    Returns:
+        List of Shift objects
+    """
+    shifts = []
+    
+    for shift_idx, shift_time in enumerate(shift_times):
+        parts = shift_time.split('-')
+        if len(parts) != 2:
+            logger.warning(f"Invalid shift time format: {shift_time}")
+            continue
+        
+        start_str, end_str = parts
+        start_hour = parse_time_to_hour(start_str)
+        end_hour = parse_time_to_hour(end_str)
+        
+        if start_hour == -1 or end_hour == -1:
+            continue
+        
+        # Handle overnight shifts (e.g., 22:00-06:00)
+        if end_hour <= start_hour:
+            end_hour += 24
+        
+        # Create shift for EACH prediction day that matches an open calendar day
+        for calendar_day_name, hours in place.opening_hours.items():
+            if hours.closed:
+                continue  # Skip closed days
+            
+            # Get ALL prediction day indices for this calendar day
+            pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
+            
+            for pred_day_idx in pred_day_indices:
+                shifts.append(Shift(
+                    id=f"shift_{pred_day_idx}_{shift_idx}",
+                    day=pred_day_idx,  # Use prediction day index
+                    start_slot=int(start_hour),
+                    end_slot=int(end_hour)
+                ))
+    
+    logger.info(f"Parsed {len(shifts)} shifts from {len(shift_times)} shift time templates")
+    return shifts
 
 def format_schedule_output(
     solution: Dict, 
@@ -1015,6 +1099,162 @@ def model_info():
         raise HTTPException(status_code=503, detail="Model not loaded")
     return metadata
 
+# ============================================================================
+# NEW SEPARATED ENDPOINTS
+# ============================================================================
+
+@app.post("/predict/demand", response_model=DemandPredictionResponse)
+def predict_demand_only(request: DemandPredictionRequest):
+    """
+    Predict demand only (no scheduling)
+    
+    Process:
+    1. Validate input
+    2. Prepare features for demand prediction
+    3. Make demand predictions using ML model
+    4. Return predictions
+    """
+    
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    try:
+        logger.info(f"Processing demand prediction for {request.place.place_name}")
+        
+        # Prepare features
+        features_df = prepare_features_for_prediction(
+            place=request.place,
+            orders=request.orders,
+            campaigns=request.campaigns,
+            prediction_start=request.prediction_start_date,
+            prediction_days=request.prediction_days
+        )
+        
+        # Store datetime info before feature alignment
+        datetime_info = features_df[['datetime', 'date', 'hour']].copy()
+        
+        # Align features with model expectations
+        X = align_features_with_model(features_df)
+        
+        # Make predictions
+        logger.info(f"Making predictions for {len(X)} hours...")
+        predictions = model.predict(X)
+        predictions = np.maximum(predictions, 0).round().astype(int)
+        
+        # Add predictions to datetime info
+        datetime_info['item_count'] = predictions[:, 0]
+        datetime_info['order_count'] = predictions[:, 1]
+        datetime_info['day_name'] = datetime_info['datetime'].dt.strftime('%A').str.lower()
+        
+        logger.info("Demand predictions completed successfully")
+        
+        # Format response
+        days = []
+        for date_val, day_group in datetime_info.groupby('date'):
+            day_name = day_group.iloc[0]['day_name']
+            
+            hours = []
+            for _, row in day_group.iterrows():
+                hours.append(HourPrediction(
+                    hour=int(row['hour']),
+                    order_count=int(row['order_count']),
+                    item_count=int(row['item_count'])
+                ))
+            
+            days.append(DayPrediction(
+                day_name=day_name,
+                date=str(date_val),
+                hours=hours
+            ))
+        
+        demand_output = DemandOutput(
+            restaurant_name=request.place.place_name,
+            prediction_period=f"{request.prediction_start_date} to {days[-1].date}",
+            days=days
+        )
+        
+        return DemandPredictionResponse(demand_output=demand_output)
+        
+    except Exception as e:
+        logger.error(f"Demand prediction failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Demand prediction failed: {str(e)}")
+
+
+@app.post("/predict/schedule", response_model=SchedulingResponse)
+def predict_schedule_only(request: SchedulingRequest):
+    """
+    Generate schedule based on provided demand predictions
+    
+    Process:
+    1. Validate input
+    2. Convert demand predictions to DataFrame
+    3. Generate optimal staff schedule
+    4. Return schedule
+    """
+    
+    if not SCHEDULER_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Scheduler not available")
+    
+    try:
+        logger.info(f"Processing scheduling request for {request.place.place_name}")
+        
+        # Convert demand predictions to DataFrame
+        demand_data = []
+        for day in request.demand_predictions:
+            for hour_pred in day.hours:
+                demand_data.append({
+                    'datetime': pd.to_datetime(f"{day.date} {hour_pred.hour:02d}:00:00"),
+                    'date': pd.to_datetime(day.date).date(),
+                    'hour': hour_pred.hour,
+                    'item_count': hour_pred.item_count,
+                    'order_count': hour_pred.order_count,
+                    'day_name': day.day_name
+                })
+        
+        datetime_info = pd.DataFrame(demand_data)
+        
+        # Generate schedule
+        config = request.schedule_input.scheduler_config or SchedulerConfig()
+        
+        scheduler_input = convert_api_data_to_scheduler_input(
+            place=request.place,
+            schedule_input=request.schedule_input,
+            demand_predictions=datetime_info,
+            prediction_start_date=request.prediction_start_date
+        )
+        
+        scheduler = SchedulerCPSAT(scheduler_input)
+        solution = scheduler.solve(time_limit_seconds=60)
+        
+        if solution:
+            schedule_output = format_schedule_output(
+                solution=solution,
+                place=request.place,
+                config=config,
+                prediction_start_date=request.prediction_start_date,
+                num_days=len(request.demand_predictions)
+            )
+            
+            return SchedulingResponse(
+                schedule_output=schedule_output,
+                schedule_status=solution['status'],
+                schedule_message="Schedule generated successfully",
+                objective_value=solution['objective_value']
+            )
+        else:
+            return SchedulingResponse(
+                schedule_output=ScheduleOutput(),
+                schedule_status="infeasible",
+                schedule_message="No feasible schedule found. Check constraints and employee availability."
+            )
+            
+    except Exception as e:
+        logger.error(f"Scheduling failed: {str(e)}", exc_info=True)
+        return SchedulingResponse(
+            schedule_output=ScheduleOutput(),
+            schedule_status="error",
+            schedule_message=f"Scheduling error: {str(e)}"
+        )
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict_demand_and_schedule(request: PredictionRequest):
@@ -1028,7 +1268,7 @@ def predict_demand_and_schedule(request: PredictionRequest):
     4. Generate optimal staff schedule based on predictions
     5. Format and return response
     """
-    
+    logger.warning("Combined /predict endpoint is deprecated. Use /predict/demand and /predict/schedule separately.")
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     

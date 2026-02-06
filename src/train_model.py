@@ -100,7 +100,7 @@ metadata = {
     },
     'training_size': len(x_train),
     'test_size': len(x_test),
-    'version': '2.0_with_holidays'
+    'version': '2.1_fixed_lag_features'
 }
 
 joblib.dump(model, 'data/models/rf_model.joblib')
