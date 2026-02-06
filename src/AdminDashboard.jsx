@@ -22,7 +22,6 @@ import DarkModeIcon from "./Icons/Dark-Mode-Icon.svg"
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
-  const [requiredInfoSubTab, setRequiredInfoSubTab] = useState("location")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode")
@@ -71,6 +70,21 @@ function AdminDashboard() {
   const [delegateError, setDelegateError] = useState("")
   const csvFileInput = useRef(null)
 
+  // Role management state
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false)
+  const [showEditRoleModal, setShowEditRoleModal] = useState(false)
+  const [confirmDeleteRole, setConfirmDeleteRole] = useState(null)
+  const [selectedRole, setSelectedRole] = useState(null)
+  const [roleForm, setRoleForm] = useState({
+    role: "",
+    min_needed_per_shift: 1,
+    items_per_role_per_hour: "",
+    need_for_demand: false,
+    independent: true,
+  })
+  const [roleLoading, setRoleLoading] = useState(false)
+  const [roleError, setRoleError] = useState("")
+
   // Remove hardcoded alerts - will be replaced with real data in future
   const [aiAlerts, setAiAlerts] = useState([])
 
@@ -96,7 +110,7 @@ function AdminDashboard() {
     { id: "planning", label: "Planning", icon: PlanningIcon },
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
     { id: "settings", label: "Settings", icon: SettingsIcon },
-    { id: "requiredinfo", label: "Setup", icon: InfoIcon },
+    { id: "info", label: "Setup", icon: InfoIcon },
   ]
 
   const getContrastColor = (hexColor) => {
@@ -271,7 +285,7 @@ function AdminDashboard() {
   }
 
   useEffect(() => {
-    if (activeTab === "requiredinfo" && requiredInfoSubTab === "location") {
+    if (activeTab === "info") {
       const timer = setTimeout(() => {
         initializeMap()
       }, 100)
@@ -288,7 +302,14 @@ function AdminDashboard() {
         mapInstance.current = null
       }
     }
-  }, [activeTab, requiredInfoSubTab])
+  }, [activeTab])
+
+  // Load roles when info tab is active
+  useEffect(() => {
+    if (activeTab === "info") {
+      fetchRoles()
+    }
+  }, [activeTab])
 
   const initializeMap = () => {
     if (typeof window.mapboxgl === "undefined") {
@@ -1002,17 +1023,113 @@ function AdminDashboard() {
   }
 
   // Handle CSV upload
-  const handleCsvUpload = (event) => {
+  const handleCsvUpload = async (event) => {
     const file = event.target.files[0]
-    if (file) {
-      console.log("Employee CSV file selected:", file.name)
-      // TODO: Implement CSV parsing and bulk upload
+    if (!file) return
+
+    setDelegateLoading(true)
+    setShowCsvUploadModal(false)
+
+    try {
+      const text = await file.text()
+      const lines = text.split("\n").filter((line) => line.trim())
+
+      if (lines.length < 2) {
+        setActionMessage({
+          type: "error",
+          text: "CSV file is empty or invalid",
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+        return
+      }
+
+      // Parse header
+      const headers = lines[0].split(",").map((h) => h.trim())
+      const requiredHeaders = ["full_name", "email", "role", "salary_per_hour"]
+      const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
+
+      if (missingHeaders.length > 0) {
+        setActionMessage({
+          type: "error",
+          text: `Missing required columns: ${missingHeaders.join(", ")}`,
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+        return
+      }
+
+      // Parse and upload employees
+      let successCount = 0
+      let errorCount = 0
+      const failedEmployees = []
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map((v) => v.trim())
+        if (values.length !== headers.length) continue
+
+        const employee = {}
+        headers.forEach((header, index) => {
+          employee[header] = values[index]
+        })
+
+        try {
+          console.log(
+            `Attempting to create employee: ${employee.full_name} with role: ${employee.role}`,
+          )
+          await api.staffing.createEmployee({
+            full_name: employee.full_name,
+            email: employee.email,
+            role: employee.role,
+            salary_per_hour: parseFloat(employee.salary_per_hour),
+            max_hours_per_week: employee.max_hours_per_week
+              ? parseInt(employee.max_hours_per_week)
+              : undefined,
+            preferred_hours_per_week: employee.preferred_hours_per_week
+              ? parseInt(employee.preferred_hours_per_week)
+              : undefined,
+          })
+          console.log(`✓ Successfully created: ${employee.full_name}`)
+          successCount++
+        } catch (err) {
+          console.error(
+            `✗ Failed to create employee ${employee.full_name}:`,
+            err,
+          )
+          failedEmployees.push({
+            name: employee.full_name,
+            role: employee.role,
+            error: err.response?.data?.error || err.message || "Unknown error",
+          })
+          errorCount++
+        }
+      }
+
+      // Refresh employee list
+      await fetchEmployees()
+
+      // Build detailed message
+      let message = `Uploaded ${successCount} employee(s).`
+      if (errorCount > 0) {
+        message += ` ${errorCount} failed:\n`
+        failedEmployees.forEach((emp) => {
+          message += `\n• ${emp.name} (${emp.role}): ${emp.error}`
+        })
+      }
+
       setActionMessage({
-        type: "success",
-        text: `File "${file.name}" ready for upload. Implementation pending.`,
+        type: successCount > 0 ? "success" : "error",
+        text: message,
+      })
+      setTimeout(() => setActionMessage(null), 8000)
+    } catch (err) {
+      console.error("CSV upload error:", err)
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to process CSV file",
       })
       setTimeout(() => setActionMessage(null), 4000)
-      setShowCsvUploadModal(false)
+    } finally {
+      setDelegateLoading(false)
+      event.target.value = "" // Reset file input
     }
   }
 
@@ -1190,7 +1307,9 @@ function AdminDashboard() {
             className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
             style={{ marginBottom: "var(--space-6)" }}
           >
-            <p className="alert-message">{actionMessage.text}</p>
+            <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
+              {actionMessage.text}
+            </p>
           </div>
         )}
 
@@ -1747,102 +1866,762 @@ function AdminDashboard() {
     )
   }
 
-  const renderRequiredInfo = () => (
+  // ============================================================================
+  // ROLE MANAGEMENT FUNCTIONS
+  // ============================================================================
+
+  // Handle add role submit
+  const handleAddRole = async (e) => {
+    e.preventDefault()
+    setRoleLoading(true)
+    setRoleError("")
+
+    try {
+      const payload = {
+        role: roleForm.role,
+        min_needed_per_shift: parseInt(roleForm.min_needed_per_shift),
+        need_for_demand: roleForm.need_for_demand,
+        independent: roleForm.independent,
+      }
+
+      if (roleForm.need_for_demand && roleForm.items_per_role_per_hour) {
+        payload.items_per_role_per_hour = parseInt(
+          roleForm.items_per_role_per_hour,
+        )
+      }
+
+      await api.roles.createRole(payload)
+      setShowAddRoleModal(false)
+      setRoleForm({
+        role: "",
+        min_needed_per_shift: 1,
+        items_per_role_per_hour: "",
+        need_for_demand: false,
+        independent: true,
+      })
+      setActionMessage({
+        type: "success",
+        text: "Role created successfully!",
+      })
+      fetchRoles()
+      setTimeout(() => setActionMessage(null), 4000)
+    } catch (err) {
+      setRoleError(err.message || "Failed to create role")
+    } finally {
+      setRoleLoading(false)
+    }
+  }
+
+  // Handle edit role submit
+  const handleEditRole = async (e) => {
+    e.preventDefault()
+    setRoleLoading(true)
+    setRoleError("")
+
+    try {
+      const payload = {
+        min_needed_per_shift: parseInt(roleForm.min_needed_per_shift),
+        need_for_demand: roleForm.need_for_demand,
+        independent: roleForm.independent,
+      }
+
+      if (roleForm.need_for_demand && roleForm.items_per_role_per_hour) {
+        payload.items_per_role_per_hour = parseInt(
+          roleForm.items_per_role_per_hour,
+        )
+      } else {
+        payload.items_per_role_per_hour = null
+      }
+
+      await api.roles.updateRole(selectedRole.role, payload)
+      setShowEditRoleModal(false)
+      setSelectedRole(null)
+      setActionMessage({
+        type: "success",
+        text: "Role updated successfully!",
+      })
+      fetchRoles()
+      setTimeout(() => setActionMessage(null), 4000)
+    } catch (err) {
+      setRoleError(err.message || "Failed to update role")
+    } finally {
+      setRoleLoading(false)
+    }
+  }
+
+  // Handle delete role
+  const handleDeleteRole = async (roleName) => {
+    setActionLoading(true)
+    try {
+      await api.roles.deleteRole(roleName)
+      setConfirmDeleteRole(null)
+      setActionMessage({
+        type: "success",
+        text: "Role deleted successfully.",
+      })
+      fetchRoles()
+      setTimeout(() => setActionMessage(null), 4000)
+    } catch (err) {
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to delete role",
+      })
+      setTimeout(() => setActionMessage(null), 4000)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Open edit role modal
+  const openEditRole = (role) => {
+    setSelectedRole(role)
+    setRoleForm({
+      role: role.role,
+      min_needed_per_shift: role.min_needed_per_shift || 1,
+      items_per_role_per_hour: role.items_per_role_per_hour || "",
+      need_for_demand: role.need_for_demand || false,
+      independent: role.independent !== undefined ? role.independent : true,
+    })
+    setShowEditRoleModal(true)
+  }
+
+  const renderInfo = () => (
     <div className="premium-content fade-in">
       <div className="content-header">
         <div>
-          <h1 className="page-title">Setup & Configuration</h1>
+          <h1 className="page-title">Organization Setup</h1>
           <p className="page-subtitle">
-            Required information for system initialization
+            Configure your organization location and roles
           </p>
         </div>
       </div>
 
-      <div className="tabs-wrapper">
-        <div className="tabs-nav">
-          <button
-            className={`tab-button ${requiredInfoSubTab === "location" ? "active" : ""}`}
-            onClick={() => setRequiredInfoSubTab("location")}
-          >
-            <img src={LocationIcon} alt="Location" className="tab-icon-svg" />
-            Location
-          </button>
-          <button
-            className={`tab-button ${requiredInfoSubTab === "dataupload" ? "active" : ""}`}
-            onClick={() => setRequiredInfoSubTab("dataupload")}
-          >
-            <img src={CloudUploadIcon} alt="Upload" className="tab-icon-svg" />
-            Data Upload
-          </button>
-        </div>
-      </div>
-
-      {requiredInfoSubTab === "location" && (
-        <div className="section-wrapper">
-          <h2 className="section-title">Select Organization Location</h2>
-          <p className="section-description">
-            Click anywhere on the map to set your primary business location
+      {/* Action Message Toast */}
+      {actionMessage && (
+        <div
+          className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
+          style={{ marginBottom: "var(--space-6)" }}
+        >
+          <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
+            {actionMessage.text}
           </p>
-
-          {selectedCoords.lat && selectedCoords.lng && (
-            <div className="coords-display">
-              <div className="coords-item">
-                <span className="coords-label">Latitude:</span>
-                <span className="coords-value">{selectedCoords.lat}</span>
-              </div>
-              <div className="coords-item">
-                <span className="coords-label">Longitude:</span>
-                <span className="coords-value">{selectedCoords.lng}</span>
-              </div>
-              <button className="btn-primary btn-sm">Confirm Location</button>
-            </div>
-          )}
-
-          <div id="location-map" className="map-container"></div>
-
-          {!selectedCoords.lat && (
-            <div className="map-hint">
-              <p>👆 Click on the map to select your location</p>
-            </div>
-          )}
         </div>
       )}
 
-      {requiredInfoSubTab === "dataupload" && (
-        <div className="section-wrapper">
-          <h2 className="section-title">Data Import</h2>
-          <p className="section-description">
-            Upload your configuration files to initialize the system
-          </p>
+      {/* Location Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <h2 className="section-title">
+            <img src={LocationIcon} alt="Location" className="title-icon-svg" />
+            Organization Location
+          </h2>
+        </div>
+        <p className="section-description">
+          Click anywhere on the map to set your primary business location
+        </p>
 
-          <div className="upload-grid">
-            <div className="upload-card">
-              <input
-                type="file"
-                ref={configFileInput}
-                onChange={handleConfigUpload}
-                style={{ display: "none" }}
-                accept=".csv,.xlsx,.json"
-              />
-              <img
-                src={ConfigurationIcon}
-                alt="Configuration"
-                className="upload-icon-svg"
-              />
-              <h3 className="upload-title">Configuration File</h3>
-              <p className="upload-description">
-                Upload your organization structure, departments, and roles
-              </p>
-              <ul className="upload-specs">
-                <li>Supported formats: CSV, XLSX, JSON</li>
-                <li>Maximum size: 10MB</li>
-                <li>Must include: department_id, role_name, base_rate</li>
-              </ul>
+        {selectedCoords.lat && selectedCoords.lng && (
+          <div className="coords-display">
+            <div className="coords-item">
+              <span className="coords-label">Latitude:</span>
+              <span className="coords-value">{selectedCoords.lat}</span>
+            </div>
+            <div className="coords-item">
+              <span className="coords-label">Longitude:</span>
+              <span className="coords-value">{selectedCoords.lng}</span>
+            </div>
+            <button className="btn-primary btn-sm">Confirm Location</button>
+          </div>
+        )}
+
+        <div id="location-map" className="map-container"></div>
+
+        {!selectedCoords.lat && (
+          <div className="map-hint">
+            <p>👆 Click on the map to select your location</p>
+          </div>
+        )}
+      </div>
+
+      {/* Roles Management Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">
+              <img src={EmployeeIcon} alt="Roles" className="title-icon-svg" />
+              Organization Roles
+            </h2>
+            <p className="section-description">
+              Define roles for your organization and their requirements
+            </p>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setRoleForm({
+                role: "",
+                min_needed_per_shift: 1,
+                items_per_role_per_hour: "",
+                need_for_demand: false,
+                independent: true,
+              })
+              setRoleError("")
+              setShowAddRoleModal(true)
+            }}
+          >
+            + Add Role
+          </button>
+        </div>
+
+        {roles && roles.length > 0 ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Role Name
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Min per Shift
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Demand Based
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Items/Hour
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Independent
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {roles.map((role) => (
+                  <tr
+                    key={role.role}
+                    style={{
+                      borderBottom: "1px solid var(--gray-200)",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <span className="badge badge-primary">{role.role}</span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.min_needed_per_shift}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.need_for_demand ? (
+                        <span style={{ color: "var(--color-primary)" }}>
+                          ✓ Yes
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.items_per_role_per_hour != null
+                        ? role.items_per_role_per_hour
+                        : "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.independent ? (
+                        <span style={{ color: "var(--color-primary)" }}>
+                          ✓ Yes
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.role !== "admin" && role.role !== "manager" && (
+                        <>
+                          <button
+                            className="btn-link"
+                            style={{ marginRight: "var(--space-2)" }}
+                            onClick={() => openEditRole(role)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-link"
+                            style={{ color: "var(--color-accent)" }}
+                            onClick={() => setConfirmDeleteRole(role)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {(role.role === "admin" || role.role === "manager") && (
+                        <span
+                          style={{
+                            color: "var(--gray-400)",
+                            fontSize: "var(--text-sm)",
+                          }}
+                        >
+                          Default Role
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h3>No Roles Defined</h3>
+            <p>Add your first role to get started</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Role Modal */}
+      {showAddRoleModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAddRoleModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="section-title">Add New Role</h2>
+              <button
+                className="collapse-btn"
+                onClick={() => setShowAddRoleModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            {roleError && (
+              <div
+                className="login-error-message"
+                style={{ marginBottom: "var(--space-4)" }}
+              >
+                {roleError}
+              </div>
+            )}
+            <form onSubmit={handleAddRole}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-4)",
+                }}
+              >
+                <div className="setting-item">
+                  <label className="setting-label">Role Name</label>
+                  <input
+                    className="setting-input"
+                    type="text"
+                    value={roleForm.role}
+                    onChange={(e) =>
+                      setRoleForm({ ...roleForm, role: e.target.value })
+                    }
+                    placeholder="e.g., waiter, cashier, cook"
+                    required
+                  />
+                </div>
+                <div className="setting-item">
+                  <label className="setting-label">
+                    Minimum Needed per Shift
+                  </label>
+                  <input
+                    className="setting-input"
+                    type="number"
+                    min="0"
+                    value={roleForm.min_needed_per_shift}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        min_needed_per_shift: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Need for Demand</h4>
+                    <p className="toggle-description">
+                      Is this role required based on demand/capacity?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.need_for_demand}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          need_for_demand: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                {roleForm.need_for_demand && (
+                  <div className="setting-item">
+                    <label className="setting-label">
+                      Items per Role per Hour
+                    </label>
+                    <input
+                      className="setting-input"
+                      type="number"
+                      min="0"
+                      value={roleForm.items_per_role_per_hour}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          items_per_role_per_hour: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., 10"
+                      required={roleForm.need_for_demand}
+                    />
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--gray-500)",
+                        marginTop: "var(--space-2)",
+                      }}
+                    >
+                      How many items/customers this role can handle per hour
+                    </p>
+                  </div>
+                )}
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Independent Role</h4>
+                    <p className="toggle-description">
+                      Can this role work independently?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.independent}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          independent: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div
+                className="settings-footer"
+                style={{ marginTop: "var(--space-6)" }}
+              >
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowAddRoleModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={roleLoading}
+                >
+                  {roleLoading ? "Creating..." : "Create Role"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Role Modal */}
+      {showEditRoleModal && selectedRole && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowEditRoleModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="section-title">Edit Role: {selectedRole.role}</h2>
+              <button
+                className="collapse-btn"
+                onClick={() => setShowEditRoleModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            {roleError && (
+              <div
+                className="login-error-message"
+                style={{ marginBottom: "var(--space-4)" }}
+              >
+                {roleError}
+              </div>
+            )}
+            <form onSubmit={handleEditRole}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-4)",
+                }}
+              >
+                <div className="setting-item">
+                  <label className="setting-label">
+                    Minimum Needed per Shift
+                  </label>
+                  <input
+                    className="setting-input"
+                    type="number"
+                    min="0"
+                    value={roleForm.min_needed_per_shift}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        min_needed_per_shift: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Need for Demand</h4>
+                    <p className="toggle-description">
+                      Is this role required based on demand/capacity?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.need_for_demand}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          need_for_demand: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                {roleForm.need_for_demand && (
+                  <div className="setting-item">
+                    <label className="setting-label">
+                      Items per Role per Hour
+                    </label>
+                    <input
+                      className="setting-input"
+                      type="number"
+                      min="0"
+                      value={roleForm.items_per_role_per_hour}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          items_per_role_per_hour: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., 10"
+                      required={roleForm.need_for_demand}
+                    />
+                  </div>
+                )}
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Independent Role</h4>
+                    <p className="toggle-description">
+                      Can this role work independently?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.independent}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          independent: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div
+                className="settings-footer"
+                style={{ marginTop: "var(--space-6)" }}
+              >
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowEditRoleModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={roleLoading}
+                >
+                  {roleLoading ? "Updating..." : "Update Role"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Role Confirmation */}
+      {confirmDeleteRole && (
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteRole(null)}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 440 }}
+          >
+            <div className="modal-header">
+              <h2
+                className="section-title"
+                style={{ color: "var(--color-accent)" }}
+              >
+                Confirm Delete
+              </h2>
+            </div>
+            <p
+              style={{
+                color: "var(--text-primary)",
+                marginBottom: "var(--space-6)",
+                lineHeight: 1.6,
+              }}
+            >
+              Are you sure you want to delete the role{" "}
+              <strong>{confirmDeleteRole.role}</strong>? This action cannot be
+              undone and may fail if employees are assigned to this role.
+            </p>
+            <div className="settings-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setConfirmDeleteRole(null)}
+              >
+                Cancel
+              </button>
               <button
                 className="btn-primary"
-                onClick={() => configFileInput.current?.click()}
+                style={{ background: "var(--color-accent)" }}
+                onClick={() => handleDeleteRole(confirmDeleteRole.role)}
+                disabled={actionLoading}
               >
-                Choose File
+                {actionLoading ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
           </div>
@@ -1968,7 +2747,7 @@ function AdminDashboard() {
             {activeTab === "planning" && renderPlanning()}
             {activeTab === "staffing" && renderStaffing()}
             {activeTab === "settings" && renderOrgSettings()}
-            {activeTab === "requiredinfo" && renderRequiredInfo()}
+            {activeTab === "info" && renderInfo()}
           </>
         )}
       </main>
