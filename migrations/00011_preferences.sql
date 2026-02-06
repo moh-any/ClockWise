@@ -1,20 +1,17 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS preferences (
-    employee_id UUID PRIMARY KEY REFERENCES users(id),
-    organization_id UUID NOT NULL REFERENCES organizations(id), 
-    preferred_start_time TIME NOT NULL,
-    preferred_end_time TIME NOT NULL,
-    available_start_time TIME NOT NULL,
-    available_end_time TIME NOT NULL,
-    preferred_days_per_week INT NOT NULL CHECK (preferred_days_per_week >= 1 AND preferred_days_per_week <= 7),
-    available_days_per_week INT NOT NULL CHECK (available_days_per_week >= 1 AND available_days_per_week <= 7),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS employees_preferences (
+    employee_id UUID REFERENCES users(id),
+    day VARCHAR(10) NOT NULL CHECK (day IN ('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')),
+    preferred_start_time TIME,
+    preferred_end_time TIME,
+    available_start_time TIME,
+    available_end_time TIME,
+    PRIMARY KEY (employee_id,day)
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS preferences;
+DROP TABLE IF EXISTS employees_preferences;
 -- +goose StatementEnd

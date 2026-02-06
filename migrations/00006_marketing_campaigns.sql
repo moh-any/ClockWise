@@ -10,11 +10,17 @@ CREATE TABLE IF NOT EXISTS marketing_campaigns (
     type TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS campaigns_items (
+    campaign_id UUID REFERENCES marketing_campaigns(id),
+    item_id UUID REFERENCES items(id),
+    discount_amount DECIMAL(10,2) NOT NULL,
+    PRIMARY KEY(campaign_id, item_id)
+);
 -- +goose StatementEnd
 
 
 -- +goose Down 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS marketing_campaigns;
+DROP TABLE IF EXISTS marketing_campaigns, campaigns_items CASCADE;
 DROP EXTENSION IF EXISTS "uuid-ossp";
 -- +goose StatementEnd

@@ -5,8 +5,12 @@ CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
     organization_id UUID NOT NULL REFERENCES organizations(id),
-    request_date TIMESTAMP NOT NULL,   
-    order_location_status VARCHAR(20) CHECK (order_location_status IN ('delivery','takeaway','dine in'))
+    create_time TIMESTAMP NOT NULL,   
+    order_type VARCHAR(10) NOT NULL CHECK (order_type IN ('delivery','takeaway','dine in')),
+    order_status VARCHAR(10) NOT NULL CHECK (order_status IN ('closed','cancelled')),
+    total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
+    discount_amount DECIMAL(10,2) NOT NULL CHECK (discount_amount >= 0 AND total_amount - discount_amount >= 0),
+    rating DECIMAL(10,2) 
 );
 
 CREATE TABLE IF NOT EXISTS items (
@@ -27,6 +31,6 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 -- +goose Down 
 -- +goose StatementBegin
-DROP TABLE IF EXISTS orders, items, orders_items CASCADE; 
+DROP TABLE IF EXISTS orders, items, order_items CASCADE; 
 DROP EXTENSION IF EXISTS "uuid-ossp";
 -- +goose StatementEnd
