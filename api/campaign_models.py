@@ -3,8 +3,12 @@ Pydantic models for campaign recommendation API
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, TYPE_CHECKING
 from datetime import datetime
+
+# Use TYPE_CHECKING to avoid circular imports
+if TYPE_CHECKING:
+    from api.main import PlaceData, OrderData, CampaignData
 
 
 class CampaignFeedback(BaseModel):
@@ -17,19 +21,26 @@ class CampaignFeedback(BaseModel):
     notes: Optional[str] = Field(None, description="Additional notes")
 
 
+class OrderItemData(BaseModel):
+    """Order-item relationship for affinity analysis"""
+    order_id: str = Field(..., description="Order ID")
+    item_id: str = Field(..., description="Item ID")
+    quantity: int = Field(default=1, ge=1, description="Quantity ordered")
+
+
 class CampaignRecommendationRequest(BaseModel):
     """Request for campaign recommendations"""
     
-    # Restaurant information
-    place: "PlaceData" = Field(..., description="Restaurant information")
+    # Restaurant information - use Any to avoid forward reference
+    place: Dict = Field(..., description="Restaurant information")
     
     # Historical data (same as demand prediction)
-    orders: List["OrderData"] = Field(..., description="Historical order data")
-    campaigns: List["CampaignData"] = Field(
+    orders: List[Dict] = Field(..., description="Historical order data")
+    campaigns: List[Dict] = Field(
         default_factory=list,
         description="Historical campaigns"
     )
-    order_items: Optional[List["OrderItemData"]] = Field(
+    order_items: Optional[List[OrderItemData]] = Field(
         default_factory=list,
         description="Order-item relationships for affinity analysis"
     )
@@ -95,13 +106,6 @@ class CampaignRecommendationRequest(BaseModel):
         return v
 
 
-class OrderItemData(BaseModel):
-    """Order-item relationship for affinity analysis"""
-    order_id: str = Field(..., description="Order ID")
-    item_id: str = Field(..., description="Item ID")
-    quantity: int = Field(default=1, ge=1, description="Quantity ordered")
-
-
 class RecommendedCampaignItem(BaseModel):
     """A single recommended campaign"""
     campaign_id: str = Field(..., description="Unique campaign identifier")
@@ -135,6 +139,10 @@ class RecommendedCampaignItem(BaseModel):
 
 class CampaignRecommendationResponse(BaseModel):
     """Response with campaign recommendations"""
+    
+    # Add config to avoid model_ namespace conflict
+    model_config = {"protected_namespaces": ()}
+    
     restaurant_name: str = Field(..., description="Restaurant name")
     recommendation_date: str = Field(..., description="Date recommendations generated")
     recommendations: List[RecommendedCampaignItem] = Field(
@@ -154,8 +162,8 @@ class CampaignRecommendationResponse(BaseModel):
         description="Additional insights and patterns"
     )
     
-    # Model info
-    model_confidence: str = Field(
+    # Model info - Changed from model_confidence to avoid namespace conflict
+    confidence_level: str = Field(
         ...,
         description="Overall model confidence: 'high', 'medium', 'low'"
     )
@@ -169,10 +177,3 @@ class CampaignFeedbackResponse(BaseModel):
         default=None,
         description="Updated model parameters"
     )
-
-
-# Import circular dependencies
-from api.main import PlaceData, OrderData, CampaignData
-
-# Update forward references
-CampaignRecommendationRequest.model_rebuild()

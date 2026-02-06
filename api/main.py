@@ -1391,129 +1391,6 @@ def predict_demand_and_schedule(request: CombinedRequest):
         raise HTTPException(status_code=500, detail=f"Request failed: {str(e)}")
 
 
-@app.get("/example-request")
-def get_example_request():
-    """Get an example request JSON matching the v3.0 structure"""
-    return {
-        "demand_input": {
-            "place": {
-                "place_id": "pl_12345",
-                "place_name": "Pizza Paradise",
-                "type": "restaurant",
-                "latitude": 55.6761,
-                "longitude": 12.5683,
-                "waiting_time": 30,
-                "receiving_phone": True,
-                "delivery": True,
-                "opening_hours": {
-                    "monday": {"from": "10:00", "to": "23:00"},
-                    "tuesday": {"from": "10:00", "to": "23:00"},
-                    "wednesday": {"from": "10:00", "to": "23:00"},
-                    "thursday": {"from": "10:00", "to": "23:00"},
-                    "friday": {"from": "10:00", "to": "23:00"},
-                    "saturday": {"from": "10:00", "to": "23:00"},
-                    "sunday": {"closed": True}
-                },
-                "fixed_shifts": True,
-                "number_of_shifts_per_day": 3,
-                "shift_times": ["06:00-14:00", "14:00-22:00", "22:00-06:00"],
-                "rating": 4.5,
-                "accepting_orders": True
-            },
-            "orders": [
-                {
-                    "time": "2024-01-01T12:30:00",
-                    "items": 3,
-                    "status": "completed",
-                    "total_amount": 45.5,
-                    "discount_amount": 5.0
-                },
-                {
-                    "time": "2024-01-01T13:15:00",
-                    "items": 2,
-                    "status": "completed",
-                    "total_amount": 32.0,
-                    "discount_amount": 0.0
-                }
-            ],
-            "campaigns": [
-                {
-                    "start_time": "2024-01-01T00:00:00",
-                    "end_time": "2024-01-07T23:59:59",
-                    "items_included": ["pizza_margherita", "pizza_pepperoni"],
-                    "discount": 15.0
-                }
-            ],
-            "prediction_start_date": "2024-01-15",
-            "prediction_days": 7
-        },
-        "schedule_input": {
-            "roles": [
-                {
-                    "role_id": "role_001",
-                    "role_name": "Chef",
-                    "producing": True,
-                    "items_per_employee_per_hour": 15.0,
-                    "min_present": 2,
-                    "is_independent": False
-                },
-                {
-                    "role_id": "role_002",
-                    "role_name": "Pizza Maker",
-                    "producing": True,
-                    "items_per_employee_per_hour": 12.0,
-                    "min_present": 1,
-                    "is_independent": False
-                },
-                {
-                    "role_id": "role_003",
-                    "role_name": "Cashier",
-                    "producing": False,
-                    "items_per_employee_per_hour": None,
-                    "min_present": 1,
-                    "is_independent": True
-                }
-            ],
-            "employees": [
-                {
-                    "employee_id": "emp_001",
-                    "role_ids": ["role_001", "role_002"],
-                    "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
-                    "preferred_days": ["monday", "wednesday", "friday"],
-                    "available_hours": {
-                        "monday": {"from": "10:00", "to": "22:00"},
-                        "tuesday": {"from": "10:00", "to": "22:00"},
-                        "wednesday": {"from": "10:00", "to": "22:00"},
-                        "thursday": {"from": "10:00", "to": "22:00"},
-                        "friday": {"from": "10:00", "to": "22:00"}
-                    },
-                    "preferred_hours": {
-                        "monday": {"from": "14:00", "to": "22:00"},
-                        "wednesday": {"from": "14:00", "to": "22:00"},
-                        "friday": {"from": "14:00", "to": "22:00"}
-                    },
-                    "hourly_wage": 25.5,
-                    "max_hours_per_week": 40.0,
-                    "max_consec_slots": 8,
-                    "pref_hours": 32.0
-                }
-            ],
-            "production_chains": [
-                {
-                    "chain_id": "kitchen_chain",
-                    "role_ids": ["role_001", "role_002"],
-                    "contrib_factor": 1.0
-                }
-            ],
-            "scheduler_config": {
-                "slot_len_hour": 1.0,
-                "min_rest_slots": 2,
-                "min_shift_length_slots": 2,
-                "meet_all_demand": False
-            }
-        }
-    }
-
 # Add to imports at top of api/main.py
 from src.campaign_analyzer import CampaignAnalyzer
 from src.campaign_recommender import CampaignRecommender, RecommenderContext
@@ -1562,18 +1439,6 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
     
     This endpoint analyzes historical order data, past campaign performance,
     and current context to recommend optimal marketing campaigns.
-    
-    **Features:**
-    - ML-based predictions using contextual bandits
-    - Item affinity analysis for combination campaigns
-    - Seasonal and weather-aware recommendations
-    - ROI and revenue optimization
-    - Exploration of novel campaign strategies
-    
-    **Returns:**
-    - List of recommended campaigns with expected performance
-    - Analysis summary of historical campaigns
-    - Insights and patterns discovered
     """
     
     try:
@@ -1587,44 +1452,71 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
         # Process historical data
         logger.info(f"Processing {len(request.orders)} orders for campaign recommendations")
         
-        # Convert orders to DataFrame
+        # FIX: Handle orders as dicts (already deserialized from JSON)
         orders_data = []
-        for order in request.orders:
-            orders_data.append({
-                'id': f"order_{len(orders_data)}",
-                'created': pd.to_datetime(order.time).timestamp(),
-                'place_id': request.place.place_id,
-                'total_amount': order.total_amount,
-                'item_count': order.items,
-                'status': order.status,
-                'discount_amount': order.discount_amount
-            })
+        for i, order in enumerate(request.orders):
+            # Check if order is dict or OrderData object
+            if isinstance(order, dict):
+                orders_data.append({
+                    'id': f"order_{i}",
+                    'created': pd.to_datetime(order['time']).timestamp(),
+                    'place_id': request.place['place_id'],
+                    'total_amount': order['total_amount'],
+                    'item_count': order['items'],
+                    'status': order['status'],
+                    'discount_amount': order.get('discount_amount', 0)
+                })
+            else:
+                # Handle OrderData object (from Pydantic parsing)
+                orders_data.append({
+                    'id': f"order_{i}",
+                    'created': pd.to_datetime(order.time).timestamp(),
+                    'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
+                    'total_amount': order.total_amount,
+                    'item_count': order.items,
+                    'status': order.status,
+                    'discount_amount': order.discount_amount
+                })
         
         orders_df = pd.DataFrame(orders_data)
         
-        # Convert campaigns to expected format
+        # FIX: Convert campaigns - handle both dict and object
         campaigns_data = []
-        for campaign in request.campaigns:
-            campaigns_data.append({
-                'id': f"campaign_{len(campaigns_data)}",
-                'start_time': campaign.start_time,
-                'end_time': campaign.end_time,
-                'items_included': campaign.items_included,
-                'discount': campaign.discount
-            })
+        for i, campaign in enumerate(request.campaigns):
+            if isinstance(campaign, dict):
+                campaigns_data.append({
+                    'id': f"campaign_{i}",
+                    'start_time': campaign['start_time'],
+                    'end_time': campaign['end_time'],
+                    'items_included': campaign['items_included'],
+                    'discount': campaign['discount']
+                })
+            else:
+                campaigns_data.append({
+                    'id': f"campaign_{i}",
+                    'start_time': campaign.start_time,
+                    'end_time': campaign.end_time,
+                    'items_included': campaign.items_included,
+                    'discount': campaign.discount
+                })
         
-        # Convert order items if provided
+        # FIX: Convert order items if provided
         order_items_data = []
         if request.order_items:
             for item in request.order_items:
-                order_items_data.append({
-                    'order_id': item.order_id,
-                    'item_id': item.item_id
-                })
+                if isinstance(item, dict):
+                    order_items_data.append({
+                        'order_id': item['order_id'],
+                        'item_id': item['item_id']
+                    })
+                else:
+                    order_items_data.append({
+                        'order_id': item.order_id,
+                        'item_id': item.item_id
+                    })
             order_items_df = pd.DataFrame(order_items_data)
         else:
             # Generate synthetic order items from order data (simplified)
-            # In production, you'd want actual item-level data
             order_items_df = pd.DataFrame({
                 'order_id': [f"order_{i}" for i in range(len(orders_df))],
                 'item_id': ['item_generic'] * len(orders_df)
@@ -1795,14 +1687,17 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
         else:
             model_confidence = "low"
         
+        # FIX: Get restaurant name from place (handle dict)
+        restaurant_name = request.place['place_name'] if isinstance(request.place, dict) else request.place.place_name
+        
         # Build response
         response = CampaignRecommendationResponse(
-            restaurant_name=request.place.place_name,
+            restaurant_name=restaurant_name,
             recommendation_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             recommendations=recommended_items,
             analysis_summary=analysis_summary,
             insights=insights,
-            model_confidence=model_confidence
+            confidence_level=model_confidence
         )
         
         logger.info(f"Successfully generated {len(recommended_items)} campaign recommendations")
@@ -1894,61 +1789,6 @@ def _get_season(dt: pd.Timestamp) -> str:
         return "fall"
 
 
-# Update example request endpoint to include campaign recommendations
-@app.get(
-    "/example-request/campaigns",
-    summary="Get Example Campaign Recommendation Request",
-    description="Returns an example request payload for campaign recommendations",
-    tags=["Examples"]
-)
-async def get_example_campaign_request():
-    """Get example request for campaign recommendations"""
-    
-    # Reuse existing example data
-    example_demand = get_example_request()
-    
-    # Add order items
-    order_items_example = [
-        {"order_id": "order_0", "item_id": "pizza_margherita", "quantity": 2},
-        {"order_id": "order_0", "item_id": "drink_cola", "quantity": 2},
-        {"order_id": "order_1", "item_id": "pizza_pepperoni", "quantity": 1},
-        {"order_id": "order_1", "item_id": "salad_caesar", "quantity": 1},
-        {"order_id": "order_2", "item_id": "pasta_carbonara", "quantity": 1},
-        {"order_id": "order_2", "item_id": "drink_water", "quantity": 1}
-    ]
-    
-    campaign_request_example = {
-        "place": example_demand["demand_input"]["place"],
-        "orders": example_demand["demand_input"]["orders"][:20],  # Use subset
-        "campaigns": example_demand["demand_input"]["campaigns"],
-        "order_items": order_items_example,
-        "recommendation_start_date": "2024-03-01",
-        "num_recommendations": 5,
-        "optimize_for": "roi",
-        "max_discount": 30.0,
-        "min_campaign_duration_days": 3,
-        "max_campaign_duration_days": 14,
-        "available_items": [
-            "pizza_margherita",
-            "pizza_pepperoni",
-            "pasta_carbonara",
-            "salad_caesar",
-            "drink_cola",
-            "drink_water"
-        ],
-        "weather_forecast": {
-            "avg_temperature": 18.0,
-            "avg_precipitation": 0.2,
-            "good_weather_ratio": 0.75
-        },
-        "upcoming_holidays": ["2024-03-17", "2024-03-25"]  # St. Patrick's Day, example
-    }
-    
-    return {
-        "campaign_recommendation_request": campaign_request_example,
-        "description": "Example request for campaign recommendations",
-        "usage": "POST /recommend/campaigns"
-    }
     
 # ============================================================================
 # RUN SERVER
