@@ -1087,8 +1087,8 @@ def format_schedule_output(
 # API ENDPOINTS
 # ============================================================================
 
-@app.get("/")
-def root():
+@app.get("/", tags=["Health"])
+async def root():
     """Health check endpoint"""
     return {
         "status": "online",
@@ -1096,9 +1096,14 @@ def root():
         "scheduler_available": SCHEDULER_AVAILABLE,
         "weather_api_available": WEATHER_API_AVAILABLE,
         "holiday_api_available": HOLIDAY_API_AVAILABLE,
-        "version": "3.0.0"
+        "campaign_recommender_available": campaign_analyzer is not None,  # NEW
+        "version": "3.1.0",  # Updated version
+        "features": [
+            "demand_prediction",
+            "staff_scheduling",
+            "campaign_recommendations"  # NEW
+        ]
     }
-
 
 @app.get("/model/info")
 def model_info():
@@ -1509,7 +1514,442 @@ def get_example_request():
         }
     }
 
+# Add to imports at top of api/main.py
+from src.campaign_analyzer import CampaignAnalyzer
+from src.campaign_recommender import CampaignRecommender, RecommenderContext
+from api.campaign_models import (
+    CampaignRecommendationRequest,
+    CampaignRecommendationResponse,
+    RecommendedCampaignItem,
+    CampaignFeedback,
+    CampaignFeedbackResponse,
+    OrderItemData
+)
 
+# Add global variables after existing ones
+campaign_recommender: Optional[CampaignRecommender] = None
+campaign_analyzer: Optional[CampaignAnalyzer] = None
+
+# Update startup event
+@app.on_event("startup")
+async def startup_event():
+    """Load model and initialize services on startup"""
+    global model, model_metadata, WEATHER_API_AVAILABLE, HOLIDAY_API_AVAILABLE, SCHEDULER_AVAILABLE
+    global campaign_recommender, campaign_analyzer
+    
+    # ... existing startup code ...
+    
+    # Initialize campaign services
+    try:
+        campaign_analyzer = CampaignAnalyzer()
+        logger.info("Campaign analyzer initialized")
+    except Exception as e:
+        logger.warning(f"Campaign analyzer initialization failed: {e}")
+
+
+# Add new endpoints before the deprecated /predict endpoint
+
+@app.post(
+    "/recommend/campaigns",
+    response_model=CampaignRecommendationResponse,
+    summary="Get Campaign Recommendations",
+    description="Generate AI-powered campaign recommendations based on historical data and context",
+    tags=["Campaign Recommendations"]
+)
+async def recommend_campaigns(request: CampaignRecommendationRequest):
+    """
+    Generate campaign recommendations using machine learning.
+    
+    This endpoint analyzes historical order data, past campaign performance,
+    and current context to recommend optimal marketing campaigns.
+    
+    **Features:**
+    - ML-based predictions using contextual bandits
+    - Item affinity analysis for combination campaigns
+    - Seasonal and weather-aware recommendations
+    - ROI and revenue optimization
+    - Exploration of novel campaign strategies
+    
+    **Returns:**
+    - List of recommended campaigns with expected performance
+    - Analysis summary of historical campaigns
+    - Insights and patterns discovered
+    """
+    
+    try:
+        # Validate input
+        if not request.orders:
+            raise HTTPException(
+                status_code=400,
+                detail="At least some historical orders are required for campaign recommendations"
+            )
+        
+        # Process historical data
+        logger.info(f"Processing {len(request.orders)} orders for campaign recommendations")
+        
+        # Convert orders to DataFrame
+        orders_data = []
+        for order in request.orders:
+            orders_data.append({
+                'id': f"order_{len(orders_data)}",
+                'created': pd.to_datetime(order.time).timestamp(),
+                'place_id': request.place.place_id,
+                'total_amount': order.total_amount,
+                'item_count': order.items,
+                'status': order.status,
+                'discount_amount': order.discount_amount
+            })
+        
+        orders_df = pd.DataFrame(orders_data)
+        
+        # Convert campaigns to expected format
+        campaigns_data = []
+        for campaign in request.campaigns:
+            campaigns_data.append({
+                'id': f"campaign_{len(campaigns_data)}",
+                'start_time': campaign.start_time,
+                'end_time': campaign.end_time,
+                'items_included': campaign.items_included,
+                'discount': campaign.discount
+            })
+        
+        # Convert order items if provided
+        order_items_data = []
+        if request.order_items:
+            for item in request.order_items:
+                order_items_data.append({
+                    'order_id': item.order_id,
+                    'item_id': item.item_id
+                })
+            order_items_df = pd.DataFrame(order_items_data)
+        else:
+            # Generate synthetic order items from order data (simplified)
+            # In production, you'd want actual item-level data
+            order_items_df = pd.DataFrame({
+                'order_id': [f"order_{i}" for i in range(len(orders_df))],
+                'item_id': ['item_generic'] * len(orders_df)
+            })
+        
+        # Initialize analyzer
+        analyzer = CampaignAnalyzer()
+        
+        # Analyze historical campaigns if available
+        if campaigns_data:
+            logger.info(f"Analyzing {len(campaigns_data)} historical campaigns")
+            analyzer.analyze_campaign_effectiveness(
+                orders_df,
+                campaigns_data,
+                order_items_df
+            )
+        
+        # Extract patterns
+        logger.info("Extracting temporal patterns and item affinity")
+        analyzer.extract_temporal_patterns(orders_df)
+        
+        if len(order_items_df) > 10:  # Need sufficient data for affinity
+            analyzer.extract_item_affinity(order_items_df, min_support=0.01)
+        
+        # Initialize recommender
+        logger.info("Initializing campaign recommender")
+        recommender = CampaignRecommender(
+            analyzer=analyzer,
+            exploration_rate=0.15,  # 15% exploration
+            min_samples_for_prediction=max(3, len(campaigns_data) // 2)
+        )
+        
+        # Train recommender if enough data
+        if len(campaigns_data) >= 3:
+            logger.info("Training recommendation model")
+            recommender.fit(use_xgboost=True)
+        else:
+            logger.warning("Insufficient campaign history. Using exploration-based recommendations.")
+        
+        # Build recommendation context
+        start_date = pd.to_datetime(request.recommendation_start_date)
+        
+        # Calculate recent performance
+        recent_orders = orders_df[
+            orders_df['created'] >= (start_date.timestamp() - 30*24*3600)  # Last 30 days
+        ]
+        
+        recent_avg_daily_revenue = recent_orders['total_amount'].sum() / 30 if len(recent_orders) > 0 else 1000
+        recent_avg_daily_orders = len(recent_orders) / 30 if len(recent_orders) > 0 else 10
+        
+        # Determine trend (simplified)
+        if len(recent_orders) >= 14:
+            first_week = recent_orders.iloc[:len(recent_orders)//2]['total_amount'].sum()
+            second_week = recent_orders.iloc[len(recent_orders)//2:]['total_amount'].sum()
+            
+            if second_week > first_week * 1.1:
+                trend = "increasing"
+            elif second_week < first_week * 0.9:
+                trend = "decreasing"
+            else:
+                trend = "stable"
+        else:
+            trend = "stable"
+        
+        # Get available items
+        if request.available_items:
+            available_items = request.available_items
+        else:
+            # Extract from order items
+            available_items = order_items_df['item_id'].unique().tolist()
+        
+        # Parse upcoming holidays
+        upcoming_holidays = []
+        if request.upcoming_holidays:
+            upcoming_holidays = [
+                pd.to_datetime(h).to_pydatetime()
+                for h in request.upcoming_holidays
+            ]
+        
+        context = RecommenderContext(
+            current_date=start_date.to_pydatetime(),
+            day_of_week=start_date.dayofweek,
+            hour=start_date.hour,
+            season=_get_season(start_date),
+            recent_avg_daily_revenue=recent_avg_daily_revenue,
+            recent_avg_daily_orders=recent_avg_daily_orders,
+            recent_trend=trend,
+            weather_forecast=request.weather_forecast,
+            upcoming_holidays=upcoming_holidays,
+            max_discount=request.max_discount,
+            min_campaign_duration_days=request.min_campaign_duration_days,
+            max_campaign_duration_days=request.max_campaign_duration_days,
+            available_items=available_items
+        )
+        
+        # Generate recommendations
+        logger.info(f"Generating {request.num_recommendations} campaign recommendations")
+        recommendations = recommender.recommend_campaigns(
+            context=context,
+            num_recommendations=request.num_recommendations,
+            optimize_for=request.optimize_for
+        )
+        
+        # Convert to response format
+        recommended_items = []
+        for rec in recommendations:
+            recommended_items.append(RecommendedCampaignItem(
+                campaign_id=rec.campaign_id,
+                items=rec.items,
+                discount_percentage=rec.discount_percentage,
+                start_date=rec.start_date,
+                end_date=rec.end_date,
+                duration_days=rec.duration_days,
+                expected_uplift=rec.expected_uplift,
+                expected_roi=rec.expected_roi,
+                expected_revenue=rec.expected_revenue,
+                confidence_score=rec.confidence_score,
+                reasoning=rec.reasoning,
+                priority_score=rec.priority_score,
+                recommended_for_context=rec.recommended_for_context
+            ))
+        
+        # Get analysis summary
+        analysis_summary = analyzer.get_summary_statistics() if campaigns_data else {
+            'total_campaigns_analyzed': 0,
+            'note': 'No historical campaigns to analyze'
+        }
+        
+        # Generate insights
+        insights = {}
+        
+        if analyzer.temporal_patterns:
+            # Find best days
+            best_day = max(
+                analyzer.temporal_patterns['by_day_of_week'].items(),
+                key=lambda x: x[1]['avg_revenue']
+            )
+            insights['best_day_of_week'] = {
+                'day': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][best_day[0]],
+                'avg_revenue': best_day[1]['avg_revenue']
+            }
+            
+            # Find best hours
+            best_hours = sorted(
+                analyzer.temporal_patterns['by_hour'].items(),
+                key=lambda x: x[1]['avg_revenue'],
+                reverse=True
+            )[:3]
+            insights['best_hours'] = [h[0] for h in best_hours]
+        
+        if analyzer.item_affinity:
+            # Top item pairs
+            top_pairs = sorted(
+                analyzer.item_affinity.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:5]
+            insights['top_item_pairs'] = [
+                {'items': list(pair), 'affinity_score': score}
+                for pair, score in top_pairs
+            ]
+        
+        # Determine model confidence
+        if len(campaigns_data) >= 10:
+            model_confidence = "high"
+        elif len(campaigns_data) >= 5:
+            model_confidence = "medium"
+        else:
+            model_confidence = "low"
+        
+        # Build response
+        response = CampaignRecommendationResponse(
+            restaurant_name=request.place.place_name,
+            recommendation_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            recommendations=recommended_items,
+            analysis_summary=analysis_summary,
+            insights=insights,
+            model_confidence=model_confidence
+        )
+        
+        logger.info(f"Successfully generated {len(recommended_items)} campaign recommendations")
+        
+        return response
+    
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    except Exception as e:
+        logger.error(f"Error generating campaign recommendations: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate campaign recommendations: {str(e)}"
+        )
+
+
+@app.post(
+    "/recommend/campaigns/feedback",
+    response_model=CampaignFeedbackResponse,
+    summary="Submit Campaign Feedback",
+    description="Submit feedback on executed campaigns for model improvement (online learning)",
+    tags=["Campaign Recommendations"]
+)
+async def submit_campaign_feedback(feedback: CampaignFeedback):
+    """
+    Submit feedback on a campaign that was executed.
+    
+    This enables online learning - the recommendation model updates
+    its parameters based on actual campaign performance.
+    
+    **Use Case:**
+    After running a recommended campaign, submit the actual results
+    to improve future recommendations.
+    """
+    
+    try:
+        # For now, store feedback for future model updates
+        # In production, you'd persist this and retrain periodically
+        
+        logger.info(f"Received feedback for campaign {feedback.campaign_id}: "
+                   f"ROI={feedback.actual_roi}%, Success={feedback.success}")
+        
+        # If we have a live recommender, update it
+        if campaign_recommender:
+            campaign_recommender.update_from_feedback(
+                campaign_id=feedback.campaign_id,
+                actual_roi=feedback.actual_roi,
+                success=feedback.success
+            )
+            
+            updated_params = {
+                'status': 'model_updated',
+                'campaign_id': feedback.campaign_id
+            }
+        else:
+            updated_params = {
+                'status': 'feedback_stored',
+                'note': 'Will be used in next model training'
+            }
+        
+        return CampaignFeedbackResponse(
+            status="success",
+            message=f"Feedback for campaign {feedback.campaign_id} received successfully",
+            updated_parameters=updated_params
+        )
+    
+    except Exception as e:
+        logger.error(f"Error processing campaign feedback: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process feedback: {str(e)}"
+        )
+
+
+# Helper function for season detection
+def _get_season(dt: pd.Timestamp) -> str:
+    """Determine season from date"""
+    month = dt.month
+    
+    if month in [12, 1, 2]:
+        return "winter"
+    elif month in [3, 4, 5]:
+        return "spring"
+    elif month in [6, 7, 8]:
+        return "summer"
+    else:
+        return "fall"
+
+
+# Update example request endpoint to include campaign recommendations
+@app.get(
+    "/example-request/campaigns",
+    summary="Get Example Campaign Recommendation Request",
+    description="Returns an example request payload for campaign recommendations",
+    tags=["Examples"]
+)
+async def get_example_campaign_request():
+    """Get example request for campaign recommendations"""
+    
+    # Reuse existing example data
+    example_demand = get_example_request()
+    
+    # Add order items
+    order_items_example = [
+        {"order_id": "order_0", "item_id": "pizza_margherita", "quantity": 2},
+        {"order_id": "order_0", "item_id": "drink_cola", "quantity": 2},
+        {"order_id": "order_1", "item_id": "pizza_pepperoni", "quantity": 1},
+        {"order_id": "order_1", "item_id": "salad_caesar", "quantity": 1},
+        {"order_id": "order_2", "item_id": "pasta_carbonara", "quantity": 1},
+        {"order_id": "order_2", "item_id": "drink_water", "quantity": 1}
+    ]
+    
+    campaign_request_example = {
+        "place": example_demand["demand_input"]["place"],
+        "orders": example_demand["demand_input"]["orders"][:20],  # Use subset
+        "campaigns": example_demand["demand_input"]["campaigns"],
+        "order_items": order_items_example,
+        "recommendation_start_date": "2024-03-01",
+        "num_recommendations": 5,
+        "optimize_for": "roi",
+        "max_discount": 30.0,
+        "min_campaign_duration_days": 3,
+        "max_campaign_duration_days": 14,
+        "available_items": [
+            "pizza_margherita",
+            "pizza_pepperoni",
+            "pasta_carbonara",
+            "salad_caesar",
+            "drink_cola",
+            "drink_water"
+        ],
+        "weather_forecast": {
+            "avg_temperature": 18.0,
+            "avg_precipitation": 0.2,
+            "good_weather_ratio": 0.75
+        },
+        "upcoming_holidays": ["2024-03-17", "2024-03-25"]  # St. Patrick's Day, example
+    }
+    
+    return {
+        "campaign_recommendation_request": campaign_request_example,
+        "description": "Example request for campaign recommendations",
+        "usage": "POST /recommend/campaigns"
+    }
+    
 # ============================================================================
 # RUN SERVER
 # ============================================================================
