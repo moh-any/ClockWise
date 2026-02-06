@@ -338,7 +338,7 @@ Content-Type: application/json
 
 Get all roles for the organization.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Required
 
 **Request:**
 ```http
@@ -387,7 +387,7 @@ Authorization: Bearer <access_token>
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied (not admin/manager or wrong organization)
+- `500 Internal Server Error` - Failed to retrieve roles
 
 ---
 
@@ -461,7 +461,7 @@ Content-Type: application/json
 
 Get details for a specific role.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Required
 
 **Request:**
 ```http
@@ -490,8 +490,8 @@ Authorization: Bearer <access_token>
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied
 - `404 Not Found` - Role not found
+- `500 Internal Server Error` - Failed to retrieve role
 
 ---
 
@@ -959,13 +959,12 @@ Content-Type: application/json
 {
   "full_name": "string (required)",
   "email": "string (required, valid email)",
-  "role": "string (required - must be valid organization role)",
+  "role": "string (required - employee|manager)",
   "salary_per_hour": "number (required)",
   "max_hours_per_week": "integer (optional)",
   "preferred_hours_per_week": "integer (optional)",
   "max_consec_slots": "integer (optional)",
-  "on_call" : "boolean (optional,default=false)",
-  "user_roles": ["string (optional - additional roles)"]
+  "on_call" : "boolean (optional,default=false)"
 }
 ```
 
@@ -974,7 +973,7 @@ Content-Type: application/json
 {
   "full_name": "Employee One",
   "email": "employee1@testorg.com",
-  "role": "waiter",
+  "role": "employee",
   "salary_per_hour": 15.50
 }
 ```
@@ -987,9 +986,15 @@ Content-Type: application/json
 }
 ```
 
+**Allowed Roles:**
+| Role | Description |
+|------|-------------|
+| `employee` | Regular employee with staff permissions |
+| `manager` | Manager with elevated permissions |
+
 **Notes:**
-- The `role` must exist in the organization's roles
-- An email is sent to the delegated user with login instructions
+- The `role` must be either `employee` or `manager`
+- An email is sent to the delegated user with login credentials
 - A random password is generated for the new user
 
 **Error Responses:**
