@@ -1,3 +1,4 @@
+src/__pychache__/
 venv/
 .vscode/
 data/__pycache__/

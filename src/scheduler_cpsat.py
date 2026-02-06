@@ -596,384 +596,451 @@ class SchedulerCPSAT:
         return solution
 
 
-# =============================================================================
-# EXAMPLE USAGE
-# =============================================================================
-
-def create_sample_data() -> SchedulerInput:
-    """Create sample input data for testing."""
+def generate_management_insights(solution: Optional[Dict], input_data: SchedulerInput) -> Dict:
+    """
+    Generate management insights from the solution to help with hiring and workforce decisions.
     
-    # Define roles
-    # Note: min_present=0 for roles that are optional (covered by demand instead)
-    # Only production roles contribute to supply; cashier is non-producing
-    roles = [
-        Role(id='cashier', producing=False, items_per_hour=0, min_present=0, is_independent=True),
-        Role(id='prep', producing=True, items_per_hour=20, min_present=0, is_independent=False),
-        Role(id='cook', producing=True, items_per_hour=15, min_present=0, is_independent=False),
-        Role(id='server', producing=True, items_per_hour=30, min_present=0, is_independent=True),
-    ]
+    Args:
+        solution: Solution dictionary from solve() method (can be None)
+        input_data: The original input data
     
-    # Define production chain: prep -> cook
-    chains = [
-        ProductionChain(id='kitchen', roles=['prep', 'cook'], contrib_factor=1.0)
-    ]
+    Returns:
+        Dictionary containing management insights:
+        - 'employee_utilization': Utilization rate per employee (only with solution)
+        - 'role_demand': Demand coverage and bottlenecks per role
+        - 'hiring_recommendations': Suggestions for hiring by role
+        - 'coverage_gaps': Time slots with insufficient coverage (only with solution)
+        - 'cost_analysis': Cost breakdown and opportunity costs (only with solution)
+        - 'workload_distribution': Fairness and balance metrics (only with solution)
+        - 'peak_periods': High-demand periods requiring attention
+        - 'feasibility_analysis': Why the problem might be infeasible (only without solution)
+    """
+    insights = {
+        'has_solution': solution is not None
+    }
     
-    # Mark chain roles as non-independent
-    for role in roles:
-        if role.id in ['prep', 'cook']:
-            role.is_independent = False
+    # === INSIGHTS AVAILABLE WITHOUT SOLUTION ===
     
-    # Define employees with broader role eligibility for feasibility
-    employees = [
-        Employee(
-            id='alice',
-            wage=15.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=32,
-            role_eligibility={'cashier', 'server', 'prep'},  # Added prep
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(0, 0): True, (0, 1): True, (1, 0): True}
-        ),
-        Employee(
-            id='bob',
-            wage=18.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=40,
-            role_eligibility={'prep', 'cook', 'server'},  # Added server
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(0, 4): True, (0, 5): True}
-        ),
-        Employee(
-            id='charlie',
-            wage=16.0,
-            max_hours_per_week=40,  # Increased from 30
-            max_consec_slots=8,     # Increased from 6
-            pref_hours=32,          # Adjusted
-            role_eligibility={'cashier', 'prep', 'server', 'cook'},  # Added cook
-            availability={(d, t): True for d in range(7) for t in range(12)},  # Now available all days
-            slot_preferences={(2, 2): True, (2, 3): True}
-        ),
-        Employee(
-            id='diana',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana2',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana3',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana4',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana5',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana6',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana7',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana8',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana9',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana10',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana11',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana12',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana13',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana14',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana15',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana16',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana17',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana18',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana19',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana20',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana21',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana22',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana23',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-        Employee(
-            id='diana24',
-            wage=17.0,
-            max_hours_per_week=40,
-            max_consec_slots=8,
-            pref_hours=36,
-            role_eligibility={'cook', 'server', 'cashier'},  # Added cashier
-            availability={(d, t): True for d in range(7) for t in range(12)},
-            slot_preferences={(3, 0): True, (4, 0): True}
-        ),
-    ]
+    # === 7. PEAK PERIODS (No solution needed) ===
+    peak_periods = []
+    demand_by_slot = {}
     
-    # Define demand (items per slot)
-    demand = {}
-    for d in range(7):
-        for t in range(12):
-            # Higher demand during lunch (slots 4-6) and dinner (slots 8-10)
-            if 4 <= t <= 6 or 8 <= t <= 10:
-                demand[(d, t)] = 300.0
-            else:
-                demand[(d, t)] = 150.0
+    for d in range(input_data.num_days):
+        for t in range(input_data.num_slots_per_day):
+            demand = input_data.demand.get((d, t), 0)
+            if t not in demand_by_slot:
+                demand_by_slot[t] = []
+            demand_by_slot[t].append(demand)
     
-    return SchedulerInput(
-        employees=employees,
-        roles=roles,
-        num_days=7,
-        num_slots_per_day=12,
-        chains=chains,
-        slot_len_hour=1.0,
-        min_rest_slots=1,
-        min_shift_length_slots=3,
-        demand=demand,
-        w_unmet=10000,
-        w_wage=100,
-        w_hours=50,
-        w_fair=10,
-        w_slot=1,
-        fixed_shifts=False,
-        meet_all_demand=True  # Hard constraint
-    )
-
-
-def main():
-    print("=" * 60)
-    print("SCHEDULER CP-SAT MODEL")
-    print("=" * 60)
+    avg_total_demand = sum(input_data.demand.values()) / (input_data.num_days * input_data.num_slots_per_day) if input_data.demand else 0
     
-    # Create sample data
-    data = create_sample_data()
-    print(f"\nEmployees: {[e.id for e in data.employees]}")
-    print(f"Roles: {[r.id for r in data.roles]}")
-    print(f"Days: {data.num_days}, Slots/day: {data.num_slots_per_day}")
-    print(f"Production chains: {[c.id for c in data.chains]}")
-    
-    # Build and solve model
-    print("\nBuilding model...")
-    scheduler = SchedulerCPSAT(data)
-    
-    print("Solving...")
-    solution = scheduler.solve(time_limit_seconds=30)
-    
-    if solution:
-        print("\n" + "=" * 60)
-        print("SOLUTION FOUND")
-        print("=" * 60)
-        print(f"Status: {solution['status']}")
-        print(f"Objective: {solution['objective_value']:.2f}")
+    for slot, demands in demand_by_slot.items():
+        avg_demand = sum(demands) / len(demands) if demands else 0
+        max_demand = max(demands) if demands else 0
         
-        print("\n--- Employee Stats ---")
-        for emp_id, stats in solution['employee_stats'].items():
-            print(f"{emp_id}: {stats['work_hours']:.1f}h worked "
-                  f"(pref: {stats['pref_hours']}h, dev: {stats['hours_deviation']:.1f}h, "
-                  f"slots satisfied: {stats['preferences_satisfied']})")
+        if avg_demand > avg_total_demand * 1.2:
+            peak_periods.append({
+                'slot': slot,
+                'average_demand': avg_demand,
+                'max_demand': max_demand,
+                'recommendation': 'Consider scheduling more staff during this time slot'
+            })
+    
+    insights['peak_periods'] = sorted(peak_periods, key=lambda x: x['average_demand'], reverse=True)
+    
+    # === CAPACITY ANALYSIS (No solution needed) ===
+    total_demand = sum(input_data.demand.values())
+    total_employee_capacity = sum(emp.max_hours_per_week for emp in input_data.employees)
+    
+    capacity_by_role = {}
+    for role in input_data.roles:
+        eligible_employees = [emp for emp in input_data.employees if role.id in emp.role_eligibility]
+        total_available_hours = sum(emp.max_hours_per_week for emp in eligible_employees)
         
-        print("\n--- Schedule (first 3 days) ---")
-        for entry in sorted(solution['schedule'], key=lambda x: (x['day'], x['slot'], x['employee'])):
-            if entry['day'] < 3:
-                print(f"  Day {entry['day']}, Slot {entry['slot']}: "
-                      f"{entry['employee']} -> {entry.get('role', 'N/A')}")
-        
-        if solution['unmet_demand']:
-            print("\n--- Unmet Demand ---")
-            for (d, t), unmet in sorted(solution['unmet_demand'].items()):
-                print(f"  Day {d}, Slot {t}: {unmet:.1f} items")
+        if role.producing:
+            potential_output = total_available_hours * role.items_per_hour
+            capacity_ratio = potential_output / total_demand if total_demand > 0 else float('inf')
         else:
-            print("\n--- All demand satisfied! ---")
+            potential_output = 0
+            capacity_ratio = 0
+        
+        capacity_by_role[role.id] = {
+            'eligible_employees': len(eligible_employees),
+            'total_available_hours': total_available_hours,
+            'potential_output': potential_output,
+            'capacity_ratio': capacity_ratio,
+            'is_sufficient': capacity_ratio >= 1.0 if role.producing else True
+        }
+    
+    insights['capacity_analysis'] = capacity_by_role
+    
+    # === FEASIBILITY ANALYSIS (Only without solution) ===
+    if solution is None:
+        feasibility_issues = []
+        
+        # Check if total capacity is sufficient
+        total_capacity = sum(data['potential_output'] for data in capacity_by_role.values())
+        if total_capacity < total_demand:
+            shortfall = total_demand - total_capacity
+            feasibility_issues.append({
+                'issue': 'Insufficient total capacity',
+                'details': f'Need {shortfall:.1f} more items. Total capacity: {total_capacity:.1f}, Total demand: {total_demand:.1f}',
+                'severity': 'critical'
+            })
+        
+        # Check role-specific capacity
+        for role_id, data in capacity_by_role.items():
+            if not data['is_sufficient'] and data['potential_output'] > 0:
+                feasibility_issues.append({
+                    'issue': f'Insufficient {role_id} capacity',
+                    'details': f'Only {data["eligible_employees"]} eligible employees, can produce {data["potential_output"]:.1f} items',
+                    'severity': 'high'
+                })
+        
+        # Check minimum staffing requirements
+        for role in input_data.roles:
+            if role.min_present > 0:
+                eligible_count = sum(1 for emp in input_data.employees if role.id in emp.role_eligibility)
+                if eligible_count < role.min_present:
+                    feasibility_issues.append({
+                        'issue': f'Not enough employees for {role.id}',
+                        'details': f'Requires {role.min_present} minimum, only {eligible_count} eligible',
+                        'severity': 'critical'
+                    })
+        
+        # Check if demand pattern is too restrictive
+        slots_with_high_demand = sum(1 for d in input_data.demand.values() if d > avg_total_demand * 1.5)
+        if slots_with_high_demand > len(input_data.demand) * 0.3:
+            feasibility_issues.append({
+                'issue': 'Many high-demand periods',
+                'details': f'{slots_with_high_demand} slots with >150% average demand may be difficult to staff',
+                'severity': 'medium'
+            })
+        
+        insights['feasibility_analysis'] = feasibility_issues
+        
+        # Generate hiring recommendations based on capacity analysis
+        hiring_recommendations = []
+        for role_id, data in capacity_by_role.items():
+            if not data['is_sufficient'] and data['potential_output'] > 0:
+                role = next(r for r in input_data.roles if r.id == role_id)
+                shortfall = total_demand - data['potential_output']
+                recommended_hires = int(shortfall / (role.items_per_hour * 40) + 1)  # Assume 40h/week
+                
+                hiring_recommendations.append({
+                    'role': role_id,
+                    'recommended_hires': recommended_hires,
+                    'reason': f'Insufficient capacity to meet demand (shortfall: {shortfall:.1f} items)',
+                    'expected_impact': f'Would add {recommended_hires * 40 * role.items_per_hour:.1f} items capacity',
+                    'priority': 'critical'
+                })
+        
+        insights['hiring_recommendations'] = sorted(hiring_recommendations,
+                                                   key=lambda x: x['recommended_hires'],
+                                                   reverse=True)
+        
+        # Return early with no-solution insights
+        return insights
+    
+    # === INSIGHTS REQUIRING SOLUTION ===
+    
+    # === 1. EMPLOYEE UTILIZATION ===
+    employee_utilization = []
+    total_capacity = input_data.num_days * input_data.num_slots_per_day * input_data.slot_len_hour
+    
+    for emp in input_data.employees:
+        stats = solution['employee_stats'][emp.id]
+        utilization_rate = stats['work_hours'] / emp.max_hours_per_week if emp.max_hours_per_week > 0 else 0
+        
+        employee_utilization.append({
+            'employee': emp.id,
+            'hours_worked': stats['work_hours'],
+            'max_hours': emp.max_hours_per_week,
+            'utilization_rate': utilization_rate,
+            'hours_deviation': stats['hours_deviation'],
+            'status': 'overutilized' if utilization_rate > 0.9 else 
+                     'well_utilized' if utilization_rate > 0.6 else
+                     'underutilized' if utilization_rate > 0 else 'unused'
+        })
+    
+    insights['employee_utilization'] = sorted(employee_utilization, key=lambda x: x['utilization_rate'], reverse=True)
+    
+    # === 2. ROLE DEMAND ANALYSIS ===
+    role_demand = {}
+    
+    for role in input_data.roles:
+        if not role.producing:
+            continue
+            
+        total_demand = sum(input_data.demand.values())
+        total_supply_role = sum(
+            solution['supply'][(d, t)] 
+            for d in range(input_data.num_days) 
+            for t in range(input_data.num_slots_per_day)
+        ) if role.is_independent else 0
+        
+        # Count employees eligible for this role
+        eligible_count = sum(1 for emp in input_data.employees if role.id in emp.role_eligibility)
+        working_count = 0
+        total_hours_role = 0
+        
+        for entry in solution['schedule']:
+            if entry.get('role') == role.id:
+                working_count += 1
+                total_hours_role += input_data.slot_len_hour
+        
+        working_employees = len(set(entry['employee'] for entry in solution['schedule'] 
+                                   if entry.get('role') == role.id))
+        
+        capacity_utilization = (total_hours_role * role.items_per_hour) / total_demand if total_demand > 0 else 0
+        
+        role_demand[role.id] = {
+            'eligible_employees': eligible_count,
+            'working_employees': working_employees,
+            'total_hours_worked': total_hours_role,
+            'capacity_utilization': capacity_utilization,
+            'is_bottleneck': capacity_utilization < 0.5 and eligible_count < 3
+        }
+    
+    insights['role_demand'] = role_demand
+    
+    # === 3. HIRING RECOMMENDATIONS ===
+    hiring_recommendations = []
+    
+    # Check for unmet demand patterns
+    if solution['unmet_demand']:
+        total_unmet = sum(solution['unmet_demand'].values())
+        avg_unmet_per_slot = total_unmet / len(solution['unmet_demand'])
+        
+        # Find roles that could address unmet demand
+        for role in input_data.roles:
+            if role.producing:
+                potential_coverage = role.items_per_hour * input_data.slot_len_hour
+                recommended_hires = int(total_unmet / (potential_coverage * input_data.num_days) + 0.5)
+                
+                if recommended_hires > 0:
+                    hiring_recommendations.append({
+                        'role': role.id,
+                        'recommended_hires': recommended_hires,
+                        'reason': f'Unmet demand: {total_unmet:.1f} items total',
+                        'expected_impact': f'Could cover {recommended_hires * potential_coverage * input_data.num_days:.1f} additional items',
+                        'priority': 'high'
+                    })
+    
+    # Check for overutilized employees by role
+    for role in input_data.roles:
+        eligible = [emp for emp in input_data.employees if role.id in emp.role_eligibility]
+        if eligible:
+            overutilized = [emp for emp in eligible 
+                          if solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week > 0.85]
+            
+            if len(overutilized) / len(eligible) > 0.7:  # More than 70% overutilized
+                hiring_recommendations.append({
+                    'role': role.id,
+                    'recommended_hires': max(1, len(eligible) // 4),
+                    'reason': f'{len(overutilized)}/{len(eligible)} employees overutilized in this role',
+                    'expected_impact': 'Better workload balance and reduced burnout risk',
+                    'priority': 'medium'
+                })
+    
+    # Check for bottleneck roles
+    for role_id, stats in role_demand.items():
+        if stats['is_bottleneck']:
+            hiring_recommendations.append({
+                'role': role_id,
+                'recommended_hires': max(1, 3 - stats['eligible_employees']),
+                'reason': f'Only {stats["eligible_employees"]} eligible employees (bottleneck)',
+                'expected_impact': 'Increased flexibility and reliability',
+                'priority': 'high'
+            })
+    
+    insights['hiring_recommendations'] = sorted(hiring_recommendations, 
+                                               key=lambda x: (x['priority'] == 'high', x['recommended_hires']), 
+                                               reverse=True)
+    
+    # === 4. COVERAGE GAPS ===
+    coverage_gaps = []
+    
+    for d in range(input_data.num_days):
+        for t in range(input_data.num_slots_per_day):
+            # Count employees working this slot
+            employees_working = sum(1 for entry in solution['schedule'] 
+                                   if entry['day'] == d and entry['slot'] == t)
+            
+            demand = input_data.demand.get((d, t), 0)
+            supply = solution['supply'].get((d, t), 0)
+            coverage_rate = supply / demand if demand > 0 else 1.0
+            
+            if coverage_rate < 0.8 or employees_working < 2:
+                coverage_gaps.append({
+                    'day': d,
+                    'slot': t,
+                    'employees_working': employees_working,
+                    'coverage_rate': coverage_rate,
+                    'demand': demand,
+                    'supply': supply,
+                    'severity': 'critical' if coverage_rate < 0.5 else 'warning'
+                })
+    
+    insights['coverage_gaps'] = sorted(coverage_gaps, key=lambda x: x['coverage_rate'])
+    
+    # === 5. COST ANALYSIS ===
+    total_wage_cost = 0
+    cost_by_role = {}
+    
+    for emp in input_data.employees:
+        hours = solution['employee_stats'][emp.id]['work_hours']
+        cost = emp.wage * hours
+        total_wage_cost += cost
+        
+        # Breakdown by role
+        for entry in solution['schedule']:
+            if entry['employee'] == emp.id:
+                role = entry.get('role', 'unknown')
+                if role not in cost_by_role:
+                    cost_by_role[role] = 0
+                cost_by_role[role] += emp.wage * input_data.slot_len_hour
+    
+    # Opportunity cost of unmet demand (estimated)
+    opportunity_cost = sum(solution['unmet_demand'].values()) * 10  # Assume $10 revenue per item
+    
+    insights['cost_analysis'] = {
+        'total_wage_cost': total_wage_cost,
+        'cost_by_role': cost_by_role,
+        'opportunity_cost_unmet_demand': opportunity_cost,
+        'total_cost': total_wage_cost + opportunity_cost,
+        'cost_per_item_served': total_wage_cost / sum(solution['supply'].values()) if solution['supply'] else 0
+    }
+    
+    # === 6. WORKLOAD DISTRIBUTION ===
+    hours_list = [stats['work_hours'] for stats in solution['employee_stats'].values()]
+    avg_hours = sum(hours_list) / len(hours_list) if hours_list else 0
+    max_hours = max(hours_list) if hours_list else 0
+    min_hours = min(hours_list) if hours_list else 0
+    
+    # Count employees by workload category
+    unused = sum(1 for h in hours_list if h == 0)
+    underutilized = sum(1 for emp in input_data.employees 
+                       if 0 < solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week < 0.5)
+    well_utilized = sum(1 for emp in input_data.employees 
+                       if 0.5 <= solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week <= 0.85)
+    overutilized = sum(1 for emp in input_data.employees 
+                      if solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week > 0.85)
+    
+    insights['workload_distribution'] = {
+        'average_hours': avg_hours,
+        'max_hours': max_hours,
+        'min_hours': min_hours,
+        'range': max_hours - min_hours,
+        'unused_employees': unused,
+        'underutilized_employees': underutilized,
+        'well_utilized_employees': well_utilized,
+        'overutilized_employees': overutilized,
+        'balance_score': 1 - (max_hours - min_hours) / (max_hours + 1)  # Higher is better
+    }
+    
+    # === 7. PEAK PERIODS ===
+    peak_periods = []
+    demand_by_slot = {}
+    
+    for d in range(input_data.num_days):
+        for t in range(input_data.num_slots_per_day):
+            demand = input_data.demand.get((d, t), 0)
+            if t not in demand_by_slot:
+                demand_by_slot[t] = []
+            demand_by_slot[t].append(demand)
+    
+    insights['peak_periods'] = sorted(peak_periods, key=lambda x: x['average_demand'], reverse=True)
+    
+    return insights
+
+
+def solve_schedule(input_data: SchedulerInput, time_limit_seconds: int = 60, include_insights: bool = True) -> Tuple[Optional[Dict], str, Optional[Dict]]:
+    """
+    Solve the scheduling problem and return solution with description and management insights.
+    
+    This function can be called by other modules to solve a scheduling problem.
+    
+    Args:
+        input_data: The scheduling input data (SchedulerInput object)
+        time_limit_seconds: Maximum solving time in seconds (default: 60)
+        include_insights: Whether to generate management insights (default: True)
+    
+    Returns:
+        Tuple of (solution_dict, description_string, insights_dict):
+        - solution_dict: Dictionary containing:
+            - 'status': Solver status (OPTIMAL, FEASIBLE, etc.)
+            - 'objective_value': Objective function value
+            - 'schedule': List of schedule entries
+            - 'unmet_demand': Dict of unmet demand by (day, slot)
+            - 'employee_stats': Dict of employee statistics
+            - 'supply': Dict of supply by (day, slot)
+          Returns None if no solution found.
+        - description_string: Human-readable formatted description of the solution
+        - insights_dict: Management insights for hiring and workforce decisions (None if include_insights=False)
+    
+    Example:
+        >>> from scheduler_cpsat import solve_schedule, SchedulerInput
+        >>> data = create_sample_data()
+        >>> solution, description, insights = solve_schedule(data, time_limit_seconds=30)
+        >>> print(description)
+        >>> if insights:
+        >>>     for rec in insights['hiring_recommendations']:
+        >>>         print(f"Hire {rec['recommended_hires']} {rec['role']}: {rec['reason']}")
+    """
+    scheduler = SchedulerCPSAT(input_data)
+    solution = scheduler.solve(time_limit_seconds=time_limit_seconds)
+    description = format_solution_description(solution, input_data)
+    insights = generate_management_insights(solution, input_data) if include_insights else None
+    
+    return solution, description, insights
+
+
+def format_solution_description(solution: Optional[Dict], input_data: SchedulerInput) -> str:
+    """
+    Format solution into a human-readable description.
+    
+    Args:
+        solution: Solution dictionary from solve() method (or None)
+        input_data: The original input data
+    
+    Returns:
+        Formatted string describing the solution
+    """
+    lines = []
+    lines.append("=" * 60)
+    
+    if solution is None:
+        lines.append("NO SOLUTION FOUND")
+        lines.append("=" * 60)
+        return "\n".join(lines)
+    
+    lines.append("SOLUTION FOUND")
+    lines.append("=" * 60)
+    lines.append(f"Status: {solution['status']}")
+    lines.append(f"Objective: {solution['objective_value']:.2f}")
+    
+    lines.append("\n--- Employee Stats ---")
+    for emp_id, stats in solution['employee_stats'].items():
+        lines.append(
+            f"{emp_id}: {stats['work_hours']:.1f}h worked "
+            f"(pref: {stats['pref_hours']}h, dev: {stats['hours_deviation']:.1f}h, "
+            f"slots satisfied: {stats['preferences_satisfied']})"
+        )
+    
+    lines.append("\n--- Schedule (first 3 days) ---")
+    for entry in sorted(solution['schedule'], key=lambda x: (x['day'], x['slot'], x['employee'])):
+        if entry['day'] < 3:
+            lines.append(
+                f"  Day {entry['day']}, Slot {entry['slot']}: "
+                f"{entry['employee']} -> {entry.get('role', 'N/A')}"
+            )
+    
+    if solution['unmet_demand']:
+        lines.append("\n--- Unmet Demand ---")
+        for (d, t), unmet in sorted(solution['unmet_demand'].items()):
+            lines.append(f"  Day {d}, Slot {t}: {unmet:.1f} items")
     else:
-        print("No solution found.")
-
-
-if __name__ == '__main__':
-    main()
+        lines.append("\n--- All demand satisfied! ---")
+    
+    return "\n".join(lines)
