@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS organizations(
 CREATE TABLE IF NOT EXISTS organizations_roles (
     organization_id UUID,
     role VARCHAR(50),
-    min_needed_per_shift INTEGER CHECK ((need_for_demand = true AND min_needed_per_shift>=0 ) OR (role = 'manager' AND min_needed_per_shift = 1) OR (role = 'admin' AND min_needed_per_shift = 0)),
+    min_needed_per_shift INTEGER CHECK ((role != 'manager' AND role != 'admin' AND min_needed_per_shift>=0 ) OR (role = 'manager' AND min_needed_per_shift = 1) OR (role = 'admin' AND min_needed_per_shift = 0)),
     items_per_role_per_hour INTEGER CHECK ((need_for_demand = true AND items_per_role_per_hour >= 0) OR (need_for_demand = false AND items_per_role_per_hour IS NULL)),
     need_for_demand BOOLEAN NOT NULL CHECK ((role = 'manager' OR role = 'admin' AND need_for_demand = false) OR (role != 'manager' AND role != 'admin')),
     independent BOOLEAN CHECK ((role = 'manager' AND independent = true) OR (role = 'admin' AND independent = true) OR (role != 'manager' AND independent IS NOT NULL)),
