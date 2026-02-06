@@ -24,9 +24,23 @@ type Organization struct {
 	AcceptingOrders bool      `json:"accepting_orders"`
 }
 
+type OrganizationProfile struct {
+	Name              string   `json:"name"`
+	Address           string   `json:"address"`
+	Email             string   `json:"email"`
+	Location          Location `json:"location"`
+	HexCode1          string   `json:"hex1"`
+	HexCode2          string   `json:"hex2"`
+	HexCode3          string   `json:"hex3"`
+	Rating            *float64 `json:"rating"`
+	AcceptingOrders   bool     `json:"accepting_orders"`
+	NumberOfEmployees int      `json:"number_of_employees"`
+}
+
 type OrgStore interface {
 	CreateOrgWithAdmin(org *Organization, adminUser *User, password string) error
 	GetOrganizationByID(id uuid.UUID) (*Organization, error)
+	GetOrganizationProfile(id uuid.UUID) (*OrganizationProfile, error)
 }
 
 type PostgresOrgStore struct {
@@ -83,4 +97,42 @@ func (s *PostgresOrgStore) GetOrganizationByID(id uuid.UUID) (*Organization, err
 		return nil, err
 	}
 	return &org, nil
+}
+
+func (s *PostgresOrgStore) GetOrganizationProfile(id uuid.UUID) (*OrganizationProfile, error) {
+	var profile OrganizationProfile
+
+	// Get organization details
+	orgQuery := `
+		SELECT name, address, latitude, longitude, email, hex_code1, hex_code2, hex_code3, rating, accepting_orders
+		FROM organizations 
+		WHERE id = $1
+	`
+	err := s.db.QueryRow(orgQuery, id).Scan(
+		&profile.Name,
+		&profile.Address,
+		&profile.Location.Latitude,
+		&profile.Location.Longitude,
+		&profile.Email,
+		&profile.HexCode1,
+		&profile.HexCode2,
+		&profile.HexCode3,
+		&profile.Rating,
+		&profile.AcceptingOrders,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("organization not found")
+		}
+		return nil, err
+	}
+
+	// Get number of employees (excluding admin)
+	countQuery := `SELECT COUNT(*) FROM users WHERE organization_id = $1 AND user_role != 'admin'`
+	err = s.db.QueryRow(countQuery, id).Scan(&profile.NumberOfEmployees)
+	if err != nil {
+		return nil, err
+	}
+
+	return &profile, nil
 }

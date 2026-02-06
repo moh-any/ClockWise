@@ -27,13 +27,17 @@ type Server struct {
 	rulesHandler       *api.RulesHandler
 	rolesHandler       *api.RolesHandler
 	profileHandler     *api.ProfileHandler
-	userStore          database.UserStore
-	orgStore           database.OrgStore
-	requestStore       database.RequestStore
-	preferencesStore   database.PreferencesStore
-	rulesStore         database.RulesStore
-	rolesStore         database.RolesStore
-	Logger             *slog.Logger
+	orderHandler       *api.OrderHandler
+
+	userStore        database.UserStore
+	orgStore         database.OrgStore
+	requestStore     database.RequestStore
+	preferencesStore database.PreferencesStore
+	rulesStore       database.RulesStore
+	rolesStore       database.RolesStore
+	orderStore       database.OrderStore
+
+	Logger *slog.Logger
 }
 
 func NewServer(Logger *slog.Logger) *http.Server {
@@ -58,7 +62,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	rolesStore := database.NewPostgresRolesStore(dbService.GetDB(), Logger)
 	userRolesStore := database.NewPostgresUserRolesStore(dbService.GetDB(), Logger)
 	operatingHoursStore := database.NewPostgresOperatingHoursStore(dbService.GetDB(), Logger)
-	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
+	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB(), Logger: Logger}
+	orderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
@@ -73,6 +78,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	rolesHandler := api.NewRolesHandler(rolesStore, Logger)
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	profileHandler := api.NewProfileHandler(userStore, Logger)
+	orderHandler := api.NewOrderHandler(orderStore, uploadService, Logger)
 
 	NewServer := &Server{
 		port:               port,
@@ -91,6 +97,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rolesHandler:       rolesHandler,
 		insightHandler:     insightHandler,
 		profileHandler:     profileHandler,
+		orderHandler:       orderHandler,
 		Logger:             Logger,
 	}
 

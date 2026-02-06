@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,8 @@ type InsightStore interface {
 }
 
 type PostgresInsightStore struct {
-	DB *sql.DB
+	DB     *sql.DB
+	Logger *slog.Logger
 }
 
 // SQL Queries for Admin Insights

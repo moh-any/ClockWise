@@ -230,3 +230,41 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		"user_id": newUser.ID,
 	})
 }
+
+// GetOrganizationProfile godoc
+// @Summary      Get organization profile
+// @Description  Returns the profile information for the current user's organization
+// @Tags         Organizations
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        org path string true "Organization ID"
+// @Success      200 {object} map[string]interface{} "Organization profile"
+// @Failure      401 {object} map[string]string "Unauthorized"
+// @Failure      404 {object} map[string]string "Organization not found"
+// @Failure      500 {object} map[string]string "Internal server error"
+// @Router       /{org}/profile [get]
+func (oh *OrgHandler) GetOrganizationProfile(c *gin.Context) {
+	oh.Logger.Info("get organization profile request received")
+
+	currentUserInterface, exists := c.Get("user")
+	if !exists {
+		oh.Logger.Warn("unauthorized profile request - no user in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	currentUser := currentUserInterface.(*database.User)
+
+	profile, err := oh.orgStore.GetOrganizationProfile(currentUser.OrganizationID)
+	if err != nil {
+		oh.Logger.Error("failed to get organization profile", "error", err, "org_id", currentUser.OrganizationID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve organization profile"})
+		return
+	}
+
+	oh.Logger.Info("organization profile retrieved successfully", "org_id", currentUser.OrganizationID)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Organization profile retrieved successfully",
+		"data":    profile,
+	})
+}

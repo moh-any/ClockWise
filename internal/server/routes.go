@@ -82,7 +82,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
-	organization.GET("",s.orgHandler.GetOrganizationDetails)          // Get organization details
+	organization.GET("",s.orgHandler.GetOrganizationProfile)          // Get organization details
 	organization.POST("/request",s.employeeHandler.RequestCalloffHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
 
 	// Orders Management
@@ -118,12 +118,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Dashboard which includes schedule, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("") // Change according to the current user
-	dashboard.POST("/demand",s.dashboardHandler.GetDemandHeatMapHandler) // Send data and fetch demand from demand service
+	// dashboard.POST("/demand",s.dashboardHandler.GetDemandHeatMapHandler) // Send data and fetch demand from demand service
 
 	// Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
-	schedule := dashboard.Group("/schedule")
-	schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
-	schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
+	// schedule := dashboard.Group("/schedule")
+	// schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
+	// schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
 
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
@@ -142,7 +142,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-	employee.GET("/schedule",s.scheduleHandler.GetScheduleHandler) // Get Employee Schedule
+	// employee.GET("/schedule",s.scheduleHandler.GetScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
