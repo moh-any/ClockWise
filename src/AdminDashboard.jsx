@@ -23,6 +23,7 @@ import DarkModeIcon from "./Icons/Dark-Mode-Icon.svg"
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showAdminProfile, setShowAdminProfile] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode")
     return saved === "true"
@@ -33,6 +34,17 @@ function AdminDashboard() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+
+  // User profile state
+  const [currentUser, setCurrentUser] = useState(null)
+  const [passwordForm, setPasswordForm] = useState({
+    old_password: "",
+    new_password: "",
+    confirm_password: "",
+  })
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordSuccess, setPasswordSuccess] = useState("")
 
   // Insights state
   const [insights, setInsights] = useState([])
@@ -195,6 +207,7 @@ function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData()
+    fetchCurrentUser()
 
     if (!document.getElementById("mapbox-gl-js")) {
       const script = document.createElement("script")
@@ -209,6 +222,75 @@ function AdminDashboard() {
       document.head.appendChild(link)
     }
   }, [])
+
+  const fetchCurrentUser = async () => {
+    try {
+      // Try to get from cache first
+      const cached = localStorage.getItem("current_user")
+      if (cached) {
+        const parsedUser = JSON.parse(cached)
+        console.log("Loaded user from cache:", parsedUser)
+        setCurrentUser(parsedUser)
+      }
+
+      // Fetch fresh data from API
+      const userData = await api.auth.getCurrentUser()
+      console.log("Fetched fresh user data from API:", userData)
+      setCurrentUser(userData)
+    } catch (err) {
+      console.error("Error fetching user data:", err)
+      // Still try to use cached data
+      const cached = localStorage.getItem("current_user")
+      if (cached) {
+        const parsedUser = JSON.parse(cached)
+        console.log("Using cached user data after error:", parsedUser)
+        setCurrentUser(parsedUser)
+      }
+    }
+  }
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    setPasswordError("")
+    setPasswordSuccess("")
+
+    // Validate passwords match
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordError("New passwords do not match")
+      return
+    }
+
+    // Validate password length
+    if (passwordForm.new_password.length < 6) {
+      setPasswordError("New password must be at least 6 characters")
+      return
+    }
+
+    setPasswordLoading(true)
+
+    try {
+      await api.profile.changePassword({
+        old_password: passwordForm.old_password,
+        new_password: passwordForm.new_password,
+      })
+
+      setPasswordSuccess("Password changed successfully!")
+      setPasswordForm({
+        old_password: "",
+        new_password: "",
+        confirm_password: "",
+      })
+
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setPasswordSuccess("")
+      }, 3000)
+    } catch (err) {
+      setPasswordError(err.message || "Failed to change password")
+    } finally {
+      setPasswordLoading(false)
+    }
+  }
 
   const toggleDarkMode = () => {
     const newMode = !darkMode
@@ -2630,6 +2712,338 @@ function AdminDashboard() {
     </div>
   )
 
+  const renderAdminProfile = () => {
+    console.log("Rendering profile with currentUser:", currentUser)
+
+    const userInitials = currentUser?.full_name
+      ? currentUser.full_name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : "AD"
+
+    // Get data from currentUser, no fallback hardcoded values in display
+    const displayName = currentUser?.full_name || "Loading..."
+    const displayEmail = currentUser?.email || "Loading..."
+    const displayRole = currentUser?.role || "Loading..."
+
+    return (
+      <>
+        <div
+          className={`admin-profile-overlay ${showAdminProfile ? "show" : ""}`}
+        >
+          <div className="admin-profile-modal fade-in">
+            <button
+              className="profile-close-btn"
+              onClick={() => setShowAdminProfile(false)}
+              aria-label="Close Profile"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            <div className="profile-header-section">
+              <div className="profile-avatar-large">
+                <div className="avatar-gradient">{userInitials}</div>
+              </div>
+              <div className="profile-header-info">
+                <h1 className="profile-name">{displayName}</h1>
+                <p className="profile-role">{displayRole}</p>
+              </div>
+            </div>
+
+            <div className="profile-content-grid">
+              {/* Personal Information Card */}
+              <div className="profile-card" data-animation="slide-up">
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Personal Information
+                  </h3>
+                </div>
+                <div className="profile-info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Full Name</span>
+                    <span className="info-value">{displayName}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Email</span>
+                    <span className="info-value">{displayEmail}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">User ID</span>
+                    <span className="info-value">
+                      {currentUser?.id || "N/A"}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Organization ID</span>
+                    <span className="info-value">
+                      {currentUser?.organization_id || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Statistics Card */}
+              <div
+                className="profile-card"
+                data-animation="slide-up"
+                style={{ animationDelay: "0.1s" }}
+              >
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                    Organization Statistics
+                  </h3>
+                </div>
+                <div className="profile-stats-grid">
+                  <div className="stat-item">
+                    <div className="stat-value">{totalHeadcount}</div>
+                    <div className="stat-label">Total Employees</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value">{roles.length}</div>
+                    <div className="stat-label">Active Roles</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value">{currentlyClocked}</div>
+                    <div className="stat-label">Currently Clocked</div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value">
+                      ${(laborCost / 1000).toFixed(1)}K
+                    </div>
+                    <div className="stat-label">Labor Cost</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Settings Card */}
+              <div
+                className="profile-card profile-card-full"
+                data-animation="slide-up"
+                style={{ animationDelay: "0.2s" }}
+              >
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                    Security & Account
+                  </h3>
+                </div>
+
+                <div className="password-change-section">
+                  <h4 className="section-subtitle">
+                    <svg
+                      className="subtitle-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                      />
+                    </svg>
+                    Change Password
+                  </h4>
+
+                  {passwordError && (
+                    <div
+                      className="login-error-message"
+                      style={{ marginBottom: "var(--space-4)" }}
+                    >
+                      {passwordError}
+                    </div>
+                  )}
+                  {passwordSuccess && (
+                    <div
+                      className="login-error-message"
+                      style={{
+                        marginBottom: "var(--space-4)",
+                        background: "var(--secondary-50)",
+                        color: "var(--color-secondary)",
+                        borderColor: "var(--color-secondary)",
+                      }}
+                    >
+                      {passwordSuccess}
+                    </div>
+                  )}
+
+                  <form
+                    onSubmit={handleChangePassword}
+                    className="password-form"
+                  >
+                    <div className="password-form-grid">
+                      <div className="form-group">
+                        <label htmlFor="old_password" className="form-label">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          id="old_password"
+                          className="form-input"
+                          value={passwordForm.old_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              old_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="new_password" className="form-label">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          id="new_password"
+                          className="form-input"
+                          value={passwordForm.new_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              new_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Enter new password"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label
+                          htmlFor="confirm_password"
+                          className="form-label"
+                        >
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          id="confirm_password"
+                          className="form-input"
+                          value={passwordForm.confirm_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              confirm_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn-primary password-submit-btn"
+                      disabled={passwordLoading}
+                    >
+                      {passwordLoading
+                        ? "Changing Password..."
+                        : "Update Password"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="security-info">
+                  <div className="info-row">
+                    <svg
+                      className="info-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    <div>
+                      <div className="info-title">Account Status</div>
+                      <div className="info-subtitle">Active</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="profile-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowAdminProfile(false)}
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <div className={`dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}>
       {/* Premium Sidebar */}
@@ -2710,11 +3124,28 @@ function AdminDashboard() {
             )}
           </div>
           <div className="user-profile">
-            <div className="user-avatar">AD</div>
+            <div
+              className="user-avatar user-avatar-clickable"
+              onClick={() => setShowAdminProfile(true)}
+              title="View Profile"
+            >
+              {currentUser?.full_name
+                ? currentUser.full_name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
+                : "..."}
+            </div>
             {!sidebarCollapsed && (
               <div className="user-info">
-                <div className="user-name">Admin</div>
-                <div className="user-role">System Admin</div>
+                <div className="user-name">
+                  {currentUser?.full_name || "Loading..."}
+                </div>
+                <div className="user-role">
+                  {currentUser?.role || "Loading..."}
+                </div>
               </div>
             )}
           </div>
@@ -2750,6 +3181,7 @@ function AdminDashboard() {
             {activeTab === "info" && renderInfo()}
           </>
         )}
+        {renderAdminProfile()}
       </main>
 
       {/* Mobile Bottom Navigation */}
