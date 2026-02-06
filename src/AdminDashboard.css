@@ -10,7 +10,7 @@
   font-display: swap;
 }
 
-:root {
+.dashboard-wrapper {
   /* Base Colors (from localStorage signup) */
   --color-primary: #4a90e2;
   --color-secondary: #7b68ee;
@@ -136,7 +136,7 @@
    DARK MODE THEME
    ======================================== */
 
-.dark-mode {
+.dashboard-wrapper.dark-mode {
   /* Dark Mode Overrides */
   --bg-primary: #0a0e14;
   --bg-secondary: #151922;
@@ -174,43 +174,43 @@
 }
 
 /* Dark mode specific enhancements */
-.dark-mode .logo-svg {
+.dashboard-wrapper.dark-mode .logo-svg {
   filter: brightness(1.5) drop-shadow(0 0 12px var(--color-primary));
 }
 
 /* Make all SVG icons light in dark mode */
-.dark-mode img[src$=".svg"],
-.dark-mode .nav-icon,
-.dark-mode .kpi-icon,
-.dark-mode .metric-icon-svg,
-.dark-mode .upload-icon-svg,
-.dark-mode .title-icon-svg,
-.dark-mode .empty-icon-svg,
-.dark-mode .error-icon-svg,
-.dark-mode .chart-icon,
-.dark-mode .tab-icon-svg,
-.dark-mode .mobile-nav-icon {
+.dashboard-wrapper.dark-mode img[src$=".svg"],
+.dashboard-wrapper.dark-mode .nav-icon,
+.dashboard-wrapper.dark-mode .kpi-icon,
+.dashboard-wrapper.dark-mode .metric-icon-svg,
+.dashboard-wrapper.dark-mode .upload-icon-svg,
+.dashboard-wrapper.dark-mode .title-icon-svg,
+.dashboard-wrapper.dark-mode .empty-icon-svg,
+.dashboard-wrapper.dark-mode .error-icon-svg,
+.dashboard-wrapper.dark-mode .chart-icon,
+.dashboard-wrapper.dark-mode .tab-icon-svg,
+.dashboard-wrapper.dark-mode .mobile-nav-icon {
   filter: brightness(0) invert(1) brightness(1.2);
   opacity: 0.9;
 }
 
 /* Exception for active nav items */
-.dark-mode .nav-item.active .nav-icon {
+.dashboard-wrapper.dark-mode .nav-item.active .nav-icon {
   filter: brightness(0) invert(1);
   opacity: 1;
 }
 
-.dark-mode .kpi-card,
-.dark-mode .alert-card,
-.dark-mode .section-wrapper {
+.dashboard-wrapper.dark-mode .kpi-card,
+.dashboard-wrapper.dark-mode .alert-card,
+.dashboard-wrapper.dark-mode .section-wrapper {
   background: rgba(26, 31, 40, 0.7);
   backdrop-filter: blur(10px);
   border-color: rgba(74, 144, 226, 0.15);
 }
 
-.dark-mode .kpi-card:hover,
-.dark-mode .alert-card:hover,
-.dark-mode .section-wrapper:hover {
+.dashboard-wrapper.dark-mode .kpi-card:hover,
+.dashboard-wrapper.dark-mode .alert-card:hover,
+.dashboard-wrapper.dark-mode .section-wrapper:hover {
   background: rgba(26, 31, 40, 0.9);
   border-color: rgba(74, 144, 226, 0.35);
 }
@@ -530,7 +530,7 @@ textarea {
   border-radius: var(--radius-full) 0 0 var(--radius-full);
 }
 
-.dark-mode .active-indicator {
+.dashboard-wrapper.dark-mode .active-indicator {
   background: var(--bg-primary);
 }
 
@@ -2536,7 +2536,7 @@ button:focus-visible {
 }
 
 /* Success/Warning colors if not defined */
-:root {
+.dashboard-wrapper {
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --success-50: rgba(16, 185, 129, 0.05);
@@ -2546,111 +2546,111 @@ button:focus-visible {
 }
 
 /* Dark mode color overrides for success/warning */
-.dark-mode {
+.dashboard-wrapper.dark-mode {
   --success-50: rgba(16, 185, 129, 0.15);
   --warning-50: rgba(245, 158, 11, 0.15);
   --accent-50: rgba(255, 107, 107, 0.15);
 }
 
 /* Dark mode adjustments for staffing modals */
-.dark-mode .modal-content {
+.dashboard-wrapper.dark-mode .modal-content {
   background: var(--card-bg);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
 }
 
-.dark-mode .modal-header .section-title {
+.dashboard-wrapper.dark-mode .modal-header .section-title {
   color: var(--text-primary);
 }
 
-.dark-mode .collapse-btn {
+.dashboard-wrapper.dark-mode .collapse-btn {
   color: var(--text-secondary);
 }
 
-.dark-mode .collapse-btn:hover {
+.dashboard-wrapper.dark-mode .collapse-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
 }
 
 /* Dark mode alert cards */
-.dark-mode .alert-card {
+.dashboard-wrapper.dark-mode .alert-card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
 }
 
-.dark-mode .alert-card.alert-low {
+.dashboard-wrapper.dark-mode .alert-card.alert-low {
   background: linear-gradient(90deg, var(--success-50) 0%, var(--card-bg) 100%);
   border-left-color: var(--color-success);
 }
 
-.dark-mode .alert-card.alert-medium {
+.dashboard-wrapper.dark-mode .alert-card.alert-medium {
   background: linear-gradient(90deg, var(--warning-50) 0%, var(--card-bg) 100%);
   border-left-color: var(--color-warning);
 }
 
-.dark-mode .alert-card.alert-high {
+.dashboard-wrapper.dark-mode .alert-card.alert-high {
   background: linear-gradient(90deg, var(--accent-50) 0%, var(--card-bg) 100%);
   border-left-color: var(--color-accent);
 }
 
-.dark-mode .alert-message {
+.dashboard-wrapper.dark-mode .alert-message {
   color: var(--text-primary);
 }
 
-.dark-mode .alert-timestamp {
+.dashboard-wrapper.dark-mode .alert-timestamp {
   color: var(--text-tertiary);
 }
 
 /* Dark mode form elements in modals */
-.dark-mode .setting-input,
-.dark-mode .filter-select {
+.dashboard-wrapper.dark-mode .setting-input,
+.dashboard-wrapper.dark-mode .filter-select {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
   color: var(--text-primary);
 }
 
-.dark-mode .setting-input:hover,
-.dark-mode .filter-select:hover {
+.dashboard-wrapper.dark-mode .setting-input:hover,
+.dashboard-wrapper.dark-mode .filter-select:hover {
   border-color: var(--color-primary);
   background: var(--bg-secondary);
 }
 
-.dark-mode .setting-input:focus,
-.dark-mode .filter-select:focus {
+.dashboard-wrapper.dark-mode .setting-input:focus,
+.dashboard-wrapper.dark-mode .filter-select:focus {
   background: var(--bg-secondary);
   border-color: var(--color-primary);
 }
 
-.dark-mode .setting-label {
+.dashboard-wrapper.dark-mode .setting-label {
   color: var(--text-secondary);
 }
 
 /* Dark mode upload card in modal */
-.dark-mode .upload-card {
+.dashboard-wrapper.dark-mode .upload-card {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }
 
-.dark-mode .upload-card:hover {
+.dashboard-wrapper.dark-mode .upload-card:hover {
   border-color: var(--color-primary);
   background: var(--bg-secondary);
 }
 
-.dark-mode .upload-title {
+.dashboard-wrapper.dark-mode .upload-title {
   color: var(--text-primary);
 }
 
-.dark-mode .upload-description {
+.dashboard-wrapper.dark-mode .upload-description {
   color: var(--text-secondary);
 }
 
-.dark-mode .upload-specs li {
+.dashboard-wrapper.dark-mode .upload-specs li {
   color: var(--text-secondary);
   border-bottom-color: var(--border-color);
 }
 
 /* Dark mode error messages */
-.dark-mode .login-error-message {
+.dashboard-wrapper.dark-mode .login-error-message {
   background: rgba(255, 107, 107, 0.15);
   color: var(--color-accent);
   border: 1px solid var(--color-accent);
@@ -2668,52 +2668,52 @@ button:focus-visible {
 }
 
 /* Dark mode table styling */
-.dark-mode table {
+.dashboard-wrapper.dark-mode table {
   color: var(--text-primary);
 }
 
-.dark-mode table th {
+.dashboard-wrapper.dark-mode table th {
   color: var(--text-secondary);
 }
 
-.dark-mode table td {
+.dashboard-wrapper.dark-mode table td {
   color: var(--text-primary);
   border-bottom-color: var(--border-color);
 }
 
-.dark-mode table tbody tr:hover {
+.dashboard-wrapper.dark-mode table tbody tr:hover {
   background: var(--bg-tertiary) !important;
 }
 
-.dark-mode .badge-primary {
+.dashboard-wrapper.dark-mode .badge-primary {
   background: var(--primary-200);
   color: var(--color-primary);
 }
 
-.dark-mode .empty-state h3 {
+.dashboard-wrapper.dark-mode .empty-state h3 {
   color: var(--text-primary);
 }
 
-.dark-mode .empty-state p {
+.dashboard-wrapper.dark-mode .empty-state p {
   color: var(--text-secondary);
 }
 
 /* Dark mode KPI cards in modals */
-.dark-mode .kpi-card {
+.dashboard-wrapper.dark-mode .kpi-card {
   background: var(--card-bg);
   border-color: var(--border-color);
 }
 
-.dark-mode .kpi-label {
+.dashboard-wrapper.dark-mode .kpi-label {
   color: var(--text-secondary);
 }
 
-.dark-mode .kpi-value {
+.dashboard-wrapper.dark-mode .kpi-value {
   color: var(--text-primary);
 }
 
 /* Dark mode section wrapper in modals */
-.dark-mode .section-wrapper {
+.dashboard-wrapper.dark-mode .section-wrapper {
   background: var(--card-bg);
   border-color: var(--border-color);
 }
@@ -3546,66 +3546,66 @@ body:has(.admin-profile-overlay.show) {
 }
 
 /* Dark mode overrides for profile */
-.dark-mode .admin-profile-modal {
+.dashboard-wrapper.dark-mode .admin-profile-modal {
   background: var(--bg-primary);
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.5),
     0 0 0 1px var(--border-color);
 }
 
-.dark-mode .profile-close-btn {
+.dashboard-wrapper.dark-mode .profile-close-btn {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }
 
-.dark-mode .profile-card {
+.dashboard-wrapper.dark-mode .profile-card {
   background: var(--card-bg);
   border-color: var(--border-color);
 }
 
-.dark-mode .info-item {
+.dashboard-wrapper.dark-mode .info-item {
   background: var(--bg-tertiary);
 }
 
-.dark-mode .stat-item {
-  background: var(--bg-tertiary);
-  border-color: var(--border-color);
-}
-
-.dark-mode .security-btn {
+.dashboard-wrapper.dark-mode .stat-item {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }
 
-.dark-mode .activity-item:hover {
+.dashboard-wrapper.dark-mode .security-btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.dashboard-wrapper.dark-mode .activity-item:hover {
   background: var(--bg-tertiary);
 }
 
-.dark-mode .activity-dot {
+.dashboard-wrapper.dark-mode .activity-dot {
   border-color: var(--bg-primary);
 }
 
-.dark-mode .password-change-section {
+.dashboard-wrapper.dark-mode .password-change-section {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }
 
-.dark-mode .form-input {
+.dashboard-wrapper.dark-mode .form-input {
   background: var(--bg-primary);
   border-color: var(--border-color);
   color: var(--text-primary);
 }
 
-.dark-mode .form-input:focus {
+.dashboard-wrapper.dark-mode .form-input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--primary-100);
 }
 
-.dark-mode .security-info {
+.dashboard-wrapper.dark-mode .security-info {
   background: transparent;
 }
 
-.dark-mode .info-row {
+.dashboard-wrapper.dark-mode .info-row {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }

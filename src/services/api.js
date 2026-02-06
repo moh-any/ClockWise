@@ -284,17 +284,20 @@ export const authAPI = {
     // Cache user info (response is the user object directly)
     localStorage.setItem("current_user", JSON.stringify(response))
 
+    // Handle nested structure - response may have user/claims nested or be flat
+    const userData = response.user || response
+    
     // Save organization_id and user_id
-    if (response.organization_id) {
-      localStorage.setItem("org_id", response.organization_id)
+    if (userData.organization_id) {
+      localStorage.setItem("org_id", userData.organization_id)
       console.log(
         "Organization ID saved from user info:",
-        response.organization_id,
+        userData.organization_id,
       )
     }
-    if (response.id) {
-      localStorage.setItem("user_id", response.id)
-      console.log("User ID saved:", response.id)
+    if (userData.id) {
+      localStorage.setItem("user_id", userData.id)
+      console.log("User ID saved:", userData.id)
     }
 
     return response
@@ -325,7 +328,7 @@ export const profileAPI = {
    */
   changePassword: async (data) => {
     return apiRequest("/api/auth/profile/changepassword", {
-      method: "PUT",
+      method: "POST",
       body: JSON.stringify(data),
     })
   },

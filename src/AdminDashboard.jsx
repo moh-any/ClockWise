@@ -185,23 +185,28 @@ function AdminDashboard() {
       setSecondaryColor(secondary)
       setAccentColor(accent)
 
-      const root = document.documentElement
-      root.style.setProperty("--color-primary", primary)
-      root.style.setProperty("--color-secondary", secondary)
-      root.style.setProperty("--color-accent", accent)
-      root.style.setProperty("--primary-contrast", getContrastColor(primary))
-      root.style.setProperty(
-        "--secondary-contrast",
-        getContrastColor(secondary),
-      )
-      root.style.setProperty("--accent-contrast", getContrastColor(accent))
+      // Set scoped CSS variables for Admin Dashboard
+      const adminDashboard = document.querySelector('.dashboard-wrapper')
+      if (adminDashboard) {
+        adminDashboard.style.setProperty("--color-primary", primary)
+        adminDashboard.style.setProperty("--color-secondary", secondary)
+        adminDashboard.style.setProperty("--color-accent", accent)
+        adminDashboard.style.setProperty("--primary-contrast", getContrastColor(primary))
+        adminDashboard.style.setProperty("--secondary-contrast", getContrastColor(secondary))
+        adminDashboard.style.setProperty("--accent-contrast", getContrastColor(accent))
+      }
     }
+  }, [])
 
-    // Apply dark mode class
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode")
-    } else {
-      document.documentElement.classList.remove("dark-mode")
+  useEffect(() => {
+    // Apply dark mode class to admin dashboard only
+    const adminDashboard = document.querySelector('.dashboard-wrapper')
+    if (adminDashboard) {
+      if (darkMode) {
+        adminDashboard.classList.add("dark-mode")
+      } else {
+        adminDashboard.classList.remove("dark-mode")
+      }
     }
   }, [darkMode])
 

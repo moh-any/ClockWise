@@ -21,9 +21,26 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
       console.log("Login successful, token saved to localStorage")
       console.log("Access token:", response.access_token)
 
-      // Navigate to admin dashboard
+      // Get user info to determine role
+      const userInfo = await api.auth.getCurrentUser()
+      console.log("Full user info:", userInfo)
+
+      // Navigate based on user role - handle nested structure
       onClose()
-      navigate("/admin")
+      
+      // API returns nested structure with user.user_role or claims.user_role
+      const roleValue = userInfo?.user?.user_role || userInfo?.claims?.user_role || userInfo?.user_role || "employee"
+      const role = String(roleValue).toLowerCase().trim()
+      
+      console.log("Detected role:", role)
+      
+      if (role === "admin" || role === "manager") {
+        console.log("✅ Navigating to /admin")
+        navigate("/admin")
+      } else {
+        console.log("Navigating to /employee")
+        navigate("/employee")
+      }
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.")
     } finally {

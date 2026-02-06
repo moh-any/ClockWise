@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import "./index.css"
 import App from "./App"
 import AdminDashboard from "./AdminDashboard"
+import EmployeeDashboard from "./EmployeeDashboard"
 import ProtectedRoute from "./ProtectedRoute"
 
 const root = ReactDOM.createRoot(document.getElementById("root"))
@@ -17,6 +18,14 @@ root.render(
           element={
             <ProtectedRoute>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute>
+              <EmployeeDashboard />
             </ProtectedRoute>
           }
         />
