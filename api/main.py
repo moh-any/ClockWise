@@ -61,6 +61,15 @@ except ImportError as e:
     SCHEDULER_AVAILABLE = False
     logger.warning(f"Scheduler not available: {e}")
 
+# Surge Detection API
+try:
+    from src.surge_api import register_surge_routes
+    SURGE_API_AVAILABLE = True
+    logger.info("Surge Detection API imported successfully")
+except ImportError as e:
+    SURGE_API_AVAILABLE = False
+    logger.warning(f"Surge Detection API not available: {e}")
+
 
 # ============================================================================
 # INITIALIZE FASTAPI APP
@@ -93,6 +102,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register Surge Detection API routes
+if SURGE_API_AVAILABLE:
+    register_surge_routes(app)
+    logger.info("Surge Detection API routes registered at /api/v1/surge/*")
 
 
 # ============================================================================
