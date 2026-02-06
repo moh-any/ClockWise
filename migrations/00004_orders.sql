@@ -18,12 +18,14 @@ CREATE TABLE IF NOT EXISTS items (
     organization_id UUID NOT NULL REFERENCES organizations(id),
     name VARCHAR(50) NOT NULL,
     needed_num_to_prepare INTEGER NOT NULL,
-    price DECIMAL(10,2) NOT NULL
+    price DECIMAL(10,2) NOT NULL CHECK (price >= 0.0)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
     order_id UUID REFERENCES orders(id),
     item_id UUID REFERENCES items(id),
+    quantity INTEGER NOT NULL CHECK(quantity >= 1), 
+    total_price DECIMAL(10,2) NOT NULL CHECK(total_price >= 0.0),
     PRIMARY KEY (order_id, item_id)
 );
 -- +goose StatementEnd

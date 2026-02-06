@@ -23,7 +23,7 @@ func (sh *ScheduleHandler) GetScheduleHandler(c *gin.Context) {
 
 }
 
-func (sh *ScheduleHandler) RefreshScheduleHandler(c *gin.Context) {
+func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 
 }
 
