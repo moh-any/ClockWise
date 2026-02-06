@@ -30,6 +30,10 @@ Authorization: Bearer <access_token>
 6. [Preferences](#preferences-endpoints)
 7. [Staffing](#staffing-endpoints)
 8. [Insights](#insights-endpoints)
+9. [Organization](#organization-endpoints)
+10. [Orders](#orders-endpoints)
+11. [Deliveries](#deliveries-endpoints)
+12. [Items](#items-endpoints)
 
 ---
 
@@ -1356,6 +1360,792 @@ Authorization: Bearer <access_token>
 - `401 Unauthorized` - Missing or invalid token
 - `403 Forbidden` - Access denied (wrong organization)
 - `500 Internal Server Error` - Failed to retrieve insights
+
+---
+
+## Organization Endpoints
+
+### GET /api/:org
+
+Get the organization's profile and details.
+
+**Authentication:** Required
+
+**Request:**
+```http
+GET /api/{org_id}
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Organization profile retrieved successfully",
+  "data": {
+    "name": "Tech Solutions Inc.",
+    "address": "123 Business Street, Cairo",
+    "email": "contact@techsolutions.com",
+    "location": {
+      "latitude": 30.0444,
+      "longitude": 31.2357
+    },
+    "hex1": "#3B82F6",
+    "hex2": "#1E40AF",
+    "hex3": "#DBEAFE",
+    "rating": 4.5,
+    "accepting_orders": true,
+    "number_of_employees": 25
+  }
+}
+```
+
+**Notes:**
+- `number_of_employees` excludes admin users
+- `rating` may be null if no ratings exist
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `500 Internal Server Error` - Failed to retrieve organization profile
+
+---
+
+### POST /api/:org/request
+
+Submit a calloff, holiday, or resignation request. Employees and managers can submit requests to their organization.
+
+**Authentication:** Required (employees and managers only, admins cannot submit requests)
+
+**Request:**
+```http
+POST /api/{org_id}/request
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Request Body:**
+```json
+{
+  "type": "string (required - calloff|holiday|resign)",
+  "message": "string (required)"
+}
+```
+
+**Example Request:**
+```json
+{
+  "type": "calloff",
+  "message": "I am feeling unwell and need to take the day off."
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "message": "Request submitted successfully",
+  "request_id": "uuid"
+}
+```
+
+**Request Types:**
+| Type | Description |
+|------|-------------|
+| `calloff` | Request time off for illness or emergency |
+| `holiday` | Request scheduled time off / vacation |
+| `resign` | Submit resignation notice |
+
+**Notes:**
+- Upon submission, the employee receives a confirmation email
+- All managers and admins in the organization are notified via email
+- Admins cannot submit requests (returns 403 Forbidden)
+
+**Error Responses:**
+- `400 Bad Request` - Invalid request body or invalid type value
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Admins cannot submit requests
+- `500 Internal Server Error` - Failed to submit request
+
+---
+
+## Orders Endpoints
+
+### GET /api/:org/orders
+
+Get order insights and analytics for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/orders
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Order insights retrieved successfully",
+  "data": [
+    {
+      "title": "Total Orders",
+      "statistic": "150"
+    },
+    {
+      "title": "Average Order Value",
+      "statistic": "$45.00"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve order insights
+
+---
+
+### GET /api/:org/orders/all
+
+Get all orders for the organization, including their order items and delivery status.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/orders/all
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Orders retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "user_id": "uuid",
+      "organization_id": "uuid",
+      "create_time": "2026-02-06T10:30:00Z",
+      "order_type": "dine_in",
+      "order_status": "completed",
+      "total_amount": 45.99,
+      "discount_amount": 5.00,
+      "rating": 4.5,
+      "order_items": [
+        {
+          "item_id": "uuid",
+          "quantity": 2,
+          "total_price": 30
+        }
+      ],
+      "delivery_status": null
+    },
+    {
+      "order_id": "uuid",
+      "user_id": "uuid",
+      "organization_id": "uuid",
+      "create_time": "2026-02-06T12:00:00Z",
+      "order_type": "delivery",
+      "order_status": "completed",
+      "total_amount": 60.00,
+      "discount_amount": 0.00,
+      "rating": 5.0,
+      "order_items": [
+        {
+          "item_id": "uuid",
+          "quantity": 1,
+          "total_price": 60
+        }
+      ],
+      "delivery_status": {
+        "driver_id": "uuid",
+        "location": {
+          "latitude": 30.0444,
+          "longitude": 31.2357
+        },
+        "out_for_delivery_time": "2026-02-06T12:15:00Z",
+        "delivered_time": "2026-02-06T12:45:00Z",
+        "status": "delivered"
+      }
+    }
+  ]
+}
+```
+
+**Notes:**
+- Each order includes its associated `order_items` (from the order_items junction table)
+- Orders of type `delivery` include a `delivery_status` object; otherwise it is `null`
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve orders
+
+---
+
+### GET /api/:org/orders/week
+
+Get all orders from the last 7 days for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/orders/week
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Orders retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "user_id": "uuid",
+      "organization_id": "uuid",
+      "create_time": "2026-02-03T14:00:00Z",
+      "order_type": "takeaway",
+      "order_status": "completed",
+      "total_amount": 25.00,
+      "discount_amount": 0.00,
+      "rating": null,
+      "order_items": [],
+      "delivery_status": null
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve orders
+
+---
+
+### GET /api/:org/orders/today
+
+Get all orders from today for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/orders/today
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Orders retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "user_id": "uuid",
+      "organization_id": "uuid",
+      "create_time": "2026-02-06T09:00:00Z",
+      "order_type": "dine_in",
+      "order_status": "in_progress",
+      "total_amount": 35.50,
+      "discount_amount": 0.00,
+      "rating": null,
+      "order_items": [
+        {
+          "item_id": "uuid",
+          "quantity": 3,
+          "total_price": 35
+        }
+      ],
+      "delivery_status": null
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve orders
+
+---
+
+### POST /api/:org/orders/upload/orders
+
+Upload a CSV file containing past orders data.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+POST /api/{org_id}/orders/upload/orders
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Form Data:**
+- `file` - CSV file with orders data
+
+**Required CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `user_id` | UUID | The employee who handled the order |
+| `create_time` | Timestamp | Order creation time (RFC3339 or `YYYY-MM-DD HH:MM:SS`) |
+| `order_type` | String | Type of order (e.g., `dine_in`, `delivery`, `takeaway`) |
+| `order_status` | String | Status of the order (e.g., `completed`, `cancelled`) |
+| `total_amount` | Float | Total amount of the order |
+| `discount_amount` | Float | Discount applied to the order |
+
+**Optional CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `rating` | Float | Customer rating for the order |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Orders CSV uploaded successfully",
+  "total_rows": 100,
+  "success_count": 98,
+  "error_count": 2
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Missing file, empty CSV, invalid format, or missing required column
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+
+---
+
+### POST /api/:org/orders/upload/items
+
+Upload a CSV file containing order items data (links items to orders).
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+POST /api/{org_id}/orders/upload/items
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Form Data:**
+- `file` - CSV file with order items data
+
+**Required CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `order_id` | UUID | The order to link the item to |
+| `item_id` | UUID | The item from the items catalog |
+| `quantity` | Integer | Quantity of the item in the order |
+| `total_price` | Integer | Total price for this line item |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Order items CSV uploaded successfully",
+  "total_rows": 250,
+  "success_count": 248,
+  "error_count": 2
+}
+```
+
+**Prerequisites:**
+- At least one order must exist (upload orders CSV first)
+- At least one item must exist (upload items CSV first)
+
+**Notes:**
+- If an order-item pair already exists, the quantities and prices are added together (upsert behavior)
+
+**Error Responses:**
+- `400 Bad Request` - Missing file, empty CSV, invalid format, missing required column, or prerequisites not met
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to verify existing orders or items
+
+---
+
+## Deliveries Endpoints
+
+### GET /api/:org/deliveries
+
+Get delivery insights and analytics for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/deliveries
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Delivery insights retrieved successfully",
+  "data": [
+    {
+      "title": "Total Deliveries",
+      "statistic": "75"
+    },
+    {
+      "title": "Average Delivery Time",
+      "statistic": "30 min"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve delivery insights
+
+---
+
+### GET /api/:org/deliveries/all
+
+Get all deliveries for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/deliveries/all
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Deliveries retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "driver_id": "uuid",
+      "location": {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+      },
+      "out_for_delivery_time": "2026-02-06T12:15:00Z",
+      "delivered_time": "2026-02-06T12:45:00Z",
+      "status": "delivered"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve deliveries
+
+---
+
+### GET /api/:org/deliveries/week
+
+Get all deliveries from the last 7 days for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/deliveries/week
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Deliveries retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "driver_id": "uuid",
+      "location": {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+      },
+      "out_for_delivery_time": "2026-02-03T18:00:00Z",
+      "delivered_time": "2026-02-03T18:30:00Z",
+      "status": "delivered"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve deliveries
+
+---
+
+### GET /api/:org/deliveries/today
+
+Get all deliveries from today for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/deliveries/today
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Deliveries retrieved successfully",
+  "data": [
+    {
+      "order_id": "uuid",
+      "driver_id": "uuid",
+      "location": {
+        "latitude": 30.0444,
+        "longitude": 31.2357
+      },
+      "out_for_delivery_time": "2026-02-06T11:00:00Z",
+      "delivered_time": "2026-02-06T11:25:00Z",
+      "status": "delivered"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve deliveries
+
+---
+
+### POST /api/:org/deliveries/upload
+
+Upload a CSV file containing past deliveries data.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+POST /api/{org_id}/deliveries/upload
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Form Data:**
+- `file` - CSV file with deliveries data
+
+**Required CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `order_id` | UUID | The order this delivery belongs to |
+| `driver_id` | UUID | The driver assigned to the delivery |
+| `out_for_delivery_time` | Timestamp | Time the order went out for delivery (RFC3339 or `YYYY-MM-DD HH:MM:SS`) |
+| `status` | String | Delivery status (e.g., `delivered`, `in_transit`, `failed`) |
+
+**Optional CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `delivered_time` | Timestamp | Time the order was delivered |
+| `delivery_latitude` | Float | Delivery destination latitude |
+| `delivery_longitude` | Float | Delivery destination longitude |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Deliveries CSV uploaded successfully",
+  "total_rows": 50,
+  "success_count": 49,
+  "error_count": 1
+}
+```
+
+**Prerequisites:**
+- At least one order must exist (upload orders CSV first)
+
+**Error Responses:**
+- `400 Bad Request` - Missing file, empty CSV, invalid format, missing required column, or prerequisites not met
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to verify existing orders
+
+---
+
+## Items Endpoints
+
+### GET /api/:org/items
+
+Get item insights and analytics for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/items
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Item insights retrieved successfully",
+  "data": [
+    {
+      "title": "Total Items",
+      "statistic": "25"
+    },
+    {
+      "title": "Most Popular Item",
+      "statistic": "Margherita Pizza"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve item insights
+
+---
+
+### GET /api/:org/items/all
+
+Get all items in the organization's catalog.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/items/all
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Items retrieved successfully",
+  "data": [
+    {
+      "item_id": "uuid",
+      "name": "Margherita Pizza",
+      "needed_employees": 2,
+      "price": 12.99
+    },
+    {
+      "item_id": "uuid",
+      "name": "Caesar Salad",
+      "needed_employees": 1,
+      "price": 8.50
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to retrieve items
+
+---
+
+### POST /api/:org/items/upload
+
+Upload a CSV file containing items catalog data.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+POST /api/{org_id}/items/upload
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Form Data:**
+- `file` - CSV file with items data
+
+**Required CSV Columns:**
+| Column | Type | Description |
+|--------|------|-------------|
+| `name` | String | Name of the item |
+| `needed_employees` | Integer | Number of employees needed to prepare the item |
+| `price` | Float | Price of the item |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Items CSV uploaded successfully",
+  "total_rows": 25,
+  "success_count": 25,
+  "error_count": 0
+}
+```
+
+**Notes:**
+- Duplicate item names within the same organization are not allowed
+
+**Error Responses:**
+- `400 Bad Request` - Missing file, empty CSV, invalid format, or missing required column
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin/manager)
+- `500 Internal Server Error` - Failed to store item (e.g., duplicate name)
 
 ---
 

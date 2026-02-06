@@ -13,10 +13,7 @@ import (
 )
 
 // TODO: Add Caching
-// TODO: Add Nginx for late limiting
-
-
-
+// TODO: Add Nginx for rate limiting
 
 // @title           ClockWise API
 // @version         1.0.0
@@ -40,7 +37,7 @@ import (
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
-	gin.SetMode(gin.TestMode)
+	gin.SetMode(gin.DebugMode)
 
 	r.Use(gzip.Gzip(gzip.BestCompression))
 
@@ -140,7 +137,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
-	schedule.POST("/refresh", s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
+	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
 
 	// TODO: Campaigns Management & Insights
 	campaigns := organization.Group("/campaigns")
@@ -176,7 +173,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 
-	// TODO: Handle after accepting the request
+	// TODO: Handle offers after accepting the request
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
