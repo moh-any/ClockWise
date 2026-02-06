@@ -17,11 +17,17 @@ import LocationIcon from "./Icons/location-Icon.svg"
 import CloudUploadIcon from "./Icons/Cloud-Upload-Icon.svg"
 import ConfigurationIcon from "./Icons/Configuration-Icon.svg"
 import EmployeeIcon from "./Icons/Employee-Icon.svg"
+import LightModeIcon from "./Icons/Light-Mode-Icon.svg"
+import DarkModeIcon from "./Icons/Dark-Mode-Icon.svg"
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("home")
   const [requiredInfoSubTab, setRequiredInfoSubTab] = useState("location")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("darkMode")
+    return saved === "true"
+  })
   const [primaryColor, setPrimaryColor] = useState("#4A90E2")
   const [secondaryColor, setSecondaryColor] = useState("#7B68EE")
   const [accentColor, setAccentColor] = useState("#FF6B6B")
@@ -167,6 +173,13 @@ function AdminDashboard() {
       root.style.setProperty("--accent-contrast", getContrastColor(accent))
     }
 
+    // Apply dark mode class
+    if (darkMode) {
+      document.documentElement.classList.add("dark-mode")
+    } else {
+      document.documentElement.classList.remove("dark-mode")
+    }
+
     fetchStaffingData()
 
     if (!document.getElementById("mapbox-gl-js")) {
@@ -181,7 +194,13 @@ function AdminDashboard() {
       link.rel = "stylesheet"
       document.head.appendChild(link)
     }
-  }, [])
+  }, [darkMode])
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode
+    setDarkMode(newMode)
+    localStorage.setItem("darkMode", newMode.toString())
+  }
 
   const fetchStaffingData = async () => {
     try {
@@ -978,7 +997,7 @@ function AdminDashboard() {
   )
 
   return (
-    <div className="dashboard-wrapper">
+    <div className={`dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}>
       {/* Premium Sidebar */}
       <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="sidebar-header">
@@ -1030,6 +1049,32 @@ function AdminDashboard() {
         </nav>
 
         <div className="sidebar-footer">
+          <div className="theme-toggle-container">
+            <button
+              className={`theme-toggle-switch ${darkMode ? "dark" : "light"}`}
+              onClick={toggleDarkMode}
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              <div className="toggle-track">
+                <img
+                  src={LightModeIcon}
+                  alt="Light Mode"
+                  className="toggle-icon toggle-icon-light"
+                />
+                <img
+                  src={DarkModeIcon}
+                  alt="Dark Mode"
+                  className="toggle-icon toggle-icon-dark"
+                />
+              </div>
+              <div className="toggle-thumb"></div>
+            </button>
+            {!sidebarCollapsed && (
+              <span className="theme-label">
+                {darkMode ? "Dark Mode" : "Light Mode"}
+              </span>
+            )}
+          </div>
           <div className="user-profile">
             <div className="user-avatar">AD</div>
             {!sidebarCollapsed && (
