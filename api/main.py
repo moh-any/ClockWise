@@ -510,8 +510,8 @@ def prepare_features_for_prediction(
     
     # Step 6: Add place features
     logger.info("Adding place features...")
-    type_mapping = {'restaurant': 1, 'cafe': 2, 'bar': 3}
-    prediction_df['type_id'] = type_mapping.get(place.type, 1)
+    type_mapping = {'bar': 1332, 'cafe': 1333, 'lounge': 1334, 'restaurant': 1335, 'pub': 1336}
+    prediction_df['type_id'] = type_mapping.get(place.type, 1335)  # Default to 'restaurant' type_id
     prediction_df['waiting_time'] = place.waiting_time if place.waiting_time else 30
     prediction_df['rating'] = place.rating if place.rating else 4.0
     prediction_df['delivery'] = int(place.delivery)
