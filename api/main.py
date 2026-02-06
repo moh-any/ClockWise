@@ -25,6 +25,7 @@ import numpy as np
 import joblib
 from pathlib import Path
 import logging
+import hashlib
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -568,21 +569,22 @@ def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
     Ensure feature set matches what model expects
     
     Handles:
-    - String to numeric place_id conversion
+    - String to numeric place_id conversion (DETERMINISTIC)
     - Missing column filling
     - Dtype conversions
     - Column ordering
     """
     df = df.copy()
     
-    # Convert place_id to numeric if it's a string
+    # ===== FIX: Use deterministic hash for place_id =====
     if df['place_id'].dtype == 'object' or df['place_id'].dtype == 'string':
-        # Use consistent hash-based encoding
         def encode_place_id(place_str):
-            return float(abs(hash(str(place_str))) % 100000)
+            """Deterministic hash using MD5"""
+            hash_obj = hashlib.md5(str(place_str).encode('utf-8'))
+            return float(int(hash_obj.hexdigest()[:8], 16) % 100000)
         
         df['place_id'] = df['place_id'].apply(encode_place_id)
-        logger.info(f"Encoded place_id to numeric values")
+        logger.info(f"Encoded place_id to numeric values (deterministic)")
     
     # Ensure place_id is float
     df['place_id'] = df['place_id'].astype('float64')
