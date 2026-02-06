@@ -71,6 +71,10 @@ class RealTimeDataCollector:
         """
         Query actual orders via API endpoint.
         
+        Calls: POST /api/v1/orders/query
+        
+        Backend team implements endpoint that returns orders from the database.
+        
         Args:
             place_id: Venue ID
             time_window: Look-back period (e.g., last 1 hour)
@@ -79,9 +83,7 @@ class RealTimeDataCollector:
             Dict mapping timestamp -> {item_count: int, order_count: int}
         """
         try:
-            
             # Call the orders API endpoint
-            # This should match the pattern in main.py where the backend handles the query
             response = requests.post(
                 "http://localhost:8000/api/v1/orders/query",
                 json={
@@ -148,7 +150,7 @@ class RealTimeDataCollector:
                            place_id: int, 
                            time_window: timedelta) -> Dict[datetime, Dict[str, float]]:
         """
-        Get demand predictions from the database for the time window.
+        Get demand predictions from the API for the time window.
         
         Args:
             place_id: Venue ID
@@ -157,27 +159,25 @@ class RealTimeDataCollector:
         Returns:
             Dict mapping timestamp -> {item_count_pred: float, order_count_pred: float}
         """
-        # Try to fetch from database first
-        db_predictions = self._fetch_predictions_from_database(place_id, time_window)
-        if db_predictions:
-            return db_predictions
+        # Try to fetch from API first
+        api_predictions = self._fetch_predictions_from_api(place_id, time_window)
+        if api_predictions:
+            return api_predictions
         else:
-            # Fall back to model-based predictions if no database records
+            # Fall back to model-based predictions if no API records
             return self._predict_with_model(place_id, time_window) 
         
     
-    def _fetch_predictions_from_database(self,
+    def _fetch_predictions_from_api(self,
                                         place_id: int,
                                         time_window: timedelta) -> Optional[Dict[datetime, Dict[str, float]]]:
         """
-        Fetch pre-computed predictions from database via API endpoint.
+        Fetch pre-computed predictions via API endpoint.
         
-        Calls backend endpoint that queries:
-        SELECT timestamp, item_count_pred, order_count_pred
-        FROM demand_predictions
-        WHERE place_id = %s
-          AND timestamp >= NOW() - INTERVAL '...'
-        ORDER BY timestamp DESC
+        Calls: POST /api/v1/predictions/query
+        
+        Backend team implements endpoint that returns predictions
+        from the database.
         
         Args:
             place_id: Venue ID
@@ -480,24 +480,33 @@ class RealTimeDataCollector:
 
 def load_venues_from_database() -> List[Dict[str, any]]:
     """
-    Load list of active venues from database.
+    Load list of active venues via API endpoint.
     
-    In production, query your venue/places table:
-    
-    SELECT 
-        id as place_id,
-        name,
-        latitude,
-        longitude
-    FROM dim_places
-    WHERE accepting_orders = true
-      AND active = true
+    Calls: GET /api/v1/venues/active
     
     Returns:
         List of venue dictionaries
     """
-    # TODO: Replace with actual database query
-    # For demo, return sample venues
+    try:
+        response = requests.get(
+            "http://localhost:8000/api/v1/venues/active",
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('venues', [])
+        else:
+            print(f"⚠️  Venues API returned {response.status_code}, using fallback")
+            return _get_fallback_venues()
+            
+    except Exception as e:
+        print(f"⚠️  Could not fetch venues via API: {e}")
+        return _get_fallback_venues()
+
+
+def _get_fallback_venues() -> List[Dict[str, any]]:
+    """Fallback venues for demo/testing when API unavailable."""
     return [
         {
             'place_id': 1,

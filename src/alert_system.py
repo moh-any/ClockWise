@@ -228,13 +228,11 @@ class AlertDispatcher:
         """
         Determine which communication channels should be used.
         Backend team will handle actual delivery.
+        
+        Currently: Email only (all severities)
         """
-        if severity == 'critical':
-            return ['sms', 'call', 'email', 'slack']
-        elif severity == 'high':
-            return ['sms', 'email', 'slack']
-        else:  # moderate
-            return ['email', 'slack']
+        # Email is the single channel for all alert severities
+        return ['email']
     
     def format_multiple_alerts(self, surge_events: list) -> list:
         """
