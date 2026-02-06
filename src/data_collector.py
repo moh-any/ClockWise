@@ -65,15 +65,50 @@ class RealTimeDataCollector:
         
         print(f"🔄 Data collector initialized (interval: {update_interval_seconds}s)")
     
+    def _fetch_bulk_data(self, place_id: int, timestamp: datetime, 
+                         time_window_hours: int = 1) -> Optional[Dict]:
+        """
+        Fetch ALL data needed for surge detection in a single API call.
+        
+        Calls: POST /api/v1/surge/bulk-data
+        
+        This bulk endpoint should return venue details, campaigns, orders, 
+        and predictions in one response for efficiency.
+        
+        Args:
+            place_id: Venue ID
+            timestamp: Reference timestamp
+            time_window_hours: Hours of historical data to fetch
+        
+        Returns:
+            Bulk data dict or None if API unavailable
+        """
+        try:
+            response = requests.post(
+                "http://localhost:8000/api/v1/surge/bulk-data",
+                json={
+                    "place_id": place_id,
+                    "timestamp": timestamp.isoformat(),
+                    "time_window_hours": time_window_hours
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"⚠️  Bulk data API returned {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"⚠️  Could not fetch bulk data via API: {e}")
+            return None
+    
     def collect_actual_orders(self, 
                               place_id: int, 
                               time_window: timedelta) -> Dict[datetime, Dict[str, int]]:
         """
-        Query actual orders via API endpoint.
-        
-        Calls: POST /api/v1/orders/query
-        
-        Backend team implements endpoint that returns orders from the database.
+        Query actual orders via bulk data endpoint.
         
         Args:
             place_id: Venue ID
@@ -82,29 +117,26 @@ class RealTimeDataCollector:
         Returns:
             Dict mapping timestamp -> {item_count: int, order_count: int}
         """
-        try:
-            # Call the orders API endpoint
-            response = requests.post(
-                "http://localhost:8000/api/v1/orders/query",
-                json={
-                    "place_id": place_id,
-                    "time_window_hours": int(time_window.total_seconds() / 3600),
-                    "end_time": datetime.now().isoformat()
-                },
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                return data.get('orders', {})
-            else:
-                print(f"⚠️  Orders API returned {response.status_code}")
-                return self._simulate_actual_orders(place_id, time_window)
-                
-        except Exception as e:
-            print(f"⚠️  Could not fetch orders via API: {e}")
-            print("   Falling back to simulated data")
-            return self._simulate_actual_orders(place_id, time_window)
+        # Try bulk data endpoint first
+        bulk_data = self._fetch_bulk_data(
+            place_id=place_id,
+            timestamp=datetime.now(),
+            time_window_hours=int(time_window.total_seconds() / 3600)
+        )
+        
+        if bulk_data and 'orders' in bulk_data:
+            # Convert string timestamps to datetime if needed
+            orders = bulk_data['orders']
+            if orders and isinstance(list(orders.keys())[0], str):
+                return {
+                    datetime.fromisoformat(ts): data
+                    for ts, data in orders.items()
+                }
+            return orders
+        
+        # Fallback to simulated data
+        print("   Falling back to simulated order data")
+        return self._simulate_actual_orders(place_id, time_window)
     
     def _simulate_actual_orders(self, 
                                 place_id: int, 
@@ -150,7 +182,7 @@ class RealTimeDataCollector:
                            place_id: int, 
                            time_window: timedelta) -> Dict[datetime, Dict[str, float]]:
         """
-        Get demand predictions from the API for the time window.
+        Get demand predictions via bulk data endpoint.
         
         Args:
             place_id: Venue ID
@@ -159,62 +191,26 @@ class RealTimeDataCollector:
         Returns:
             Dict mapping timestamp -> {item_count_pred: float, order_count_pred: float}
         """
-        # Try to fetch from API first
-        api_predictions = self._fetch_predictions_from_api(place_id, time_window)
-        if api_predictions:
-            return api_predictions
-        else:
-            # Fall back to model-based predictions if no API records
-            return self._predict_with_model(place_id, time_window) 
+        # Try bulk data endpoint first
+        bulk_data = self._fetch_bulk_data(
+            place_id=place_id,
+            timestamp=datetime.now(),
+            time_window_hours=int(time_window.total_seconds() / 3600)
+        )
         
-    
-    def _fetch_predictions_from_api(self,
-                                        place_id: int,
-                                        time_window: timedelta) -> Optional[Dict[datetime, Dict[str, float]]]:
-        """
-        Fetch pre-computed predictions via API endpoint.
+        if bulk_data and 'predictions' in bulk_data:
+            # Convert string timestamps to datetime if needed
+            predictions = bulk_data['predictions']
+            if predictions and isinstance(list(predictions.keys())[0], str):
+                return {
+                    datetime.fromisoformat(ts): data
+                    for ts, data in predictions.items()
+                }
+            return predictions
         
-        Calls: POST /api/v1/predictions/query
-        
-        Backend team implements endpoint that returns predictions
-        from the database.
-        
-        Args:
-            place_id: Venue ID
-            time_window: Time period to fetch
-        
-        Returns:
-            Predictions dict or None if empty/unavailable
-        """
-        try:
-            response = requests.post(
-                "http://localhost:8000/api/v1/predictions/query",
-                json={
-                    "place_id": place_id,
-                    "time_window_hours": int(time_window.total_seconds() / 3600),
-                    "end_time": datetime.now().isoformat()
-                },
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                predictions = data.get('predictions', {})
-                
-                # Convert string timestamps back to datetime if needed
-                if predictions:
-                    return {
-                        datetime.fromisoformat(ts): pred 
-                        for ts, pred in predictions.items()
-                    }
-                return None
-            else:
-                print(f"⚠️  Predictions API returned {response.status_code}")
-                return None
-                
-        except Exception as e:
-            print(f"⚠️  Could not fetch predictions via API: {e}")
-            return None
+        # Fall back to model-based predictions
+        print("   Falling back to model-based predictions")
+        return self._predict_with_model(place_id, time_window)
     
     def _predict_with_model(self, 
                            place_id: int, 
@@ -259,36 +255,286 @@ class RealTimeDataCollector:
     
     def _build_feature_vector(self, place_id: int, timestamp: datetime) -> np.ndarray:
         """
-        Build feature vector matching training data format.
+        Build feature vector matching training data format with real data.
         
-        Features should match those in train_model.py's x.columns
+        Collects features from:
+        - Bulk data API (venue, campaigns, historical orders) - SINGLE CALL
+        - Holiday API (is_holiday) - external service
+        - Weather API (weather features) - external service
+        
+        Features match those in train_model.py's x.columns exactly.
         """
+        # Time-based features
         day_of_week = timestamp.weekday()
         hour = timestamp.hour
         month = timestamp.month
         week_of_year = timestamp.isocalendar()[1]
         
-        # Construct feature vector with expected features
-        # Order must match model training features
+        # Fetch all backend data in ONE API call
+        bulk_data = self._fetch_bulk_data(
+            place_id=place_id,
+            timestamp=timestamp,
+            time_window_hours=720  # 30 days for lag features
+        )
+        
+        # 1. Extract venue features from bulk data
+        venue_features = self._extract_venue_features(bulk_data)
+        
+        # 2. Extract campaign features from bulk data
+        campaign_features = self._extract_campaign_features(bulk_data)
+        
+        # 3. Extract lag features from bulk data
+        lag_features = self._extract_lag_features(bulk_data, timestamp)
+        
+        # 4. Get holiday status (external API)
+        is_holiday = self._get_holiday_status(timestamp)
+        
+        # 5. Get weather features (external API)
+        weather_features = self._get_weather_features(timestamp)
+        
+        # Construct feature vector - ORDER MUST MATCH MODEL TRAINING
         feature_dict = {
             'place_id': float(place_id),
-            'type_id': 0.0,
-            'waiting_time': 15.0,
-            'rating': 4.0,
-            'delivery': 1.0,
-            'accepting_orders': 1.0,
-            'total_campaigns': 2.0,
-            'avg_discount': 0.15,
+            'type_id': venue_features['type_id'],
+            'waiting_time': venue_features['waiting_time'],
+            'rating': venue_features['rating'],
+            'delivery': venue_features['delivery'],
+            'accepting_orders': venue_features['accepting_orders'],
+            'total_campaigns': campaign_features['total_campaigns'],
+            'avg_discount': campaign_features['avg_discount'],
             'day_of_week': float(day_of_week),
             'month': float(month),
             'week_of_year': float(week_of_year),
             'hour': float(hour),
-            'prev_hour_items': 100.0,
-            'prev_day_items': 100.0,
-            'prev_week_items': 100.0,
-            'prev_month_items': 100.0,
-            'rolling_7d_avg_items': 100.0,
-            'is_holiday': 0.0,
+            'prev_hour_items': lag_features['prev_hour_items'],
+            'prev_day_items': lag_features['prev_day_items'],
+            'prev_week_items': lag_features['prev_week_items'],
+            'prev_month_items': lag_features['prev_month_items'],
+            'rolling_7d_avg_items': lag_features['rolling_7d_avg_items'],
+            'is_holiday': float(is_holiday),
+            'temperature_2m': weather_features['temperature_2m'],
+            'relative_humidity_2m': weather_features['relative_humidity_2m'],
+            'precipitation': weather_features['precipitation'],
+            'rain': weather_features['rain'],
+            'snowfall': weather_features['snowfall'],
+            'cloud_cover': weather_features['cloud_cover'],
+            'wind_speed_10m': weather_features['wind_speed_10m'],
+            'weather_severity': weather_features['weather_severity']
+        }
+        
+        return np.array([list(feature_dict.values())])
+    
+    def _extract_venue_features(self, bulk_data: Optional[Dict]) -> Dict[str, float]:
+        """
+        Extract venue features from bulk data response.
+        
+        Args:
+            bulk_data: Response from bulk data endpoint
+        
+        Returns:
+            Venue features dict with defaults if unavailable
+        """
+        if bulk_data and 'venue' in bulk_data:
+            venue = bulk_data['venue']
+            return {
+                'type_id': float(venue.get('type_id', 0.0)),
+                'waiting_time': float(venue.get('waiting_time', 15.0)),
+                'rating': float(venue.get('rating', 4.0)),
+                'delivery': float(venue.get('delivery', 1.0)),
+                'accepting_orders': float(venue.get('accepting_orders', 1.0))
+            }
+        
+        # Fallback defaults
+        return {
+            'type_id': 0.0,
+            'waiting_time': 15.0,
+            'rating': 4.0,
+            'delivery': 1.0,
+            'accepting_orders': 1.0
+        }
+    
+    def _extract_campaign_features(self, bulk_data: Optional[Dict]) -> Dict[str, float]:
+        """
+        Extract campaign features from bulk data response.
+        
+        Args:
+            bulk_data: Response from bulk data endpoint
+        
+        Returns:
+            Campaign features dict with defaults if unavailable
+        """
+        if bulk_data and 'campaigns' in bulk_data:
+            campaigns = bulk_data['campaigns']
+            return {
+                'total_campaigns': float(campaigns.get('total_campaigns', 2.0)),
+                'avg_discount': float(campaigns.get('avg_discount', 0.15))
+            }
+        
+        # Fallback defaults
+        return {
+            'total_campaigns': 2.0,
+            'avg_discount': 0.15
+        }
+    
+    def _extract_lag_features(self, bulk_data: Optional[Dict], timestamp: datetime) -> Dict[str, float]:
+        """
+        Extract lag features from bulk data historical orders.
+        
+        Calculates:
+        - 1 hour ago (prev_hour_items)
+        - 1 day ago (prev_day_items)
+        - 1 week ago (prev_week_items)
+        - 1 month ago (prev_month_items)
+        - Last 7 days average (rolling_7d_avg_items)
+        
+        Args:
+            bulk_data: Response from bulk data endpoint (includes historical orders)
+            timestamp: Reference timestamp
+        
+        Returns:
+            Lag features dict with defaults if unavailable
+        """
+        if not bulk_data or 'orders' not in bulk_data:
+            # Fallback defaults
+            return {
+                'prev_hour_items': 100.0,
+                'prev_day_items': 100.0,
+                'prev_week_items': 100.0,
+                'prev_month_items': 100.0,
+                'rolling_7d_avg_items': 100.0
+            }
+        
+        try:
+            orders = bulk_data['orders']
+            
+            # Convert to datetime keys if needed
+            if orders and isinstance(list(orders.keys())[0], str):
+                orders = {
+                    datetime.fromisoformat(ts): data
+                    for ts, data in orders.items()
+                }
+            
+            # Define lookback periods
+            lookback_periods = {
+                'prev_hour': timedelta(hours=1),
+                'prev_day': timedelta(days=1),
+                'prev_week': timedelta(weeks=1),
+                'prev_month': timedelta(days=30)
+            }
+            
+            lag_values = {}
+            
+            # Calculate lag values
+            for key, delta in lookback_periods.items():
+                target_time = timestamp - delta
+                # Find orders within 1 hour of target time
+                total_items = sum(
+                    order['item_count']
+                    for order_time, order in orders.items()
+                    if abs((order_time - target_time).total_seconds()) < 3600
+                )
+                lag_values[key] = float(total_items) if total_items > 0 else 100.0
+            
+            # Calculate 7-day rolling average
+            seven_days_ago = timestamp - timedelta(days=7)
+            recent_orders = [
+                order['item_count']
+                for order_time, order in orders.items()
+                if order_time >= seven_days_ago and order_time <= timestamp
+            ]
+            
+            rolling_avg = sum(recent_orders) / len(recent_orders) if recent_orders else 100.0
+            
+            return {
+                'prev_hour_items': lag_values.get('prev_hour', 100.0),
+                'prev_day_items': lag_values.get('prev_day', 100.0),
+                'prev_week_items': lag_values.get('prev_week', 100.0),
+                'prev_month_items': lag_values.get('prev_month', 100.0),
+                'rolling_7d_avg_items': rolling_avg
+            }
+            
+        except Exception as e:
+            print(f"⚠️  Could not extract lag features: {e}")
+            # Fallback defaults
+            return {
+                'prev_hour_items': 100.0,
+                'prev_day_items': 100.0,
+                'prev_week_items': 100.0,
+                'prev_month_items': 100.0,
+                'rolling_7d_avg_items': 100.0
+            }
+    
+    def _get_holiday_status(self, timestamp: datetime) -> int:
+        """
+        Check if timestamp is a holiday using holiday API.
+        
+        Returns:
+            1 if holiday, 0 if not
+        """
+        try:
+            from src.holiday_api import HolidayChecker
+            
+            checker = HolidayChecker()
+            # Use Copenhagen coordinates as default
+            result = checker.is_holiday(
+                check_date=timestamp.date(),
+                latitude=55.6761,
+                longitude=12.5683
+            )
+            
+            return 1 if result.get('is_holiday', False) else 0
+            
+        except Exception as e:
+            print(f"⚠️  Could not check holiday status: {e}")
+            return 0
+    
+    def _get_weather_features(self, timestamp: datetime) -> Dict[str, float]:
+        """
+        Get weather features from weather API or use fallback defaults.
+        
+        Uses Open-Meteo API via weather_api module.
+        """
+        try:
+            from src.weather_api import WeatherAPI
+            
+            weather_api = WeatherAPI(latitude=55.6761, longitude=12.5683)
+            
+            # Determine if historical or forecast
+            if timestamp.date() < datetime.now().date():
+                # Historical weather
+                date_str = timestamp.strftime('%Y-%m-%d')
+                weather_df = weather_api.get_historical_weather(date_str, date_str)
+            else:
+                # Forecast weather
+                weather_df = weather_api.get_forecast_weather(days=7)
+            
+            # Filter to exact hour
+            weather_df = weather_df[
+                (weather_df['date'] == timestamp.date()) &
+                (weather_df['hour'] == timestamp.hour)
+            ]
+            
+            if not weather_df.empty:
+                # Add derived features
+                weather_df = weather_api.add_weather_features(weather_df)
+                
+                row = weather_df.iloc[0]
+                return {
+                    'temperature_2m': float(row.get('temperature_2m', 15.0)),
+                    'relative_humidity_2m': float(row.get('relative_humidity_2m', 65.0)),
+                    'precipitation': float(row.get('precipitation', 0.0)),
+                    'rain': float(row.get('rain', 0.0)),
+                    'snowfall': float(row.get('snowfall', 0.0)),
+                    'cloud_cover': float(row.get('cloud_cover', 50.0)),
+                    'wind_speed_10m': float(row.get('wind_speed_10m', 5.0)),
+                    'weather_severity': float(row.get('weather_severity', 0.0))
+                }
+        
+        except Exception as e:
+            print(f"⚠️  Could not fetch weather: {e}")
+        
+        # Fallback defaults (typical Copenhagen weather)
+        return {
             'temperature_2m': 15.0,
             'relative_humidity_2m': 65.0,
             'precipitation': 0.0,
@@ -298,8 +544,6 @@ class RealTimeDataCollector:
             'wind_speed_10m': 5.0,
             'weather_severity': 0.0
         }
-        
-        return np.array([list(feature_dict.values())])
     
     def _baseline_predictions(self, time_window: timedelta) -> Dict[datetime, Dict[str, float]]:
         """Fallback baseline predictions"""
