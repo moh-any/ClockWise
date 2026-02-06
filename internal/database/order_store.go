@@ -10,23 +10,30 @@ import (
 )
 
 type Order struct {
-	OrderID        uuid.UUID     `json:"order_id"`
-	UserID         uuid.UUID     `json:"user_id"`
-	OrganizationID uuid.UUID     `json:"organization_id"`
-	CreateTime     time.Time     `json:"create_time"`
-	OrderType      string        `json:"order_type"`
-	OrderStatus    string        `json:"order_status"`
-	TotalAmount    *float64      `json:"total_amount"`
-	DiscountAmount *float64      `json:"discount_amount"`
-	Rating         *float64      `json:"rating,omitempty"`
-	OrderItems     []OrderItem   `json:"order_items"`
-	DeliveryStatus OrderDelivery `json:"delivery_status"`
+	OrderID        uuid.UUID      `json:"order_id"`
+	UserID         uuid.UUID      `json:"user_id"`
+	OrganizationID uuid.UUID      `json:"organization_id"`
+	CreateTime     time.Time      `json:"create_time"`
+	OrderType      string         `json:"order_type"`
+	OrderStatus    string         `json:"order_status"`
+	TotalAmount    *float64       `json:"total_amount"`
+	DiscountAmount *float64       `json:"discount_amount"`
+	Rating         *float64       `json:"rating,omitempty"`
+	OrderItems     []OrderItem    `json:"order_items"`
+	DeliveryStatus *OrderDelivery `json:"delivery_status,omitempty"`
 }
 
 type OrderItem struct {
-	Name                        string   `json:"name"`
-	NeededNumEmployeesToPrepare int      `json:"needed_employees"`
-	Price                       *float64 `json:"price"`
+	ItemID     uuid.UUID `json:"item_id"`
+	Quantity   *int      `json:"quantity"`
+	TotalPrice *int      `json:"total_price"`
+}
+
+type Item struct {
+	ItemID                      uuid.UUID `json:"item_id"`
+	Name                        string    `json:"name"`
+	NeededNumEmployeesToPrepare *int      `json:"needed_employees"`
+	Price                       *float64  `json:"price"`
 }
 
 type OrderDelivery struct {
@@ -46,14 +53,17 @@ type Location struct {
 type OrderStore interface {
 	GetAllOrdersForLastWeek(org_id uuid.UUID) ([]Order, error)
 	GetAllOrders(org_id uuid.UUID) ([]Order, error)
-	GetAllItems(org_id uuid.UUID) ([]OrderItem, error)
+	GetAllItems(org_id uuid.UUID) ([]Item, error)
 	GetTodaysOrder(org_id uuid.UUID) ([]Order, error)
+
 	GetOrdersInsights(org_id uuid.UUID) ([]Insight, error)
 	GetDeliveryInsights(org_id uuid.UUID) ([]Insight, error)
 	GetItemsInsights(org_id uuid.UUID) ([]Insight, error)
+
 	StoreOrder(org_id uuid.UUID, order *Order) error
-	StoreOrderItems(org_id uuid.UUID, order_id uuid.UUID, order *OrderItem) error
-	StoreItems(org_id uuid.UUID, item *OrderItem) error
+	StoreOrderItems(org_id uuid.UUID, order_id uuid.UUID, orderItem *OrderItem) error
+	StoreItems(org_id uuid.UUID, item *Item) error
+
 	GetAllDeliveries(org_id uuid.UUID) ([]OrderDelivery, error)
 	GetAllDeliveriesForLastWeek(org_id uuid.UUID) ([]OrderDelivery, error)
 	GetTodaysDeliveries(org_id uuid.UUID) ([]OrderDelivery, error)
@@ -87,7 +97,17 @@ func (pgos *PostgresOrderStore) GetAllOrdersForLastWeek(org_id uuid.UUID) ([]Ord
 	}
 	defer rows.Close()
 
-	return pgos.scanOrders(rows)
+	orders, err := pgos.scanOrders(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	orders, err = pgos.populateOrderItems(orders)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgos.populateDeliveries(orders)
 }
 
 func (pgos *PostgresOrderStore) GetAllOrders(org_id uuid.UUID) ([]Order, error) {
@@ -105,7 +125,17 @@ func (pgos *PostgresOrderStore) GetAllOrders(org_id uuid.UUID) ([]Order, error) 
 	}
 	defer rows.Close()
 
-	return pgos.scanOrders(rows)
+	orders, err := pgos.scanOrders(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	orders, err = pgos.populateOrderItems(orders)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgos.populateDeliveries(orders)
 }
 
 func (pgos *PostgresOrderStore) GetTodaysOrder(org_id uuid.UUID) ([]Order, error) {
@@ -123,7 +153,17 @@ func (pgos *PostgresOrderStore) GetTodaysOrder(org_id uuid.UUID) ([]Order, error
 	}
 	defer rows.Close()
 
-	return pgos.scanOrders(rows)
+	orders, err := pgos.scanOrders(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	orders, err = pgos.populateOrderItems(orders)
+	if err != nil {
+		return nil, err
+	}
+
+	return pgos.populateDeliveries(orders)
 }
 
 func (pgos *PostgresOrderStore) GetOrdersInsights(org_id uuid.UUID) ([]Insight, error) {
@@ -306,7 +346,7 @@ func (pgos *PostgresOrderStore) StoreOrder(org_id uuid.UUID, order *Order) error
 	}
 
 	// If order is a delivery, insert delivery record
-	if order.OrderType == "delivery" {
+	if order.OrderType == "delivery" && order.DeliveryStatus != nil {
 		deliveryQuery := `
 			INSERT INTO deliveries (order_id, driver_id, delivery_latitude, delivery_longitude, out_for_delivery_time, delivered_time, status)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -329,6 +369,16 @@ func (pgos *PostgresOrderStore) StoreOrder(org_id uuid.UUID, order *Order) error
 	if err = tx.Commit(); err != nil {
 		pgos.Logger.Error("Failed to commit transaction", "error", err)
 		return err
+	}
+
+	// If order has items, store them using StoreOrderItems
+	for _, oi := range order.OrderItems {
+		oiCopy := oi
+		err := pgos.StoreOrderItems(org_id, order.OrderID, &oiCopy)
+		if err != nil {
+			pgos.Logger.Error("Failed to store order item", "error", err, "item_id", oi.ItemID)
+			return err
+		}
 	}
 
 	return nil
@@ -356,6 +406,121 @@ func (pgos *PostgresOrderStore) scanOrders(rows *sql.Rows) ([]Order, error) {
 			return nil, err
 		}
 		orders = append(orders, order)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+// populateOrderItems fetches order_items for a batch of orders and attaches them
+func (pgos *PostgresOrderStore) populateOrderItems(orders []Order) ([]Order, error) {
+	if len(orders) == 0 {
+		return orders, nil
+	}
+
+	// Build parameterized IN clause
+	orderIDs := make([]interface{}, len(orders))
+	orderMap := make(map[uuid.UUID]int) // order_id -> index in orders slice
+	placeholders := ""
+	for i, order := range orders {
+		orderIDs[i] = order.OrderID
+		orderMap[order.OrderID] = i
+		if i > 0 {
+			placeholders += ", "
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT order_id, item_id, quantity, total_price
+		FROM order_items
+		WHERE order_id IN (%s)
+	`, placeholders)
+
+	rows, err := pgos.DB.Query(query, orderIDs...)
+	if err != nil {
+		pgos.Logger.Error("Failed to get order items", "error", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var orderID uuid.UUID
+		var oi OrderItem
+		err := rows.Scan(&orderID, &oi.ItemID, &oi.Quantity, &oi.TotalPrice)
+		if err != nil {
+			pgos.Logger.Error("Failed to scan order item row", "error", err)
+			return nil, err
+		}
+		if idx, ok := orderMap[orderID]; ok {
+			orders[idx].OrderItems = append(orders[idx].OrderItems, oi)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+// populateDeliveries fetches deliveries for a batch of orders and attaches them
+func (pgos *PostgresOrderStore) populateDeliveries(orders []Order) ([]Order, error) {
+	if len(orders) == 0 {
+		return orders, nil
+	}
+
+	// Build parameterized IN clause
+	orderIDs := make([]interface{}, len(orders))
+	orderMap := make(map[uuid.UUID]int) // order_id -> index in orders slice
+	placeholders := ""
+	for i, order := range orders {
+		orderIDs[i] = order.OrderID
+		orderMap[order.OrderID] = i
+		if i > 0 {
+			placeholders += ", "
+		}
+		placeholders += fmt.Sprintf("$%d", i+1)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT order_id, driver_id, delivery_latitude, delivery_longitude, out_for_delivery_time, delivered_time, status
+		FROM deliveries
+		WHERE order_id IN (%s)
+	`, placeholders)
+
+	rows, err := pgos.DB.Query(query, orderIDs...)
+	if err != nil {
+		pgos.Logger.Error("Failed to get deliveries for orders", "error", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var delivery OrderDelivery
+		var deliveredTime sql.NullTime
+		err := rows.Scan(
+			&delivery.OrderID,
+			&delivery.DriverID,
+			&delivery.DeliveryLocation.Latitude,
+			&delivery.DeliveryLocation.Longitude,
+			&delivery.OutForDeliveryTime,
+			&deliveredTime,
+			&delivery.DeliveryStatus,
+		)
+		if err != nil {
+			pgos.Logger.Error("Failed to scan delivery row", "error", err)
+			return nil, err
+		}
+		if deliveredTime.Valid {
+			delivery.DeliveredTime = deliveredTime.Time
+		}
+		if idx, ok := orderMap[delivery.OrderID]; ok {
+			orders[idx].DeliveryStatus = &delivery
+		}
 	}
 
 	if err := rows.Err(); err != nil {
@@ -495,7 +660,7 @@ func (pgos *PostgresOrderStore) StoreDelivery(org_id uuid.UUID, delivery *OrderD
 	return nil
 }
 
-// StoreOrderItems inserts or links an order item to an order
+// StoreOrderItems links an existing item to an order with quantity and total_price
 func (pgos *PostgresOrderStore) StoreOrderItems(org_id uuid.UUID, order_id uuid.UUID, orderItem *OrderItem) error {
 	// Verify the order exists and belongs to the organization
 	var exists bool
@@ -511,48 +676,35 @@ func (pgos *PostgresOrderStore) StoreOrderItems(org_id uuid.UUID, order_id uuid.
 		return fmt.Errorf("order not found or does not belong to organization")
 	}
 
-	tx, err := pgos.DB.Begin()
+	// Verify the item exists
+	err = pgos.DB.QueryRow(`
+		SELECT EXISTS(SELECT 1 FROM items WHERE id = $1 AND organization_id = $2)
+	`, orderItem.ItemID, org_id).Scan(&exists)
 	if err != nil {
-		pgos.Logger.Error("Failed to begin transaction", "error", err)
+		pgos.Logger.Error("Failed to verify item exists", "error", err)
 		return err
 	}
-	defer tx.Rollback()
-
-	// Check if item already exists for this organization, if not create it
-	var itemID uuid.UUID
-	err = tx.QueryRow(`
-		SELECT id FROM items WHERE organization_id = $1 AND name = $2
-	`, org_id, orderItem.Name).Scan(&itemID)
-
-	if err == sql.ErrNoRows {
-		// Item doesn't exist, create it
-		err = tx.QueryRow(`
-			INSERT INTO items (organization_id, name, needed_num_to_prepare, price)
-			VALUES ($1, $2, $3, $4)
-			RETURNING id
-		`, org_id, orderItem.Name, orderItem.NeededNumEmployeesToPrepare, orderItem.Price).Scan(&itemID)
-		if err != nil {
-			pgos.Logger.Error("Failed to insert item", "error", err)
-			return err
-		}
-	} else if err != nil {
-		pgos.Logger.Error("Failed to check if item exists", "error", err)
-		return err
+	if !exists {
+		pgos.Logger.Error("Item not found or does not belong to organization", "item_id", orderItem.ItemID, "org_id", org_id)
+		return fmt.Errorf("item not found or does not belong to organization")
 	}
 
-	// Link the item to the order in order_items table
-	_, err = tx.Exec(`
-		INSERT INTO order_items (order_id, item_id)
-		VALUES ($1, $2)
-		ON CONFLICT (order_id, item_id) DO NOTHING
-	`, order_id, itemID)
+	// Default quantity to 1 if not provided
+	quantity := 1
+	if orderItem.Quantity != nil {
+		quantity = *orderItem.Quantity
+	}
+
+	// Insert into order_items; on conflict add to existing quantity
+	_, err = pgos.DB.Exec(`
+		INSERT INTO order_items (order_id, item_id, quantity, total_price)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (order_id, item_id) DO UPDATE
+		SET quantity = order_items.quantity + EXCLUDED.quantity,
+		    total_price = order_items.total_price + EXCLUDED.total_price
+	`, order_id, orderItem.ItemID, quantity, orderItem.TotalPrice)
 	if err != nil {
-		pgos.Logger.Error("Failed to insert order_item link", "error", err)
-		return err
-	}
-
-	if err = tx.Commit(); err != nil {
-		pgos.Logger.Error("Failed to commit transaction", "error", err)
+		pgos.Logger.Error("Failed to insert order_item", "error", err)
 		return err
 	}
 
@@ -560,7 +712,7 @@ func (pgos *PostgresOrderStore) StoreOrderItems(org_id uuid.UUID, order_id uuid.
 }
 
 // StoreItems inserts an item into the items table for an organization
-func (pgos *PostgresOrderStore) StoreItems(org_id uuid.UUID, item *OrderItem) error {
+func (pgos *PostgresOrderStore) StoreItems(org_id uuid.UUID, item *Item) error {
 	// Check if item already exists for this organization
 	var exists bool
 	err := pgos.DB.QueryRow(`
@@ -590,9 +742,9 @@ func (pgos *PostgresOrderStore) StoreItems(org_id uuid.UUID, item *OrderItem) er
 }
 
 // GetAllItems returns all items for an organization
-func (pgos *PostgresOrderStore) GetAllItems(org_id uuid.UUID) ([]OrderItem, error) {
+func (pgos *PostgresOrderStore) GetAllItems(org_id uuid.UUID) ([]Item, error) {
 	query := `
-		SELECT name, needed_num_to_prepare, price
+		SELECT id, name, needed_num_to_prepare, price
 		FROM items
 		WHERE organization_id = $1
 		ORDER BY name ASC
@@ -605,10 +757,10 @@ func (pgos *PostgresOrderStore) GetAllItems(org_id uuid.UUID) ([]OrderItem, erro
 	}
 	defer rows.Close()
 
-	var items []OrderItem
+	var items []Item
 	for rows.Next() {
-		var item OrderItem
-		err := rows.Scan(&item.Name, &item.NeededNumEmployeesToPrepare, &item.Price)
+		var item Item
+		err := rows.Scan(&item.ItemID, &item.Name, &item.NeededNumEmployeesToPrepare, &item.Price)
 		if err != nil {
 			pgos.Logger.Error("Failed to scan item row", "error", err)
 			return nil, err

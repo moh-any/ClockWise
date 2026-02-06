@@ -8,9 +8,15 @@ import (
 
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
 )
+
+// TODO: Add Caching
+// TODO: Add Nginx for late limiting
+
+
+
 
 // @title           ClockWise API
 // @version         1.0.0
@@ -83,57 +89,71 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization := api.Group("/:org")
 	organization.Use(authMiddleware.MiddlewareFunc())
 
-	organization.GET("",s.orgHandler.GetOrganizationProfile)          // Get organization details
-	organization.POST("/request",s.employeeHandler.RequestHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
+	organization.GET("", s.orgHandler.GetOrganizationProfile)                  // Get organization details
+	organization.POST("/request", s.employeeHandler.RequestHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
 
 	// Orders Management & Insights
 	orders := organization.Group("/orders")
-	orders.GET("",s.orderHandler.GetOrdersInsights)
-	orders.POST("/upload/orders",s.orderHandler.UploadAllPastOrdersCSV)
-	orders.POST("/upload/items",s.orderHandler.UploadOrderItemsCSV)
-	orders.GET("/all",s.orderHandler.GetAllOrders)
-	orders.GET("/week",s.orderHandler.GetAllOrdersForLastWeek)
-	orders.GET("/today",s.orderHandler.GetAllOrdersToday)
+	orders.GET("", s.orderHandler.GetOrdersInsights)
+	orders.POST("/upload/orders", s.orderHandler.UploadAllPastOrdersCSV)
+	orders.POST("/upload/items", s.orderHandler.UploadOrderItemsCSV)
+	orders.GET("/all", s.orderHandler.GetAllOrders)
+	orders.GET("/week", s.orderHandler.GetAllOrdersForLastWeek)
+	orders.GET("/today", s.orderHandler.GetAllOrdersToday)
 
 	// Delivery Management & Insights
 	deliveries := organization.Group("/deliveries")
-	deliveries.GET("",s.orderHandler.GetDeliveryInsights)
-	deliveries.POST("/upload",s.orderHandler.UploadAllPastDeliveriesCSV)
-	deliveries.GET("/all",s.orderHandler.GetAllDeliveries)
-	deliveries.GET("/week",s.orderHandler.GetAllDeliveriesForLastWeek)
-	deliveries.GET("/today",s.orderHandler.GetAllDeliveriesToday)
+	deliveries.GET("", s.orderHandler.GetDeliveryInsights)
+	deliveries.POST("/upload", s.orderHandler.UploadAllPastDeliveriesCSV)
+	deliveries.GET("/all", s.orderHandler.GetAllDeliveries)
+	deliveries.GET("/week", s.orderHandler.GetAllDeliveriesForLastWeek)
+	deliveries.GET("/today", s.orderHandler.GetAllDeliveriesToday)
 
 	// Items Management & Insights
 	items := organization.Group("/items")
-	items.GET("",s.orderHandler.GetItemsInsights)
-	items.POST("/upload",s.orderHandler.UploadItemsCSV)
-	items.GET("/all",s.orderHandler.GetAllItems)
+	items.GET("", s.orderHandler.GetItemsInsights)
+	items.POST("/upload", s.orderHandler.UploadItemsCSV)
+	items.GET("/all", s.orderHandler.GetAllItems)
 
 	// Role management
 	roles := organization.Group("/roles")
-	roles.GET("", s.rolesHandler.GetAllRoles) // Get All roles
-	roles.POST("", s.rolesHandler.CreateRole) // Create role
+	roles.GET("", s.rolesHandler.GetAllRoles)         // Get All roles
+	roles.POST("", s.rolesHandler.CreateRole)         // Create role
 	roles.GET("/:role", s.rolesHandler.GetRole)       // Get role
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
 	// TODO: Dashboard which includes schedule, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
-	dashboard.GET("",s.dashboardHandler.GetDashboardHandler) // Change according to the current user
-	dashboard.GET("/demand",s.dashboardHandler.GetDemandHeatMapHandler)
-	dashboard.POST("/demand/refresh",s.dashboardHandler.RefreshDemandHeatMapHandler) // Send data and fetch demand from demand service
+	dashboard.GET("", s.dashboardHandler.GetDashboardHandler) // Change according to the current user
+	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
+	dashboard.POST("/demand/refresh", s.dashboardHandler.RefreshDemandHeatMapHandler) // Send data and fetch demand from demand service
+
+	// TODO: Surge Detection
+	surge := dashboard.Group("/surge")
+	surge.GET("") // Get All Alerts 
+
+	// Only called by external ML api
+	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
+	api.POST("/:org/surge/alert")      // Send alert from the ml model
 
 	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
-	schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
+	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
+	schedule.POST("/refresh", s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
 
 	// TODO: Campaigns Management & Insights
 	campaigns := organization.Group("/campaigns")
-	campaigns.GET("") // Campaign insights
+	campaigns.GET("")         // Campaign insights
 	campaigns.POST("/upload") // Upload Campaigns CSV
-	campaigns.GET("/all") // Get All Campaigns 
-	campaigns.GET("/week") // Get All Campaigns for last week
+	campaigns.GET("/all")     // Get All Campaigns
+	campaigns.GET("/week")    // Get All Campaigns for last week
+
+	// TODO: Offers management to those on call and in the shift in the current shift
+	offers := organization.Group("/offers")
+	offers.GET("")          // Get all offers that start_time is before now
+	offers.POST("/accept")  // Accept an offer
+	offers.POST("/decline") // Decline an offer
 
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
@@ -152,9 +172,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-	employee.GET("/schedule",s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
+	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
+
+	// TODO: Handle after accepting the request
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 

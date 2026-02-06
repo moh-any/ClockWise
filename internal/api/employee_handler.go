@@ -15,11 +15,11 @@ type EmployeeHandler struct {
 	userStore    database.UserStore
 	requestStore database.RequestStore
 	orgStore     database.OrgStore
-	EmailService service.SMTPEmailService
+	EmailService service.EmailService
 	Logger       *slog.Logger
 }
 
-func NewEmployeeHandler(userStore database.UserStore, emailService service.SMTPEmailService, requestStore database.RequestStore, orgStore database.OrgStore, logger *slog.Logger) *EmployeeHandler {
+func NewEmployeeHandler(userStore database.UserStore, emailService service.EmailService, requestStore database.RequestStore, orgStore database.OrgStore, logger *slog.Logger) *EmployeeHandler {
 	return &EmployeeHandler{
 		userStore:    userStore,
 		requestStore: requestStore,
