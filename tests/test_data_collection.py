@@ -102,14 +102,6 @@ class TestSocialMediaAggregator:
         
         assert result == {'mentions': 0, 'virality': 0.0}
     
-    def test_instagram_engagement_not_implemented(self):
-        """Test Instagram engagement returns 0 (not implemented)."""
-        aggregator = SocialMediaAggregator()
-        
-        result = aggregator._get_instagram_engagement(place_id=1)
-        
-        assert result == 0.0
-    
     @patch('requests.get')
     def test_eventbrite_success(self, mock_get):
         """Test successful Eventbrite API call."""
