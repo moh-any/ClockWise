@@ -51,8 +51,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 		org.Email = user.Email
 	}
 
-	queryOrg := `INSERT INTO organizations (id, name, address, email, created_at, updated_at, hex_code1, hex_code2, hex_code3) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Email, org.CreatedAt, org.UpdatedAt, org.HexCode1, org.HexCode2, org.HexCode3); err != nil {
+	queryOrg := `INSERT INTO organizations (id, name, address, latitude, longitude, email, created_at, updated_at, hex_code1, hex_code2, hex_code3, rating, accepting_orders) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Location.Latitude, org.Location.Longitude, org.Email, org.CreatedAt, org.UpdatedAt, org.HexCode1, org.HexCode2, org.HexCode3, org.Rating, org.AcceptingOrders); err != nil {
 		return fmt.Errorf("failed to insert org: %w", err)
 	}
 
@@ -77,8 +77,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 
 func (s *PostgresOrgStore) GetOrganizationByID(id uuid.UUID) (*Organization, error) {
 	var org Organization
-	query := `SELECT id, name, address, email, hex_code1, hex_code2, hex_code3, created_at, updated_at FROM organizations WHERE id = $1`
-	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Email, &org.HexCode1, &org.HexCode2, &org.HexCode3, &org.CreatedAt, &org.UpdatedAt)
+	query := `SELECT id, name, address, latitude, longitude, email, hex_code1, hex_code2, hex_code3, rating, accepting_orders, created_at, updated_at FROM organizations WHERE id = $1`
+	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Location.Latitude, &org.Location.Longitude, &org.Email, &org.HexCode1, &org.HexCode2, &org.HexCode3, &org.Rating, &org.AcceptingOrders, &org.CreatedAt, &org.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

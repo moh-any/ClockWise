@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS organizations_rules (
 
 CREATE TABLE IF NOT EXISTS organizations_operating_hours (
     organization_id UUID REFERENCES organizations(id),
-    weekday CHAR CHECK (weekday IN ('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')),
+    weekday VARCHAR(10) CHECK (weekday IN ('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')),
     opening_time TIME NOT NULL,
     closing_time TIME NOT NULL,
     PRIMARY KEY (organization_id, weekday) 

@@ -12,37 +12,47 @@ import (
 )
 
 type OrgHandler struct {
-	orgStore     database.OrgStore
-	userStore    database.UserStore
-	emailService service.EmailService
-	Logger       *slog.Logger
+	orgStore       database.OrgStore
+	userStore      database.UserStore
+	userRolesStore database.UserRolesStore
+	rolesStore     database.RolesStore
+	emailService   service.EmailService
+	Logger         *slog.Logger
 }
 
-func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, emailService service.EmailService, logger *slog.Logger) *OrgHandler {
+func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, userRolesStore database.UserRolesStore, rolesStore database.RolesStore, emailService service.EmailService, logger *slog.Logger) *OrgHandler {
 	return &OrgHandler{
-		orgStore:     orgStore,
-		userStore:    userStore,
-		emailService: emailService,
-		Logger:       logger,
+		orgStore:       orgStore,
+		userStore:      userStore,
+		userRolesStore: userRolesStore,
+		rolesStore:     rolesStore,
+		emailService:   emailService,
+		Logger:         logger,
 	}
 }
 
 type RegisterOrgRequest struct {
-	OrgName       string `json:"org_name" binding:"required"`
-	OrgAddress    string `json:"org_address"`
-	AdminFullName string `json:"admin_full_name" binding:"required"`
-	AdminEmail    string `json:"admin_email" binding:"required,email"`
-	AdminPassword string `json:"admin_password" binding:"required,min=8"`
-	Hex1          string `json:"hex1" binding:"required,len=6"`
-	Hex2          string `json:"hex2" binding:"required,len=6"`
-	Hex3          string `json:"hex3" binding:"required,len=6"`
+	OrgName       string   `json:"org_name" binding:"required"`
+	OrgAddress    string   `json:"org_address"`
+	Latitude      *float64 `json:"latitude"`
+	Longitude     *float64 `json:"longitude"`
+	AdminFullName string   `json:"admin_full_name" binding:"required"`
+	AdminEmail    string   `json:"admin_email" binding:"required,email"`
+	AdminPassword string   `json:"admin_password" binding:"required,min=8"`
+	Hex1          string   `json:"hex1" binding:"required,len=6"`
+	Hex2          string   `json:"hex2" binding:"required,len=6"`
+	Hex3          string   `json:"hex3" binding:"required,len=6"`
 }
 
 type DelegateUserRequest struct {
-	FullName      string  `json:"full_name" binding:"required"`
-	Email         string  `json:"email" binding:"required,email"`
-	Role          string  `json:"role" binding:"required,oneof=manager"`
-	SalaryPerHour float64 `json:"salary_per_hour" binding:"required"`
+	FullName              string   `json:"full_name" binding:"required"`
+	Email                 string   `json:"email" binding:"required,email"`
+	Role                  string   `json:"role" binding:"required"`
+	SalaryPerHour         float64  `json:"salary_per_hour" binding:"required"`
+	MaxHoursPerWeek       *int     `json:"max_hours_per_week"`
+	PreferredHoursPerWeek *int     `json:"preferred_hours_per_week"`
+	MaxConsecSlots        *int     `json:"max_consec_slots"`
+	UserRoles             []string `json:"user_roles"`
 }
 
 // RegisterOrganization godoc
@@ -67,11 +77,16 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	}
 
 	org := &database.Organization{
-		Name:     req.OrgName,
-		Address:  req.OrgAddress,
-		HexCode1: req.Hex1,
-		HexCode2: req.Hex2,
-		HexCode3: req.Hex3,
+		Name:    req.OrgName,
+		Address: req.OrgAddress,
+		Location: database.Location{
+			Latitude:  req.Latitude,
+			Longitude: req.Longitude,
+		},
+		HexCode1:        req.Hex1,
+		HexCode2:        req.Hex2,
+		HexCode3:        req.Hex3,
+		AcceptingOrders: true, // Default to accepting orders
 	}
 
 	user := &database.User{
@@ -135,6 +150,29 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 
 	h.Logger.Debug("delegating user", "email", req.Email, "role", req.Role, "delegated_by", currentUser.ID)
 
+	// Validate user roles if provided
+	if len(req.UserRoles) > 0 {
+		orgRoles, err := h.rolesStore.GetRolesByOrganizationID(currentUser.OrganizationID)
+		if err != nil {
+			h.Logger.Error("failed to get organization roles", "error", err, "org_id", currentUser.OrganizationID)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate roles"})
+			return
+		}
+
+		validRoles := make(map[string]bool)
+		for _, role := range orgRoles {
+			validRoles[role.Role] = true
+		}
+
+		for _, role := range req.UserRoles {
+			if !validRoles[role] {
+				h.Logger.Warn("invalid role in request", "role", role, "organization_id", currentUser.OrganizationID)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role: " + role + ". Role does not exist in this organization."})
+				return
+			}
+		}
+	}
+
 	org, err := h.orgStore.GetOrganizationByID(currentUser.OrganizationID)
 	if err != nil {
 		h.Logger.Error("failed to retrieve organization", "error", err, "org_id", currentUser.OrganizationID)
@@ -150,11 +188,14 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 	}
 
 	newUser := &database.User{
-		FullName:       req.FullName,
-		Email:          req.Email,
-		UserRole:       req.Role,
-		OrganizationID: currentUser.OrganizationID,
-		SalaryPerHour:  &req.SalaryPerHour,
+		FullName:              req.FullName,
+		Email:                 req.Email,
+		UserRole:              req.Role,
+		OrganizationID:        currentUser.OrganizationID,
+		SalaryPerHour:         &req.SalaryPerHour,
+		MaxHoursPerWeek:       req.MaxHoursPerWeek,
+		PreferredHoursPerWeek: req.PreferredHoursPerWeek,
+		MaxConsecSlots:        req.MaxConsecSlots,
 	}
 
 	if err := newUser.PasswordHash.Set(tempPassword); err != nil {
@@ -167,6 +208,14 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		h.Logger.Error("failed to create delegated user", "error", err, "email", req.Email)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
 		return
+	}
+
+	// Set user roles if provided
+	if len(req.UserRoles) > 0 {
+		if err := h.userRolesStore.SetUserRoles(newUser.ID, currentUser.OrganizationID, req.UserRoles); err != nil {
+			h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID)
+			// Don't fail the whole request, just log the error
+		}
 	}
 
 	go func() {
