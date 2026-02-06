@@ -10,15 +10,18 @@ import (
 )
 
 type Organization struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Address   string    `json:"address"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	HexCode1  string    `json:"hex1"`
-	HexCode2  string    `json:"hex2"`
-	HexCode3  string    `json:"hex3"`
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	Address         string    `json:"address"`
+	Email           string    `json:"email"`
+	Location        Location  `json:"location"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	HexCode1        string    `json:"hex1"`
+	HexCode2        string    `json:"hex2"`
+	HexCode3        string    `json:"hex3"`
+	Rating          *float64  `json:"rating"`
+	AcceptingOrders bool      `json:"accepting_orders"`
 }
 
 type OrgStore interface {
