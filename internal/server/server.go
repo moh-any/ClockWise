@@ -28,14 +28,15 @@ type Server struct {
 	rolesHandler       *api.RolesHandler
 	profileHandler     *api.ProfileHandler
 	orderHandler       *api.OrderHandler
-
-	userStore        database.UserStore
-	orgStore         database.OrgStore
-	requestStore     database.RequestStore
-	preferencesStore database.PreferencesStore
-	rulesStore       database.RulesStore
-	rolesStore       database.RolesStore
-	orderStore       database.OrderStore
+	dashboardHandler   *api.DashboardHandler
+	scheduleHandler    *api.ScheduleHandler
+	userStore          database.UserStore
+	orgStore           database.OrgStore
+	requestStore       database.RequestStore
+	preferencesStore   database.PreferencesStore
+	rulesStore         database.RulesStore
+	rolesStore         database.RolesStore
+	orderStore         database.OrderStore
 
 	Logger *slog.Logger
 }
@@ -79,6 +80,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	profileHandler := api.NewProfileHandler(userStore, Logger)
 	orderHandler := api.NewOrderHandler(orderStore, uploadService, Logger)
+	dashboardHandler := api.NewDashboardHandler(Logger)
+	scheduleHandler := api.NewScheduleHandler(Logger)
 
 	NewServer := &Server{
 		port:               port,
@@ -98,6 +101,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		insightHandler:     insightHandler,
 		profileHandler:     profileHandler,
 		orderHandler:       orderHandler,
+		dashboardHandler:   dashboardHandler,
+		scheduleHandler:    scheduleHandler,
 		Logger:             Logger,
 	}
 

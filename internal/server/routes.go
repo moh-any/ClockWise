@@ -9,6 +9,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt/v3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/gzip"
 )
 
 // @title           ClockWise API
@@ -35,7 +36,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 	gin.SetMode(gin.TestMode)
 
-	r.RedirectTrailingSlash = false
+	r.Use(gzip.Gzip(gzip.BestCompression))
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -83,9 +84,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	organization.Use(authMiddleware.MiddlewareFunc())
 
 	organization.GET("",s.orgHandler.GetOrganizationProfile)          // Get organization details
-	organization.POST("/request",s.employeeHandler.RequestCalloffHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
+	organization.POST("/request",s.employeeHandler.RequestHandlerForEmployee) // Request Calloff. An employee can request a calloff from their organization
 
-	// Orders Management
+	// Orders Management & Insights
 	orders := organization.Group("/orders")
 	orders.GET("",s.orderHandler.GetOrdersInsights)
 	orders.POST("/upload/orders",s.orderHandler.UploadAllPastOrdersCSV)
@@ -94,6 +95,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	orders.GET("/week",s.orderHandler.GetAllOrdersForLastWeek)
 	orders.GET("/today",s.orderHandler.GetAllOrdersToday)
 
+	// Delivery Management & Insights
 	deliveries := organization.Group("/deliveries")
 	deliveries.GET("",s.orderHandler.GetDeliveryInsights)
 	deliveries.POST("/upload",s.orderHandler.UploadAllPastDeliveriesCSV)
@@ -101,6 +103,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	deliveries.GET("/week",s.orderHandler.GetAllDeliveriesForLastWeek)
 	deliveries.GET("/today",s.orderHandler.GetAllDeliveriesToday)
 
+	// Items Management & Insights
 	items := organization.Group("/items")
 	items.GET("",s.orderHandler.GetItemsInsights)
 	items.POST("/upload",s.orderHandler.UploadItemsCSV)
@@ -110,20 +113,27 @@ func (s *Server) RegisterRoutes() http.Handler {
 	roles := organization.Group("/roles")
 	roles.GET("", s.rolesHandler.GetAllRoles) // Get All roles
 	roles.POST("", s.rolesHandler.CreateRole) // Create role
-
 	roles.GET("/:role", s.rolesHandler.GetRole)       // Get role
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
-	// Dashboard which includes schedule, demands, insights, general info
+	// TODO: Dashboard which includes schedule, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
-	dashboard.GET("") // Change according to the current user
-	// dashboard.POST("/demand",s.dashboardHandler.GetDemandHeatMapHandler) // Send data and fetch demand from demand service
+	dashboard.GET("",s.dashboardHandler.GetDashboardHandler) // Change according to the current user
+	dashboard.GET("/demand",s.dashboardHandler.GetDemandHeatMapHandler)
+	dashboard.POST("/demand/refresh",s.dashboardHandler.RefreshDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	// Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
-	// schedule := dashboard.Group("/schedule")
-	// schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
-	// schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
+	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
+	schedule := dashboard.Group("/schedule")
+	schedule.GET("",s.scheduleHandler.GetScheduleHandler)          // Get Schedule for user, admin, manager
+	schedule.POST("/refresh",s.scheduleHandler.RefreshScheduleHandler) // Refresh Schedule with the new weekly schedule
+
+	// TODO: Campaigns Management & Insights
+	campaigns := organization.Group("/campaigns")
+	campaigns.GET("") // Campaign insights
+	campaigns.POST("/upload") // Upload Campaigns CSV
+	campaigns.GET("/all") // Get All Campaigns 
+	campaigns.GET("/week") // Get All Campaigns for last week
 
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
@@ -142,7 +152,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-	// employee.GET("/schedule",s.scheduleHandler.GetScheduleHandler) // Get Employee Schedule
+	employee.GET("/schedule",s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
