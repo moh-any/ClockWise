@@ -15,12 +15,22 @@ joblib==1.3.2
 
 # External APIs
 requests==2.31.0
-holidays==0.37          # NEW - for holiday detection
+holidays==0.37          # For holiday detection
 
 # Scheduler
-ortools==9.8.3296       # NEW - for CP-SAT solver
+ortools==9.8.3296       # For CP-SAT solver
+
+# Surge Detection - Layer 1 (Data Collection)
+python-dotenv==1.0.0    # Environment configuration
+pytrends==4.9.2         # Google Trends API (free)
+
+# Surge Detection - Layer 3 (Alerts - optional)
+twilio==8.10.0          # SMS and voice alerts
+# sendgrid==6.11.0      # Email alerts (uncomment if needed)
+# anthropic==0.7.0      # LLM analysis (uncomment if needed)
 
 # Development
 jupyter==1.0.0
 matplotlib==3.8.2
 seaborn==0.13.0
+pytest==9.0.0           # Testing framework
