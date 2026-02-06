@@ -18,11 +18,12 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
     try {
       const response = await api.auth.login({ email, password })
 
-      // Display the access token in an alert
-      alert(`Login successful!\n\nAccess Token:\n${response.access_token}`)
+      console.log("Login successful, token saved to localStorage")
+      console.log("Access token:", response.access_token)
 
+      // Navigate to admin dashboard
       onClose()
-      navigate("/")
+      navigate("/admin")
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.")
     } finally {

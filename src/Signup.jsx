@@ -57,20 +57,17 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
       const response = await api.auth.register(registrationData)
 
       console.log("Registration successful:", response)
+      console.log("Organization ID:", response.organization_id)
 
       // Auto-login after registration using the same credentials
       const loginResponse = await api.auth.login({ email, password })
 
-      console.log("Login successful:", loginResponse)
+      console.log("Login successful, token saved to localStorage")
+      console.log("Access token:", loginResponse.access_token)
 
-      // Display the access token in an alert
-      alert(
-        `Registration and login successful!\n\nAccess Token:\n${loginResponse.access_token}`,
-      )
-
-      // Close the signup modal and navigate back to home page
+      // Close the signup modal and navigate to admin dashboard
       onClose()
-      navigate("/")
+      navigate("/admin")
     } catch (err) {
       console.error("Registration error:", err)
       setError(err.message || "Registration failed. Please try again.")

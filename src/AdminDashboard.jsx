@@ -35,6 +35,8 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Insights state
+  const [insights, setInsights] = useState([])
   const [staffingSummary, setStaffingSummary] = useState(null)
   const [totalHeadcount, setTotalHeadcount] = useState(0)
   const [laborCost, setLaborCost] = useState(0)
@@ -55,13 +57,7 @@ function AdminDashboard() {
   const [employeeRequests, setEmployeeRequests] = useState([])
   const [requestsLoading, setRequestsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [roles, setRoles] = useState([
-    { role: "waiter", min_needed_per_shift: 2 },
-    { role: "chef", min_needed_per_shift: 1 },
-    { role: "host", min_needed_per_shift: 1 },
-    { role: "bartender", min_needed_per_shift: 1 },
-    { role: "manager", min_needed_per_shift: 1 },
-  ])
+  const [roles, setRoles] = useState([])
   const [confirmLayoff, setConfirmLayoff] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [actionMessage, setActionMessage] = useState(null)
@@ -75,44 +71,16 @@ function AdminDashboard() {
   const [delegateError, setDelegateError] = useState("")
   const csvFileInput = useRef(null)
 
-  const [aiAlerts, setAiAlerts] = useState([
-    {
-      id: 1,
-      priority: "high",
-      message: "High demand predicted for Friday; 4 additional hires suggested",
-      timestamp: "2 hours ago",
-      dismissed: false,
-    },
-    {
-      id: 2,
-      priority: "medium",
-      message: "Monday morning shift is understaffed by 15%",
-      timestamp: "5 hours ago",
-      dismissed: false,
-    },
-    {
-      id: 3,
-      priority: "low",
-      message: "Labor costs trending 3% below budget this week",
-      timestamp: "1 day ago",
-      dismissed: false,
-    },
-  ])
+  // Remove hardcoded alerts - will be replaced with real data in future
+  const [aiAlerts, setAiAlerts] = useState([])
 
+  // Initialize heatmap with base data (24 hours x 7 days, all zeros)
   const [heatMapData, setHeatMapData] = useState(() => {
     const data = []
     for (let hour = 0; hour < 24; hour++) {
       const row = []
       for (let day = 0; day < 7; day++) {
-        let value = 0
-        if (hour >= 8 && hour <= 18) {
-          value = 40 + Math.random() * 60
-        } else if ((hour >= 6 && hour < 8) || (hour > 18 && hour <= 22)) {
-          value = 20 + Math.random() * 40
-        } else {
-          value = Math.random() * 20
-        }
-        row.push(Math.round(value))
+        row.push(0)
       }
       data.push(row)
     }
@@ -212,7 +180,7 @@ function AdminDashboard() {
   }, [darkMode])
 
   useEffect(() => {
-    fetchStaffingData()
+    fetchDashboardData()
 
     if (!document.getElementById("mapbox-gl-js")) {
       const script = document.createElement("script")
@@ -234,23 +202,68 @@ function AdminDashboard() {
     localStorage.setItem("darkMode", newMode.toString())
   }
 
-  const fetchStaffingData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError("")
 
-      const summary = await api.staffing.getStaffingSummary()
-      setStaffingSummary(summary)
+      // Fetch insights data
+      try {
+        const insightsResponse = await api.insights.getInsights()
+        if (insightsResponse && insightsResponse.data) {
+          setInsights(insightsResponse.data)
 
-      if (summary) {
-        setTotalHeadcount(summary.total_headcount || 0)
-        setLaborCost(summary.labor_cost || 0)
-        setRevenue(summary.revenue || 0)
-        setCurrentlyClocked(summary.currently_clocked || 0)
-        setExpectedClocked(summary.expected_clocked || 0)
+          // Extract key metrics from insights
+          const employeesInsight = insightsResponse.data.find((i) =>
+            i.title.toLowerCase().includes("number of employees"),
+          )
+          if (employeesInsight) {
+            setTotalHeadcount(parseInt(employeesInsight.statistic) || 0)
+          }
+
+          const salaryInsight = insightsResponse.data.find((i) =>
+            i.title.toLowerCase().includes("average employee salary"),
+          )
+          if (salaryInsight) {
+            const salary =
+              parseFloat(salaryInsight.statistic.replace(/[$,]/g, "")) || 0
+            setLaborCost(salary)
+          }
+
+          const revenueInsight = insightsResponse.data.find((i) =>
+            i.title.toLowerCase().includes("total revenue"),
+          )
+          if (revenueInsight) {
+            const rev =
+              parseFloat(revenueInsight.statistic.replace(/[$,]/g, "")) || 0
+            setRevenue(rev)
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching insights:", err)
+      }
+
+      // Fetch staffing summary
+      try {
+        const summary = await api.staffing.getStaffingSummary()
+        if (summary && summary.data) {
+          setStaffingSummary(summary.data)
+        }
+      } catch (err) {
+        console.error("Error fetching staffing summary:", err)
+      }
+
+      // Fetch roles
+      try {
+        const rolesResponse = await api.roles.getAll()
+        if (rolesResponse && rolesResponse.data) {
+          setRoles(rolesResponse.data)
+        }
+      } catch (err) {
+        console.error("Error fetching roles:", err)
       }
     } catch (err) {
-      console.error("Error fetching staffing data:", err)
+      console.error("Error fetching dashboard data:", err)
       setError(err.message || "Failed to load dashboard data")
     } finally {
       setLoading(false)
@@ -464,98 +477,161 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* AI Alerts Section */}
-      <div className="section-wrapper">
-        <div className="section-header">
-          <h2 className="section-title">
-            <img src={InfoIcon} alt="Alerts" className="title-icon-svg" />
-            Intelligent Alerts
-          </h2>
-          <span className="badge badge-primary">
-            {aiAlerts.filter((a) => !a.dismissed).length} Active
-          </span>
-        </div>
-        <div className="alerts-grid">
-          {aiAlerts
-            .filter((a) => !a.dismissed)
-            .map((alert) => (
+      {/* Insights Data Grid */}
+      {insights && insights.length > 0 && (
+        <div className="section-wrapper">
+          <div className="section-header">
+            <h2 className="section-title">
+              <img
+                src={AnalyticsIcon}
+                alt="Insights"
+                className="title-icon-svg"
+              />
+              Organization Insights
+            </h2>
+          </div>
+          <div
+            className="insights-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+              gap: "var(--space-4)",
+              marginTop: "var(--space-4)",
+            }}
+          >
+            {insights.map((insight, index) => (
               <div
-                key={alert.id}
-                className={`alert-card alert-${alert.priority}`}
-                data-animation="fade-in"
+                key={index}
+                className="insight-card"
+                style={{
+                  padding: "var(--space-4)",
+                  borderRadius: "var(--radius-lg)",
+                  background: "var(--card-bg)",
+                  border: "1px solid var(--border-color)",
+                  transition: "all 0.2s ease",
+                }}
               >
-                <div className="alert-header">
-                  <div className={`alert-badge priority-${alert.priority}`}>
-                    {alert.priority.toUpperCase()}
-                  </div>
-                  <span className="alert-timestamp">{alert.timestamp}</span>
-                </div>
-                <p className="alert-message">{alert.message}</p>
-                <div className="alert-actions">
-                  <button className="btn-link">View Details</button>
-                  <button
-                    className="btn-link"
-                    onClick={() => dismissAlert(alert.id)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
+                <h4
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 500,
+                    color: "var(--gray-600)",
+                    marginBottom: "var(--space-2)",
+                  }}
+                >
+                  {insight.title}
+                </h4>
+                <p
+                  style={{
+                    fontSize: "var(--text-2xl)",
+                    fontWeight: 700,
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  {insight.statistic}
+                </p>
               </div>
             ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Heat Map Section */}
-      <div className="section-wrapper">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">Weekly Demand Heat Map</h2>
-            <p className="section-description">
-              Peak hours analysis - hover for detailed metrics
-            </p>
+      {/* AI Alerts Section */}
+      {aiAlerts && aiAlerts.filter((a) => !a.dismissed).length > 0 && (
+        <div className="section-wrapper">
+          <div className="section-header">
+            <h2 className="section-title">
+              <img src={InfoIcon} alt="Alerts" className="title-icon-svg" />
+              Intelligent Alerts
+            </h2>
+            <span className="badge badge-primary">
+              {aiAlerts.filter((a) => !a.dismissed).length} Active
+            </span>
           </div>
-          <div className="section-actions">
-            <button className="btn-secondary">Export Data</button>
-          </div>
-        </div>
-        <div className="heatmap-wrapper">
-          <div className="heatmap-table">
-            <div className="heatmap-header-row">
-              <div className="heatmap-corner-cell">Hour</div>
-              {days.map((day) => (
-                <div key={day} className="heatmap-day-header">
-                  {day}
+          <div className="alerts-grid">
+            {aiAlerts
+              .filter((a) => !a.dismissed)
+              .map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`alert-card alert-${alert.priority}`}
+                  data-animation="fade-in"
+                >
+                  <div className="alert-header">
+                    <div className={`alert-badge priority-${alert.priority}`}>
+                      {alert.priority.toUpperCase()}
+                    </div>
+                    <span className="alert-timestamp">{alert.timestamp}</span>
+                  </div>
+                  <p className="alert-message">{alert.message}</p>
+                  <div className="alert-actions">
+                    <button className="btn-link">View Details</button>
+                    <button
+                      className="btn-link"
+                      onClick={() => dismissAlert(alert.id)}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
                 </div>
               ))}
+          </div>
+        </div>
+      )}
+
+      {/* Heat Map Section */}
+      {heatMapData && heatMapData.length > 0 && (
+        <div className="section-wrapper">
+          <div className="section-header">
+            <div>
+              <h2 className="section-title">Weekly Demand Heat Map</h2>
+              <p className="section-description">
+                Peak hours analysis - hover for detailed metrics
+              </p>
             </div>
-            {heatMapData.map((row, hourIndex) => (
-              <div key={hourIndex} className="heatmap-data-row">
-                <div className="heatmap-hour-label">
-                  {String(hourIndex).padStart(2, "0")}:00
-                </div>
-                {row.map((intensity, dayIndex) => (
-                  <div
-                    key={dayIndex}
-                    className="heatmap-data-cell"
-                    style={{
-                      backgroundColor: getHeatColor(intensity),
-                      color: getHeatTextColor(intensity),
-                    }}
-                    title={`${days[dayIndex]} ${String(hourIndex).padStart(2, "0")}:00 - ${intensity}% capacity`}
-                  >
-                    {intensity}%
+            <div className="section-actions">
+              <button className="btn-secondary">Export Data</button>
+            </div>
+          </div>
+          <div className="heatmap-wrapper">
+            <div className="heatmap-table">
+              <div className="heatmap-header-row">
+                <div className="heatmap-corner-cell">Hour</div>
+                {days.map((day) => (
+                  <div key={day} className="heatmap-day-header">
+                    {day}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
-          <div className="heatmap-legend">
-            <span className="legend-label">Low</span>
-            <div className="legend-gradient"></div>
-            <span className="legend-label">High</span>
+              {heatMapData.map((row, hourIndex) => (
+                <div key={hourIndex} className="heatmap-data-row">
+                  <div className="heatmap-hour-label">
+                    {String(hourIndex).padStart(2, "0")}:00
+                  </div>
+                  {row.map((intensity, dayIndex) => (
+                    <div
+                      key={dayIndex}
+                      className="heatmap-data-cell"
+                      style={{
+                        backgroundColor: getHeatColor(intensity),
+                        color: getHeatTextColor(intensity),
+                      }}
+                      title={`${days[dayIndex]} ${String(hourIndex).padStart(2, "0")}:00 - ${intensity}% capacity`}
+                    >
+                      {intensity}%
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="heatmap-legend">
+              <span className="legend-label">Low</span>
+              <div className="legend-gradient"></div>
+              <span className="legend-label">High</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 
@@ -914,14 +990,14 @@ function AdminDashboard() {
   // Fetch roles
   const fetchRoles = async () => {
     try {
-      const data = await api.roles.getAll()
-      if (data.data && data.data.length > 0) {
-        setRoles(data.data)
+      const rolesResponse = await api.roles.getAll()
+      console.log("Roles response:", rolesResponse)
+      if (rolesResponse && rolesResponse.data) {
+        setRoles(rolesResponse.data)
+        console.log("Roles set to:", rolesResponse.data)
       }
-      // Keep hardcoded roles as fallback if API fails or returns empty
     } catch (err) {
       console.error("Failed to load roles:", err)
-      // Keep hardcoded default roles
     }
   }
 
@@ -1065,6 +1141,8 @@ function AdminDashboard() {
     )
 
     const availableRoles = roles.filter((r) => r.role !== "admin")
+    console.log("All roles:", roles)
+    console.log("Available roles (filtered):", availableRoles)
 
     const thStyle = {
       textAlign: "left",
@@ -1877,7 +1955,7 @@ function AdminDashboard() {
             />
             <h3>Error Loading Dashboard</h3>
             <p>{error}</p>
-            <button className="btn-primary" onClick={fetchStaffingData}>
+            <button className="btn-primary" onClick={fetchDashboardData}>
               Retry
             </button>
           </div>

@@ -26,6 +26,20 @@ const getHeaders = (includeAuth = true, contentType = "application/json") => {
   return headers
 }
 
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
 const apiRequest = async (endpoint, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -44,6 +58,82 @@ const apiRequest = async (endpoint, options = {}) => {
       data = await response.json()
     } else {
       data = await response.text()
+    }
+
+    // Handle 401 Unauthorized (token expired)
+    if (response.status === 401 && options.auth !== false && !options._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then((token) => {
+            return apiRequest(endpoint, { ...options, _retry: true })
+          })
+          .catch((err) => {
+            throw err
+          })
+      }
+
+      isRefreshing = true
+
+      try {
+        // Attempt to refresh the token
+        const refreshToken = localStorage.getItem("refresh_token")
+
+        if (!refreshToken) {
+          throw new Error("No refresh token available")
+        }
+
+        const refreshResponse = await fetch(
+          `${API_BASE_URL}/api/auth/refresh`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getAuthToken()}`,
+            },
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          },
+        )
+
+        if (!refreshResponse.ok) {
+          throw new Error("Token refresh failed")
+        }
+
+        const refreshData = await refreshResponse.json()
+
+        // Update tokens
+        if (refreshData.access_token) {
+          localStorage.setItem("access_token", refreshData.access_token)
+        }
+        if (refreshData.refresh_token) {
+          localStorage.setItem("refresh_token", refreshData.refresh_token)
+        }
+
+        isRefreshing = false
+        processQueue(null, refreshData.access_token)
+
+        // Retry the original request
+        return apiRequest(endpoint, { ...options, _retry: true })
+      } catch (refreshError) {
+        isRefreshing = false
+        processQueue(refreshError, null)
+
+        // Clear tokens and redirect to login
+        localStorage.removeItem("access_token")
+        localStorage.removeItem("refresh_token")
+        localStorage.removeItem("org_id")
+        localStorage.removeItem("user_id")
+        localStorage.removeItem("current_user")
+        localStorage.removeItem("user_info")
+        localStorage.removeItem("orgColors")
+
+        // Redirect to login page
+        window.location.href = "/"
+
+        throw new Error("Session expired. Please login again.")
+      }
     }
 
     if (!response.ok) {
@@ -83,9 +173,17 @@ export const authAPI = {
       body: JSON.stringify(data),
     })
 
-    // Save org_id for future requests
-    if (response.org_id) {
-      localStorage.setItem("org_id", response.org_id)
+    // Save org_id for future requests (handle both org_id and organization_id)
+    const orgId = response.org_id || response.organization_id
+    if (orgId) {
+      localStorage.setItem("org_id", orgId)
+      console.log("Organization ID saved:", orgId)
+    }
+
+    // Save user_id if provided
+    if (response.user_id) {
+      localStorage.setItem("user_id", response.user_id)
+      console.log("User ID saved:", response.user_id)
     }
 
     return response
@@ -108,9 +206,19 @@ export const authAPI = {
     // Save tokens
     if (response.access_token) {
       localStorage.setItem("access_token", response.access_token)
+      console.log("Access token saved to localStorage")
     }
     if (response.refresh_token) {
       localStorage.setItem("refresh_token", response.refresh_token)
+      console.log("Refresh token saved to localStorage")
+    }
+
+    // Try to get user info immediately after login to obtain org_id
+    try {
+      const userInfo = await authAPI.getCurrentUser()
+      console.log("User info retrieved:", userInfo)
+    } catch (err) {
+      console.log("Could not fetch user info immediately after login:", err)
     }
 
     return response
@@ -121,16 +229,21 @@ export const authAPI = {
    * @returns {Promise<{access_token: string, refresh_token: string, expires_in: number, token_type: string}>}
    */
   refreshToken: async () => {
-    const response = await apiRequest("/auth/refresh_token", {
+    const refreshToken = localStorage.getItem("refresh_token")
+
+    const response = await apiRequest("/api/auth/refresh", {
       method: "POST",
+      body: JSON.stringify({ refresh_token: refreshToken }),
     })
 
     // Update tokens
     if (response.access_token) {
       localStorage.setItem("access_token", response.access_token)
+      console.log("Access token refreshed")
     }
     if (response.refresh_token) {
       localStorage.setItem("refresh_token", response.refresh_token)
+      console.log("Refresh token updated")
     }
 
     return response
@@ -141,7 +254,7 @@ export const authAPI = {
    * @returns {Promise<{message: string}>}
    */
   logout: async () => {
-    const response = await apiRequest("/auth/logout", {
+    const response = await apiRequest("/api/auth/logout", {
       method: "POST",
     })
 
@@ -149,9 +262,12 @@ export const authAPI = {
     localStorage.removeItem("access_token")
     localStorage.removeItem("refresh_token")
     localStorage.removeItem("org_id")
+    localStorage.removeItem("user_id")
     localStorage.removeItem("current_user")
     localStorage.removeItem("user_info")
     localStorage.removeItem("orgColors")
+
+    console.log("User logged out, all tokens and data cleared")
 
     return response
   },
@@ -161,19 +277,57 @@ export const authAPI = {
    * @returns {Promise<{user: Object, claims: Object}>}
    */
   getCurrentUser: async () => {
-    const response = await apiRequest("/auth/me", {
+    const response = await apiRequest("/api/auth/me", {
       method: "GET",
     })
 
-    // Cache user info
-    if (response.user) {
-      localStorage.setItem("current_user", JSON.stringify(response.user))
-      if (response.user.organization_id) {
-        localStorage.setItem("org_id", response.user.organization_id)
-      }
+    // Cache user info (response is the user object directly)
+    localStorage.setItem("current_user", JSON.stringify(response))
+
+    // Save organization_id and user_id
+    if (response.organization_id) {
+      localStorage.setItem("org_id", response.organization_id)
+      console.log(
+        "Organization ID saved from user info:",
+        response.organization_id,
+      )
+    }
+    if (response.id) {
+      localStorage.setItem("user_id", response.id)
+      console.log("User ID saved:", response.id)
     }
 
     return response
+  },
+}
+
+// ============================================================================
+// PROFILE API
+// ============================================================================
+
+export const profileAPI = {
+  /**
+   * Get current user's profile
+   * @returns {Promise<{message: string, data: Object}>}
+   */
+  getProfile: async () => {
+    return apiRequest("/api/auth/profile", {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Change user password
+   * @param {Object} data
+   * @param {string} data.old_password - Current password
+   * @param {string} data.new_password - New password
+   * @returns {Promise<{message: string}>}
+   */
+  changePassword: async (data) => {
+    return apiRequest("/api/auth/profile/changepassword", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
   },
 }
 
@@ -188,22 +342,23 @@ export const staffingAPI = {
    */
   getStaffingSummary: async () => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing`, {
+    return apiRequest(`/api/${orgId}/staffing`, {
       method: "GET",
     })
   },
 
   /**
-   * Create a new employee/user
+   * Create a new employee/user (delegate)
    * @param {Object} data - Employee data
    * @param {string} data.email - Employee email
    * @param {string} data.full_name - Employee full name
-   * @param {string} data.role - Employee role (manager, staff)
+   * @param {string} data.role - Employee role
+   * @param {number} data.salary_per_hour - Salary per hour
    * @returns {Promise<{user_id: string, message: string}>}
    */
   createEmployee: async (data) => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing`, {
+    return apiRequest(`/api/${orgId}/staffing`, {
       method: "POST",
       body: JSON.stringify(data),
     })
@@ -215,7 +370,7 @@ export const staffingAPI = {
    */
   getAllEmployees: async () => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing/employees`, {
+    return apiRequest(`/api/${orgId}/staffing/employees`, {
       method: "GET",
     })
   },
@@ -227,7 +382,7 @@ export const staffingAPI = {
    */
   getEmployee: async (employeeId) => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing/employees/${employeeId}`, {
+    return apiRequest(`/api/${orgId}/staffing/employees/${employeeId}`, {
       method: "GET",
     })
   },
@@ -235,14 +390,12 @@ export const staffingAPI = {
   /**
    * Layoff an employee
    * @param {string} employeeId - Employee UUID
-   * @param {string} reason - Layoff reason (optional)
    * @returns {Promise<{employee_id: string, message: string}>}
    */
-  layoffEmployee: async (employeeId, reason = "") => {
+  layoffEmployee: async (employeeId) => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing/employees/${employeeId}/layoff`, {
+    return apiRequest(`/api/${orgId}/staffing/employees/${employeeId}/layoff`, {
       method: "DELETE",
-      body: JSON.stringify({ reason }),
     })
   },
 
@@ -256,7 +409,7 @@ export const staffingAPI = {
     const formData = new FormData()
     formData.append("file", file)
 
-    return apiRequest(`/${orgId}/staffing/upload`, {
+    return apiRequest(`/api/${orgId}/staffing/upload`, {
       method: "POST",
       contentType: null, // Let browser set it for FormData
       body: formData,
@@ -276,9 +429,12 @@ export const requestsAPI = {
    */
   getEmployeeRequests: async (employeeId) => {
     const orgId = getOrgId()
-    return apiRequest(`/${orgId}/staffing/employees/${employeeId}/requests`, {
-      method: "GET",
-    })
+    return apiRequest(
+      `/api/${orgId}/staffing/employees/${employeeId}/requests`,
+      {
+        method: "GET",
+      },
+    )
   },
 
   /**
@@ -290,7 +446,7 @@ export const requestsAPI = {
   approveRequest: async (employeeId, requestId) => {
     const orgId = getOrgId()
     return apiRequest(
-      `/${orgId}/staffing/employees/${employeeId}/requests/approve`,
+      `/api/${orgId}/staffing/employees/${employeeId}/requests/approve`,
       {
         method: "POST",
         body: JSON.stringify({ request_id: requestId }),
@@ -302,15 +458,16 @@ export const requestsAPI = {
    * Decline an employee request
    * @param {string} employeeId - Employee UUID
    * @param {string} requestId - Request UUID
+   * @param {string} reason - Optional reason for declining
    * @returns {Promise<{request_id: string, message: string}>}
    */
-  declineRequest: async (employeeId, requestId) => {
+  declineRequest: async (employeeId, requestId, reason = "") => {
     const orgId = getOrgId()
     return apiRequest(
-      `/${orgId}/staffing/employees/${employeeId}/requests/decline`,
+      `/api/${orgId}/staffing/employees/${employeeId}/requests/decline`,
       {
         method: "POST",
-        body: JSON.stringify({ request_id: requestId }),
+        body: JSON.stringify({ request_id: requestId, reason }),
       },
     )
   },
@@ -328,6 +485,144 @@ export const rolesAPI = {
   getAll: async () => {
     const orgId = getOrgId()
     return apiRequest(`/api/${orgId}/roles`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get specific role details
+   * @param {string} roleName - Role name
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  getRole: async (roleName) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/roles/${roleName}`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Create a new role
+   * @param {Object} data - Role data
+   * @param {string} data.role - Role name
+   * @param {number} data.min_needed_per_shift - Minimum needed per shift
+   * @param {number} data.items_per_role_per_hour - Items per role per hour (if need_for_demand is true)
+   * @param {boolean} data.need_for_demand - Whether role needs demand calculation
+   * @param {boolean} data.independent - Whether role is independent
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  createRole: async (data) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/roles`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * Update an existing role
+   * @param {string} roleName - Role name
+   * @param {Object} data - Updated role data
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  updateRole: async (roleName, data) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/roles/${roleName}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * Delete a role
+   * @param {string} roleName - Role name
+   * @returns {Promise<{message: string}>}
+   */
+  deleteRole: async (roleName) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/roles/${roleName}`, {
+      method: "DELETE",
+    })
+  },
+}
+
+// ============================================================================
+// RULES API
+// ============================================================================
+
+export const rulesAPI = {
+  /**
+   * Get organization's scheduling rules and operating hours
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  getRules: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/rules`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Create or update organization's scheduling rules
+   * @param {Object} data - Rules data
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  saveRules: async (data) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/rules`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+}
+
+// ============================================================================
+// PREFERENCES API
+// ============================================================================
+
+export const preferencesAPI = {
+  /**
+   * Get current user's preferences
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  getPreferences: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/preferences`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Update current user's preferences
+   * @param {Object} data - Preferences data
+   * @param {Array} data.preferences - Array of day preferences
+   * @param {Array} data.user_roles - Array of role names
+   * @param {number} data.max_hours_per_week - Maximum hours per week
+   * @param {number} data.preferred_hours_per_week - Preferred hours per week
+   * @param {number} data.max_consec_slots - Maximum consecutive slots
+   * @returns {Promise<{message: string}>}
+   */
+  savePreferences: async (data) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/preferences`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+}
+
+// ============================================================================
+// INSIGHTS API
+// ============================================================================
+
+export const insightsAPI = {
+  /**
+   * Get dashboard insights and statistics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/insights`, {
       method: "GET",
     })
   },
@@ -356,9 +651,13 @@ export const healthAPI = {
 
 const api = {
   auth: authAPI,
+  profile: profileAPI,
   staffing: staffingAPI,
   requests: requestsAPI,
   roles: rolesAPI,
+  rules: rulesAPI,
+  preferences: preferencesAPI,
+  insights: insightsAPI,
   health: healthAPI,
 }
 
