@@ -4,23 +4,30 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 // OrganizationRules represents the scheduling rules for an organization
 type OrganizationRules struct {
-	OrganizationID       uuid.UUID `json:"organization_id"`
-	ShiftMaxHours        int       `json:"shift_max_hours"`
-	ShiftMinHours        int       `json:"shift_min_hours"`
-	MaxWeeklyHours       int       `json:"max_weekly_hours"`
-	MinWeeklyHours       int       `json:"min_weekly_hours"`
-	FixedShifts          bool      `json:"fixed_shifts"`
-	NumberOfShiftsPerDay *int      `json:"number_of_shifts_per_day"`
-	MeetAllDemand        bool      `json:"meet_all_demand"`
-	MinRestSlots         int       `json:"min_rest_slots"`
-	SlotLenHour          float64   `json:"slot_len_hour"`
-	MinShiftLengthSlots  int       `json:"min_shift_length_slots"`
+	OrganizationID       uuid.UUID   `json:"organization_id"`
+	ShiftMaxHours        int         `json:"shift_max_hours"`
+	ShiftMinHours        int         `json:"shift_min_hours"`
+	MaxWeeklyHours       int         `json:"max_weekly_hours"`
+	MinWeeklyHours       int         `json:"min_weekly_hours"`
+	FixedShifts          bool        `json:"fixed_shifts"`
+	NumberOfShiftsPerDay *int        `json:"number_of_shifts_per_day"`
+	MeetAllDemand        bool        `json:"meet_all_demand"`
+	MinRestSlots         int         `json:"min_rest_slots"`
+	SlotLenHour          float64     `json:"slot_len_hour"`
+	MinShiftLengthSlots  int         `json:"min_shift_length_slots"`
+	ShiftTimes           []ShiftTime `json:"shift_times,omitempty"`
+}
+
+type ShiftTime struct {
+	StartTime time.Time `json:"from"`
+	EndTime   time.Time `json:"to"`
 }
 
 // RulesStore defines the interface for organization rules data operations
@@ -70,6 +77,14 @@ func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 		return err
 	}
 
+	// Handle shift times if fixed_shifts is true
+	if rules.FixedShifts && len(rules.ShiftTimes) > 0 {
+		if err := s.setShiftTimes(rules.OrganizationID, rules.ShiftTimes); err != nil {
+			s.Logger.Error("failed to set shift times", "error", err, "organization_id", rules.OrganizationID)
+			return err
+		}
+	}
+
 	s.Logger.Info("rules created", "organization_id", rules.OrganizationID)
 	return nil
 }
@@ -101,6 +116,16 @@ func (s *PostgresRulesStore) GetRulesByOrganizationID(orgID uuid.UUID) (*Organiz
 		}
 		s.Logger.Error("failed to get rules", "error", err, "organization_id", orgID)
 		return nil, err
+	}
+
+	// Fetch shift times if fixed_shifts is true
+	if rules.FixedShifts {
+		shiftTimes, err := s.getShiftTimes(orgID)
+		if err != nil {
+			s.Logger.Error("failed to get shift times", "error", err, "organization_id", orgID)
+			return nil, err
+		}
+		rules.ShiftTimes = shiftTimes
 	}
 
 	return &rules, nil
@@ -184,6 +209,71 @@ func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 		return err
 	}
 
+	// Handle shift times: save if fixed_shifts is true, delete otherwise
+	if rules.FixedShifts {
+		if err := s.setShiftTimes(rules.OrganizationID, rules.ShiftTimes); err != nil {
+			s.Logger.Error("failed to set shift times", "error", err, "organization_id", rules.OrganizationID)
+			return err
+		}
+	} else {
+		if err := s.deleteShiftTimes(rules.OrganizationID); err != nil {
+			s.Logger.Error("failed to delete shift times", "error", err, "organization_id", rules.OrganizationID)
+			return err
+		}
+	}
+
 	s.Logger.Info("rules upserted", "organization_id", rules.OrganizationID)
 	return nil
+}
+
+// getShiftTimes retrieves shift times for an organization
+func (s *PostgresRulesStore) getShiftTimes(orgID uuid.UUID) ([]ShiftTime, error) {
+	query := `SELECT start_time, end_time FROM organization_shift_times WHERE organization_id = $1 ORDER BY start_time`
+
+	rows, err := s.db.Query(query, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var shiftTimes []ShiftTime
+	for rows.Next() {
+		var st ShiftTime
+		if err := rows.Scan(&st.StartTime, &st.EndTime); err != nil {
+			return nil, err
+		}
+		shiftTimes = append(shiftTimes, st)
+	}
+
+	return shiftTimes, rows.Err()
+}
+
+// setShiftTimes replaces all shift times for an organization
+func (s *PostgresRulesStore) setShiftTimes(orgID uuid.UUID, shiftTimes []ShiftTime) error {
+	// Delete existing shift times
+	if err := s.deleteShiftTimes(orgID); err != nil {
+		return err
+	}
+
+	// Insert new shift times
+	if len(shiftTimes) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO organization_shift_times (organization_id, start_time, end_time) VALUES ($1, $2, $3)`
+	for _, st := range shiftTimes {
+		_, err := s.db.Exec(query, orgID, st.StartTime, st.EndTime)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// deleteShiftTimes removes all shift times for an organization
+func (s *PostgresRulesStore) deleteShiftTimes(orgID uuid.UUID) error {
+	query := `DELETE FROM organization_shift_times WHERE organization_id = $1`
+	_, err := s.db.Exec(query, orgID)
+	return err
 }

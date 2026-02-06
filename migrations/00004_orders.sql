@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS orders (
     organization_id UUID NOT NULL REFERENCES organizations(id),
     create_time TIMESTAMP NOT NULL,   
     order_type VARCHAR(10) NOT NULL CHECK (order_type IN ('delivery','takeaway','dine in')),
-    order_status VARCHAR(10) NOT NULL CHECK (order_status IN ('closed','cancelled')),
+    order_status VARCHAR(10) NOT NULL CHECK (order_status IN ('completed','incompleted')),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
     discount_amount DECIMAL(10,2) NOT NULL CHECK (discount_amount >= 0 AND total_amount - discount_amount >= 0),
     rating DECIMAL(10,2) 
