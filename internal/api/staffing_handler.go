@@ -83,7 +83,10 @@ func (h *StaffingHandler) GetStaffingSummary(c *gin.Context) {
 	}
 
 	h.Logger.Info("staffing summary retrieved", "org_id", user.OrganizationID, "total", len(employees))
-	c.JSON(http.StatusOK, summary)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Staffing summary retrieved successfully",
+		"data":    summary,
+	})
 }
 
 // UploadEmployeesCSV godoc

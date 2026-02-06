@@ -80,7 +80,10 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	}
 
 	h.Logger.Info("employee details retrieved", "employee_id", employeeID)
-	c.JSON(http.StatusOK, employee)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Employee details retrieved successfully",
+		"data":    employee,
+	})
 }
 
 // LayoffEmployee godoc
@@ -231,6 +234,7 @@ func (h *EmployeeHandler) GetEmployeeRequests(c *gin.Context) {
 
 	h.Logger.Info("employee requests retrieved", "employee_id", employeeID, "count", len(requests))
 	c.JSON(http.StatusOK, gin.H{
+		"message":  "Employee requests retrieved successfully",
 		"requests": requests,
 		"total":    len(requests),
 	})

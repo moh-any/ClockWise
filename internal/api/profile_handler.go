@@ -53,7 +53,10 @@ func (ph *ProfileHandler) GetProfileHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Profile retrieved successfully",
+		"data":    profile,
+	})
 }
 
 // ChangePasswordHandler godoc

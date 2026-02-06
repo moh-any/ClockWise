@@ -107,7 +107,6 @@ func authorizator() func(c *gin.Context, data any) bool {
 func unauthorized() func(c *gin.Context, code int, message string) {
 	return func(c *gin.Context, code int, message string) {
 		c.JSON(code, gin.H{
-			"code":    code,
 			"message": message,
 		})
 	}
