@@ -56,6 +56,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	preferencesStore := database.NewPostgresPreferencesStore(dbService.GetDB(), Logger)
 	rulesStore := database.NewPostgresRulesStore(dbService.GetDB(), Logger)
 	rolesStore := database.NewPostgresRolesStore(dbService.GetDB(), Logger)
+	userRolesStore := database.NewPostgresUserRolesStore(dbService.GetDB(), Logger)
+	operatingHoursStore := database.NewPostgresOperatingHoursStore(dbService.GetDB(), Logger)
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB()}
 
 	// Services
@@ -63,11 +65,11 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	uploadService := service.NewCSVUploadService(Logger)
 
 	// Handlers for Endpoints
-	orgHandler := api.NewOrgHandler(orgStore, userStore, emailService, Logger)
+	orgHandler := api.NewOrgHandler(orgStore, userStore, userRolesStore, rolesStore, emailService, Logger)
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, requestStore, Logger)
-	preferencesHandler := api.NewPreferencesHandler(preferencesStore, Logger)
-	rulesHandler := api.NewRulesHandler(rulesStore, Logger)
+	preferencesHandler := api.NewPreferencesHandler(preferencesStore, userRolesStore, userStore, rolesStore, Logger)
+	rulesHandler := api.NewRulesHandler(rulesStore, operatingHoursStore, Logger)
 	rolesHandler := api.NewRolesHandler(rolesStore, Logger)
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	profileHandler := api.NewProfileHandler(userStore, Logger)

@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users(
     user_role VARCHAR(50), -- Main Role
     salary_per_hour DECIMAL(10,2) CHECK((user_role = 'admin' AND salary_per_hour IS NULL) OR (user_role != 'admin' AND salary_per_hour IS NOT NULL)), 
     max_hours_per_week INTEGER,
-    perfered_hours_per_week INTEGER,
+    preferred_hours_per_week INTEGER,
     max_consec_slots INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -29,5 +29,6 @@ CREATE TABLE IF NOT EXISTS user_roles (
 -- +goose Down
 -- +goose StatementBegin
 DROP TABLE users;
+DROP TABLE user_roles;
 DROP EXTENSION IF EXISTS "uuid-ossp";
 -- +goose StatementEnd

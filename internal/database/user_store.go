@@ -48,15 +48,18 @@ func (p *Password) Matches(plaintextPassword string) (bool, error) {
 }
 
 type User struct {
-	ID             uuid.UUID `json:"id"`
-	FullName       string    `json:"full_name"`
-	Email          string    `json:"email"`
-	PasswordHash   Password  `json:"-"`
-	UserRole       string    `json:"user_role"`
-	SalaryPerHour  *float64  `json:"salary_per_hour,omitempty"`
-	OrganizationID uuid.UUID `json:"organization_id"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID                    uuid.UUID `json:"id"`
+	FullName              string    `json:"full_name"`
+	Email                 string    `json:"email"`
+	PasswordHash          Password  `json:"-"`
+	UserRole              string    `json:"user_role"`
+	SalaryPerHour         *float64  `json:"salary_per_hour,omitempty"`
+	OrganizationID        uuid.UUID `json:"organization_id"`
+	MaxHoursPerWeek       *int      `json:"max_hours_per_week,omitempty"`
+	PreferredHoursPerWeek *int      `json:"preferred_hours_per_week,omitempty"`
+	MaxConsecSlots        *int      `json:"max_consec_slots,omitempty"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
 }
 
 var AnonymousUser = &User{}
@@ -112,15 +115,20 @@ func (pgus *PostgresUserStore) CreateUser(user *User) error {
 
 	query :=
 		`insert into users
-	(id, full_name, email, password_hash, user_role, organization_id, salary_per_hour ,created_at, updated_at) 
-	values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id, created_at, updated_at`
+	(id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at) 
+	values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id, created_at, updated_at`
 
 	err := pgus.db.QueryRow(query,
-
+		user.ID,
+		user.FullName,
+		user.Email,
 		user.PasswordHash.hash,
 		user.UserRole,
 		user.OrganizationID,
 		user.SalaryPerHour,
+		user.MaxHoursPerWeek,
+		user.PreferredHoursPerWeek,
+		user.MaxConsecSlots,
 		user.CreatedAt,
 		user.UpdatedAt,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
@@ -135,7 +143,7 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 	var user User
 	query :=
 		`select 
-	id, full_name, email, password_hash, user_role, organization_id, salary_per_hour,created_at, updated_at 
+	id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
 	from users where email=$1`
 
 	var hash []byte
@@ -148,6 +156,9 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 		&user.UserRole,
 		&user.OrganizationID,
 		&user.SalaryPerHour,
+		&user.MaxHoursPerWeek,
+		&user.PreferredHoursPerWeek,
+		&user.MaxConsecSlots,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -161,9 +172,9 @@ func (pgus *PostgresUserStore) GetUserByEmail(email string) (*User, error) {
 func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 	query :=
 		`update users 
-	set full_name=$1, email=$2, user_role=$3, organization_id=$4, salary_per_hour=$5, updated_at=CURRENT_TIMESTAMP where id=$6 
+	set full_name=$1, email=$2, user_role=$3, organization_id=$4, salary_per_hour=$5, max_hours_per_week=$6, preferred_hours_per_week=$7, max_consec_slots=$8, updated_at=CURRENT_TIMESTAMP where id=$9 
 	returning updated_at`
-	res, err := pgus.db.Exec(query, user.FullName, user.Email, user.UserRole, user.OrganizationID, user.SalaryPerHour, user.ID)
+	res, err := pgus.db.Exec(query, user.FullName, user.Email, user.UserRole, user.OrganizationID, user.SalaryPerHour, user.MaxHoursPerWeek, user.PreferredHoursPerWeek, user.MaxConsecSlots, user.ID)
 	if err != nil {
 		return err
 	}
@@ -179,7 +190,7 @@ func (pgus *PostgresUserStore) UpdateUser(user *User) error {
 
 func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 	var user User
-	query := `SELECT id, full_name, email, password_hash, user_role, organization_id, salary_per_hour,created_at, updated_at 
+	query := `SELECT id, full_name, email, password_hash, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
 		FROM users WHERE id=$1`
 
 	var hash []byte
@@ -191,6 +202,9 @@ func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 		&user.UserRole,
 		&user.OrganizationID,
 		&user.SalaryPerHour,
+		&user.MaxHoursPerWeek,
+		&user.PreferredHoursPerWeek,
+		&user.MaxConsecSlots,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -202,7 +216,7 @@ func (pgus *PostgresUserStore) GetUserByID(id uuid.UUID) (*User, error) {
 }
 
 func (pgus *PostgresUserStore) GetUsersByOrganization(orgID uuid.UUID) ([]*User, error) {
-	query := `SELECT id, full_name, email, user_role, organization_id, salary_per_hour ,created_at,updated_at 
+	query := `SELECT id, full_name, email, user_role, organization_id, salary_per_hour, max_hours_per_week, preferred_hours_per_week, max_consec_slots, created_at, updated_at 
 		FROM users WHERE organization_id=$1 ORDER BY created_at DESC`
 
 	rows, err := pgus.db.Query(query, orgID)
@@ -221,6 +235,9 @@ func (pgus *PostgresUserStore) GetUsersByOrganization(orgID uuid.UUID) ([]*User,
 			&user.UserRole,
 			&user.OrganizationID,
 			&user.SalaryPerHour,
+			&user.MaxHoursPerWeek,
+			&user.PreferredHoursPerWeek,
+			&user.MaxConsecSlots,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
@@ -309,17 +326,17 @@ func (pgus *PostgresUserStore) GetProfile(id uuid.UUID) (*UserProfile, error) {
 			u.salary_per_hour,
 			o.name as organization,
 			u.created_at,
-			COALESCE(SUM(EXTRACT(EPOCH FROM (us.shift_end_time - us.shift_start_time)) / 3600), 0) as total_hours,
+			COALESCE(SUM(EXTRACT(EPOCH FROM (s.end_hour - s.start_hour)) / 3600), 0) as total_hours,
 			COALESCE(SUM(
 				CASE 
-					WHEN us.shift_start_time >= date_trunc('week', CURRENT_DATE) 
-					THEN EXTRACT(EPOCH FROM (us.shift_end_time - us.shift_start_time)) / 3600
+					WHEN s.schedule_date >= date_trunc('week', CURRENT_DATE) 
+					THEN EXTRACT(EPOCH FROM (s.end_hour - s.start_hour)) / 3600
 					ELSE 0 
 				END
 			), 0) as week_hours
 		FROM users u
 		JOIN organizations o ON u.organization_id = o.id
-		LEFT JOIN users_shifts us ON u.id = us.user_id AND us.shift_end_time <= CURRENT_TIMESTAMP
+		LEFT JOIN schedules s ON u.id = s.employee_id AND (s.schedule_date + s.end_hour) <= CURRENT_TIMESTAMP
 		WHERE u.id = $1
 		GROUP BY u.id, u.full_name, u.email, u.user_role, u.salary_per_hour, o.name, u.created_at
 	`

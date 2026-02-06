@@ -74,9 +74,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 		})
 	})
 
-	// Profile Management
-	api.GET("/profile", s.profileHandler.GetProfileHandler)
-	api.POST("/profile/changepassword", s.profileHandler.ChangePasswordHandler)
+	// Profile Management (protected)
+	auth.GET("/profile", s.profileHandler.GetProfileHandler)
+	auth.POST("/profile/changepassword", s.profileHandler.ChangePasswordHandler)
 
 	// Role management
 	organization := api.Group("/:org")

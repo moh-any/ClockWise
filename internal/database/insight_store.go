@@ -82,10 +82,10 @@ const (
 	queryAverageOrdersPerDay = `
 		SELECT COALESCE(AVG(daily_count), 0)
 		FROM (
-			SELECT DATE(request_date) as order_date, COUNT(*) as daily_count
+			SELECT DATE(create_time) as order_date, COUNT(*) as daily_count
 			FROM orders
 			WHERE organization_id = $1
-			GROUP BY DATE(request_date)
+			GROUP BY DATE(create_time)
 		) AS daily_orders
 	`
 
@@ -94,7 +94,7 @@ const (
 		SELECT COUNT(*) 
 		FROM orders 
 		WHERE organization_id = $1 
-		AND DATE(request_date) = CURRENT_DATE
+		AND DATE(create_time) = CURRENT_DATE
 	`
 
 	// Total Revenue (sum of item prices for all orders)
@@ -110,10 +110,10 @@ const (
 	queryEmployeesPerRoleCurrentShift = `
 		SELECT u.user_role, COUNT(*) as count
 		FROM users u
-		JOIN users_shifts us ON u.id = us.user_id
+		JOIN schedules s ON u.id = s.employee_id
 		WHERE u.organization_id = $1 
-		AND us.shift_start_time <= $2 
-		AND us.shift_end_time >= $2
+		AND (s.schedule_date + s.start_hour) <= $2 
+		AND (s.schedule_date + s.end_hour) >= $2
 		GROUP BY u.user_role
 	`
 
@@ -131,10 +131,10 @@ const (
 
 	// Number of orders per type (dine in, delivery, takeaway)
 	queryOrdersPerType = `
-		SELECT order_location_status, COUNT(*) as count
+		SELECT order_type, COUNT(*) as count
 		FROM orders
 		WHERE organization_id = $1
-		GROUP BY order_location_status
+		GROUP BY order_type
 	`
 
 	// Manager Salary
@@ -149,8 +149,8 @@ const (
 		SELECT COUNT(*)
 		FROM orders
 		WHERE organization_id = $1
-		AND order_location_status = 'delivery'
-		AND DATE(request_date) = CURRENT_DATE
+		AND order_type = 'delivery'
+		AND DATE(create_time) = CURRENT_DATE
 	`
 
 	// Employee/User Role
@@ -164,20 +164,20 @@ const (
 	queryManagersInCurrentShift = `
 		SELECT u.full_name
 		FROM users u
-		JOIN users_shifts us ON u.id = us.user_id
-		JOIN organizations_managers om ON u.id = om.manager_id AND u.organization_id = om.organization_id
+		JOIN schedules s ON u.id = s.employee_id
 		WHERE u.organization_id = $1
-		AND us.shift_start_time <= $2
-		AND us.shift_end_time >= $2
+		AND u.user_role = 'manager'
+		AND (s.schedule_date + s.start_hour) <= $2
+		AND (s.schedule_date + s.end_hour) >= $2
 	`
 
 	// Number of orders per type today
 	queryOrdersPerTypeToday = `
-		SELECT order_location_status, COUNT(*) as count
+		SELECT order_type, COUNT(*) as count
 		FROM orders
 		WHERE organization_id = $1
-		AND DATE(request_date) = CURRENT_DATE
-		GROUP BY order_location_status
+		AND DATE(create_time) = CURRENT_DATE
+		GROUP BY order_type
 	`
 )
 
@@ -538,7 +538,7 @@ func (pgis *PostgresInsightStore) GetInsightsForEmployee(org_id, employee_id uui
 		- Employee Salary
 		- Employee Role
 		- Number of tables
-		- Manager Currently in Shift from users_shifts tables
+		- Manager Currently in Shift from schedules table
 		- Number of people can be served by tables (Max)
 		- Number of people currently at tables
 		- Number of orders served today
