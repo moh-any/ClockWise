@@ -10,8 +10,8 @@ import os
 import json
 from typing import Dict, Optional, List
 from datetime import datetime
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from google import genai
+from google.genai import types
 
 
 class GeminiSurgeAnalyzer:
@@ -35,21 +35,21 @@ class GeminiSurgeAnalyzer:
                 "Get free key at: https://makersuite.google.com/app/apikey"
             )
         
-        # Configure Gemini
-        genai.configure(api_key=self.api_key)
+        # Configure Gemini client
+        self.client = genai.Client(api_key=self.api_key)
         
         # Try multiple model names in order of preference
         # Model names that work as of 2026
         self.model_names_to_try = [
-            'gemini-pro',                    # Most reliable, widely available
-            'gemini-2.5-flash',              # Newer, faster
-            'models/gemini-pro',             # With models/ prefix
+            'gemini-2.0-flash-exp',          # Latest experimental
+            'gemini-1.5-flash',              # Fast and efficient
             'gemini-1.5-pro',                # Pro version
+            'gemini-pro',                    # Legacy fallback
         ]
         
         # Start with the first model (will fallback during use if needed)
         self.current_model_index = 0
-        self.model = genai.GenerativeModel(self.model_names_to_try[0])
+        self.current_model = self.model_names_to_try[0]
         
         # Track usage for monitoring
         self.call_count = 0
@@ -103,20 +103,25 @@ class GeminiSurgeAnalyzer:
                 try:
                     if attempt > 0:
                         print(f"   Trying alternative model: {model_name}")
-                        self.model = genai.GenerativeModel(model_name)
+                        self.current_model = model_name
                     
-                    response = self.model.generate_content(
-                        prompt,
-                        generation_config=genai.types.GenerationConfig(
+                    response = self.client.models.generate_content(
+                        model=self.current_model,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
                             temperature=0.3,
-                            max_output_tokens=100000,  # Increased from 500 to ensure complete responses
-                        ),
-                        safety_settings={
-                            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                        }
+                            max_output_tokens=2000,
+                            safety_settings=[
+                                types.SafetySetting(
+                                    category='HARM_CATEGORY_HATE_SPEECH',
+                                    threshold='BLOCK_NONE'
+                                ),
+                                types.SafetySetting(
+                                    category='HARM_CATEGORY_DANGEROUS_CONTENT',
+                                    threshold='BLOCK_NONE'
+                                ),
+                            ]
+                        )
                     )
                     
                     # Check if response was blocked or incomplete
@@ -147,11 +152,11 @@ class GeminiSurgeAnalyzer:
             
             # Track token usage (informational, not billed)
             if hasattr(response, 'usage_metadata'):
-                self.total_tokens += response.usage_metadata.total_token_count
+                self.total_tokens += getattr(response.usage_metadata, 'total_token_count', 0)
             
             # Parse response
             result = self._parse_response(response.text)
-            result['model_used'] = self.model._model_name if hasattr(self.model, '_model_name') else 'gemini'
+            result['model_used'] = self.current_model
             result['call_number'] = self.call_count
             
             return result

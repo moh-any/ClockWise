@@ -28,7 +28,7 @@ pytrends==4.9.2         # Google Trends API (free)
 twilio==8.10.0          # SMS and voice alerts
 # sendgrid==6.11.0      # Email alerts (uncomment if needed)
 # anthropic==0.7.0      # LLM analysis - PAID (uncomment if needed)
-google-generativeai==0.3.2  # Gemini LLM analysis - FREE tier (1500/day)
+google-genai            # Gemini LLM analysis - FREE tier (NEW package)
 
 # Development
 jupyter==1.0.0

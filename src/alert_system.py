@@ -37,7 +37,7 @@ class AlertDispatcher:
         # Initialize LLM analyzer if enabled and API key available
         if enable_llm and os.getenv('GEMINI_API_KEY'):
             try:
-                from llm_analyzer_gemini import GeminiSurgeAnalyzer
+                from src.llm_analyzer_gemini import GeminiSurgeAnalyzer
                 self.llm_analyzer = GeminiSurgeAnalyzer()
                 print("✅ LLM analyzer enabled (FREE Gemini)")
             except Exception as e:

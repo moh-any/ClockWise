@@ -237,8 +237,8 @@ class RealTimeDataCollector:
                 # Build feature vector matching training format
                 features = self._build_feature_vector(place_id, timestamp)
                 
-                # Make prediction
-                pred = self.model.predict(features.reshape(1, -1))
+                # Make prediction (features is now a DataFrame)
+                pred = self.model.predict(features)
                 
                 predictions[timestamp] = {
                     'item_count_pred': float(pred[0][0]),
@@ -292,9 +292,13 @@ class RealTimeDataCollector:
         # 5. Get weather features (external API)
         weather_features = self._get_weather_features(timestamp)
         
-        # Construct feature vector - ORDER MUST MATCH MODEL TRAINING
+        # Construct feature vector - ORDER MUST MATCH MODEL TRAINING (34 features)
         feature_dict = {
             'place_id': float(place_id),
+            'hour': float(hour),
+            'day_of_week': float(day_of_week),
+            'month': float(month),
+            'week_of_year': float(week_of_year),
             'type_id': venue_features['type_id'],
             'waiting_time': venue_features['waiting_time'],
             'rating': venue_features['rating'],
@@ -302,27 +306,32 @@ class RealTimeDataCollector:
             'accepting_orders': venue_features['accepting_orders'],
             'total_campaigns': campaign_features['total_campaigns'],
             'avg_discount': campaign_features['avg_discount'],
-            'day_of_week': float(day_of_week),
-            'month': float(month),
-            'week_of_year': float(week_of_year),
-            'hour': float(hour),
             'prev_hour_items': lag_features['prev_hour_items'],
             'prev_day_items': lag_features['prev_day_items'],
             'prev_week_items': lag_features['prev_week_items'],
             'prev_month_items': lag_features['prev_month_items'],
             'rolling_7d_avg_items': lag_features['rolling_7d_avg_items'],
-            'is_holiday': float(is_holiday),
             'temperature_2m': weather_features['temperature_2m'],
             'relative_humidity_2m': weather_features['relative_humidity_2m'],
             'precipitation': weather_features['precipitation'],
             'rain': weather_features['rain'],
             'snowfall': weather_features['snowfall'],
+            'weather_code': weather_features['weather_code'],
             'cloud_cover': weather_features['cloud_cover'],
             'wind_speed_10m': weather_features['wind_speed_10m'],
-            'weather_severity': weather_features['weather_severity']
+            'is_rainy': weather_features['is_rainy'],
+            'is_snowy': weather_features['is_snowy'],
+            'is_cold': weather_features['is_cold'],
+            'is_hot': weather_features['is_hot'],
+            'is_cloudy': weather_features['is_cloudy'],
+            'is_windy': weather_features['is_windy'],
+            'good_weather': weather_features['good_weather'],
+            'weather_severity': weather_features['weather_severity'],
+            'is_holiday': float(is_holiday)
         }
         
-        return np.array([list(feature_dict.values())])
+        # Return as DataFrame with column names (required by ColumnTransformer)
+        return pd.DataFrame([feature_dict])
     
     def _extract_venue_features(self, bulk_data: Optional[Dict]) -> Dict[str, float]:
         """
@@ -493,6 +502,7 @@ class RealTimeDataCollector:
         Get weather features from weather API or use fallback defaults.
         
         Uses Open-Meteo API via weather_api module.
+        Returns all 16 weather features to match model training.
         """
         try:
             from src.weather_api import WeatherAPI
@@ -515,7 +525,7 @@ class RealTimeDataCollector:
             ]
             
             if not weather_df.empty:
-                # Add derived features
+                # Add derived features (is_rainy, is_snowy, etc.)
                 weather_df = weather_api.add_weather_features(weather_df)
                 
                 row = weather_df.iloc[0]
@@ -525,8 +535,16 @@ class RealTimeDataCollector:
                     'precipitation': float(row.get('precipitation', 0.0)),
                     'rain': float(row.get('rain', 0.0)),
                     'snowfall': float(row.get('snowfall', 0.0)),
+                    'weather_code': float(row.get('weather_code', 0.0)),
                     'cloud_cover': float(row.get('cloud_cover', 50.0)),
                     'wind_speed_10m': float(row.get('wind_speed_10m', 5.0)),
+                    'is_rainy': float(row.get('is_rainy', 0.0)),
+                    'is_snowy': float(row.get('is_snowy', 0.0)),
+                    'is_cold': float(row.get('is_cold', 0.0)),
+                    'is_hot': float(row.get('is_hot', 0.0)),
+                    'is_cloudy': float(row.get('is_cloudy', 0.0)),
+                    'is_windy': float(row.get('is_windy', 0.0)),
+                    'good_weather': float(row.get('good_weather', 0.0)),
                     'weather_severity': float(row.get('weather_severity', 0.0))
                 }
         
@@ -540,8 +558,16 @@ class RealTimeDataCollector:
             'precipitation': 0.0,
             'rain': 0.0,
             'snowfall': 0.0,
+            'weather_code': 0.0,
             'cloud_cover': 50.0,
             'wind_speed_10m': 5.0,
+            'is_rainy': 0.0,
+            'is_snowy': 0.0,
+            'is_cold': 0.0,
+            'is_hot': 0.0,
+            'is_cloudy': 0.0,
+            'is_windy': 0.0,
+            'good_weather': 1.0,
             'weather_severity': 0.0
         }
     
