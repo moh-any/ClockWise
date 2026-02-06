@@ -17,8 +17,9 @@ import (
 )
 
 type Server struct {
-	port               int
-	db                 database.Service
+	port int
+	db   database.Service
+
 	orgHandler         *api.OrgHandler
 	staffingHandler    *api.StaffingHandler
 	employeeHandler    *api.EmployeeHandler
@@ -30,13 +31,17 @@ type Server struct {
 	orderHandler       *api.OrderHandler
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
-	userStore          database.UserStore
-	orgStore           database.OrgStore
-	requestStore       database.RequestStore
-	preferencesStore   database.PreferencesStore
-	rulesStore         database.RulesStore
-	rolesStore         database.RolesStore
-	orderStore         database.OrderStore
+	campaignHandler    *api.CampaignHandler
+
+	userStore        database.UserStore
+	orgStore         database.OrgStore
+	requestStore     database.RequestStore
+	preferencesStore database.PreferencesStore
+	rulesStore       database.RulesStore
+	rolesStore       database.RolesStore
+	orderStore       database.OrderStore
+	campaignStore    database.CampaignStore
+	demandStore      database.DemandStore
 
 	Logger *slog.Logger
 }
@@ -65,6 +70,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	operatingHoursStore := database.NewPostgresOperatingHoursStore(dbService.GetDB(), Logger)
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB(), Logger: Logger}
 	orderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
+	campaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
+	demandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
@@ -82,16 +89,21 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orderHandler := api.NewOrderHandler(orderStore, uploadService, Logger)
 	dashboardHandler := api.NewDashboardHandler(Logger)
 	scheduleHandler := api.NewScheduleHandler(Logger)
+	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, Logger)
 
 	NewServer := &Server{
-		port:               port,
-		db:                 dbService,
-		userStore:          userStore,
-		orgStore:           orgStore,
-		requestStore:       requestStore,
-		preferencesStore:   preferencesStore,
-		rulesStore:         rulesStore,
-		rolesStore:         rolesStore,
+		port: port,
+		db:   dbService,
+
+		userStore:        userStore,
+		orgStore:         orgStore,
+		requestStore:     requestStore,
+		preferencesStore: preferencesStore,
+		rulesStore:       rulesStore,
+		rolesStore:       rolesStore,
+		campaignStore:    campaignStore,
+		demandStore:      demandStore,
+
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
 		employeeHandler:    employeeHandler,
@@ -103,7 +115,9 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		orderHandler:       orderHandler,
 		dashboardHandler:   dashboardHandler,
 		scheduleHandler:    scheduleHandler,
-		Logger:             Logger,
+		campaignHandler:    campaignHandler,
+
+		Logger: Logger,
 	}
 
 	// Declare Server config
@@ -111,8 +125,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		Addr:         fmt.Sprintf(":%d", NewServer.port),
 		Handler:      NewServer.RegisterRoutes(),
 		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  20 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
 	return server
