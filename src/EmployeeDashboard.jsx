@@ -60,7 +60,15 @@ function EmployeeDashboard() {
     { id: "profile", label: "Profile", icon: InfoIcon },
   ]
 
-  const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ]
   const daysShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
   const getContrastColor = (hexColor) => {
@@ -85,21 +93,30 @@ function EmployeeDashboard() {
       setAccentColor(accent)
 
       // Set scoped CSS variables for Employee Dashboard
-      const empDashboard = document.querySelector('.employee-dashboard-wrapper')
+      const empDashboard = document.querySelector(".employee-dashboard-wrapper")
       if (empDashboard) {
         empDashboard.style.setProperty("--emp-color-primary", primary)
         empDashboard.style.setProperty("--emp-color-secondary", secondary)
         empDashboard.style.setProperty("--emp-color-accent", accent)
-        empDashboard.style.setProperty("--emp-primary-contrast", getContrastColor(primary))
-        empDashboard.style.setProperty("--emp-secondary-contrast", getContrastColor(secondary))
-        empDashboard.style.setProperty("--emp-accent-contrast", getContrastColor(accent))
+        empDashboard.style.setProperty(
+          "--emp-primary-contrast",
+          getContrastColor(primary),
+        )
+        empDashboard.style.setProperty(
+          "--emp-secondary-contrast",
+          getContrastColor(secondary),
+        )
+        empDashboard.style.setProperty(
+          "--emp-accent-contrast",
+          getContrastColor(accent),
+        )
       }
     }
   }, [])
 
   useEffect(() => {
     // Apply dark mode class to employee dashboard only
-    const empDashboard = document.querySelector('.employee-dashboard-wrapper')
+    const empDashboard = document.querySelector(".employee-dashboard-wrapper")
     if (empDashboard) {
       if (darkMode) {
         empDashboard.classList.add("dark-mode")
@@ -246,7 +263,7 @@ function EmployeeDashboard() {
   const handlePreferenceChange = (day, field, value) => {
     const updatedPreferences = [...preferences]
     const dayPref = updatedPreferences.find((p) => p.day === day)
-    
+
     if (dayPref) {
       dayPref[field] = value
     } else {
@@ -259,7 +276,42 @@ function EmployeeDashboard() {
         available_end_time: "",
       })
     }
-    
+
+    setPreferences(updatedPreferences)
+  }
+
+  // Check if a day has all time fields filled
+  const isDayFullyFilled = (dayPref) => {
+    return (
+      dayPref &&
+      dayPref.preferred_start_time &&
+      dayPref.preferred_end_time &&
+      dayPref.available_start_time &&
+      dayPref.available_end_time
+    )
+  }
+
+  // Check if any day is fully filled
+  const isAnyDayFullyFilled = () => {
+    return preferences.some(isDayFullyFilled)
+  }
+
+  // Copy first fully filled day to all days
+  const handleApplyToAllDays = () => {
+    const fullyFilledDay = preferences.find(isDayFullyFilled)
+
+    if (!fullyFilledDay) {
+      return
+    }
+
+    const updatedPreferences = days.map((day) => ({
+      day,
+      preferred_start_time: fullyFilledDay.preferred_start_time,
+      preferred_end_time: fullyFilledDay.preferred_end_time,
+      available_start_time: fullyFilledDay.available_start_time,
+      available_end_time: fullyFilledDay.available_end_time,
+    }))
+
     setPreferences(updatedPreferences)
   }
 
@@ -271,7 +323,7 @@ function EmployeeDashboard() {
     try {
       // Filter out empty preferences
       const validPreferences = preferences.filter(
-        (p) => p.preferred_start_time && p.preferred_end_time
+        (p) => p.preferred_start_time && p.preferred_end_time,
       )
 
       await api.preferences.update({
@@ -306,7 +358,9 @@ function EmployeeDashboard() {
     <div className="premium-content fade-in">
       <div className="content-header">
         <div>
-          <h1 className="page-title">Welcome Back, {currentUser?.full_name?.split(" ")[0] || "Employee"}</h1>
+          <h1 className="page-title">
+            Welcome Back, {currentUser?.full_name?.split(" ")[0] || "Employee"}
+          </h1>
           <p className="page-subtitle">Your personal workspace dashboard</p>
         </div>
       </div>
@@ -317,13 +371,17 @@ function EmployeeDashboard() {
           <div className="kpi-card">
             <div className="kpi-content">
               <div className="kpi-label">Hours Worked This Week</div>
-              <div className="kpi-value">{profileData.hours_worked_this_week || "0"} hrs</div>
+              <div className="kpi-value">
+                {profileData.hours_worked_this_week || "0"} hrs
+              </div>
             </div>
           </div>
           <div className="kpi-card">
             <div className="kpi-content">
               <div className="kpi-label">Total Hours Worked</div>
-              <div className="kpi-value">{profileData.hours_worked || "0"} hrs</div>
+              <div className="kpi-value">
+                {profileData.hours_worked || "0"} hrs
+              </div>
             </div>
           </div>
           <div className="kpi-card">
@@ -413,9 +471,11 @@ function EmployeeDashboard() {
       <div className="content-header">
         <div>
           <h1 className="page-title">Work Preferences</h1>
-          <p className="page-subtitle">Manage your availability and work preferences</p>
+          <p className="page-subtitle">
+            Manage your availability and work preferences
+          </p>
         </div>
-        <button 
+        <button
           className="btn-primary"
           onClick={handleSavePreferences}
           disabled={preferencesLoading}
@@ -425,13 +485,19 @@ function EmployeeDashboard() {
       </div>
 
       {preferencesError && (
-        <div className="alert alert-error" style={{ marginBottom: "var(--emp-space-4)" }}>
+        <div
+          className="alert alert-error"
+          style={{ marginBottom: "var(--emp-space-4)" }}
+        >
           {preferencesError}
         </div>
       )}
 
       {preferencesSuccess && (
-        <div className="alert alert-success" style={{ marginBottom: "var(--emp-space-4)" }}>
+        <div
+          className="alert alert-success"
+          style={{ marginBottom: "var(--emp-space-4)" }}
+        >
           {preferencesSuccess}
         </div>
       )}
@@ -445,7 +511,9 @@ function EmployeeDashboard() {
             <label className="form-label">Roles You Can Perform</label>
             <div className="roles-checkboxes">
               {roles
-                .filter((role) => role.role !== "admin" && role.role !== "manager")
+                .filter(
+                  (role) => role.role !== "admin" && role.role !== "manager",
+                )
                 .map((role) => (
                   <label key={role.role} className="checkbox-label">
                     <input
@@ -484,7 +552,9 @@ function EmployeeDashboard() {
                 type="number"
                 className="form-input"
                 value={preferredHoursPerWeek}
-                onChange={(e) => setPreferredHoursPerWeek(parseInt(e.target.value))}
+                onChange={(e) =>
+                  setPreferredHoursPerWeek(parseInt(e.target.value))
+                }
                 min="0"
                 max="168"
               />
@@ -519,9 +589,24 @@ function EmployeeDashboard() {
         </div>
       </div>
 
-      <div className="section-wrapper" style={{ marginTop: "var(--emp-space-6)" }}>
+      <div
+        className="section-wrapper"
+        style={{ marginTop: "var(--emp-space-6)" }}
+      >
         <div className="section-header">
           <h2 className="section-title">Weekly Availability</h2>
+          <button
+            className="btn-apply-all"
+            onClick={handleApplyToAllDays}
+            disabled={!isAnyDayFullyFilled()}
+            title={
+              !isAnyDayFullyFilled()
+                ? "Fill out one complete day first"
+                : "Apply first complete day to all days"
+            }
+          >
+            Apply to All Days
+          </button>
         </div>
         <div className="preferences-table">
           {days.map((day, index) => {
@@ -537,7 +622,11 @@ function EmployeeDashboard() {
                       className="form-input"
                       value={dayPref?.preferred_start_time || ""}
                       onChange={(e) =>
-                        handlePreferenceChange(day, "preferred_start_time", e.target.value)
+                        handlePreferenceChange(
+                          day,
+                          "preferred_start_time",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
@@ -548,7 +637,11 @@ function EmployeeDashboard() {
                       className="form-input"
                       value={dayPref?.preferred_end_time || ""}
                       onChange={(e) =>
-                        handlePreferenceChange(day, "preferred_end_time", e.target.value)
+                        handlePreferenceChange(
+                          day,
+                          "preferred_end_time",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
@@ -559,7 +652,11 @@ function EmployeeDashboard() {
                       className="form-input"
                       value={dayPref?.available_start_time || ""}
                       onChange={(e) =>
-                        handlePreferenceChange(day, "available_start_time", e.target.value)
+                        handlePreferenceChange(
+                          day,
+                          "available_start_time",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
@@ -570,7 +667,11 @@ function EmployeeDashboard() {
                       className="form-input"
                       value={dayPref?.available_end_time || ""}
                       onChange={(e) =>
-                        handlePreferenceChange(day, "available_end_time", e.target.value)
+                        handlePreferenceChange(
+                          day,
+                          "available_end_time",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
@@ -588,7 +689,9 @@ function EmployeeDashboard() {
       <div className="content-header">
         <div>
           <h1 className="page-title">My Profile</h1>
-          <p className="page-subtitle">View and manage your profile information</p>
+          <p className="page-subtitle">
+            View and manage your profile information
+          </p>
         </div>
       </div>
 
@@ -611,7 +714,9 @@ function EmployeeDashboard() {
           </div>
           <div className="info-item">
             <div className="info-label">Organization</div>
-            <div className="info-value">{profileData?.organization || "N/A"}</div>
+            <div className="info-value">
+              {profileData?.organization || "N/A"}
+            </div>
           </div>
           {profileData?.salary_per_hour && (
             <div className="info-item">
@@ -622,7 +727,7 @@ function EmployeeDashboard() {
           <div className="info-item">
             <div className="info-label">Member Since</div>
             <div className="info-value">
-              {profileData?.created_at 
+              {profileData?.created_at
                 ? new Date(profileData.created_at).toLocaleDateString()
                 : "N/A"}
             </div>
@@ -630,7 +735,10 @@ function EmployeeDashboard() {
         </div>
       </div>
 
-      <div className="section-wrapper" style={{ marginTop: "var(--emp-space-6)" }}>
+      <div
+        className="section-wrapper"
+        style={{ marginTop: "var(--emp-space-6)" }}
+      >
         <div className="section-header">
           <h2 className="section-title">Change Password</h2>
         </div>
@@ -648,7 +756,10 @@ function EmployeeDashboard() {
               className="form-input"
               value={passwordForm.old_password}
               onChange={(e) =>
-                setPasswordForm({ ...passwordForm, old_password: e.target.value })
+                setPasswordForm({
+                  ...passwordForm,
+                  old_password: e.target.value,
+                })
               }
               required
             />
@@ -660,7 +771,10 @@ function EmployeeDashboard() {
               className="form-input"
               value={passwordForm.new_password}
               onChange={(e) =>
-                setPasswordForm({ ...passwordForm, new_password: e.target.value })
+                setPasswordForm({
+                  ...passwordForm,
+                  new_password: e.target.value,
+                })
               }
               required
               minLength={8}
@@ -673,7 +787,10 @@ function EmployeeDashboard() {
               className="form-input"
               value={passwordForm.confirm_password}
               onChange={(e) =>
-                setPasswordForm({ ...passwordForm, confirm_password: e.target.value })
+                setPasswordForm({
+                  ...passwordForm,
+                  confirm_password: e.target.value,
+                })
               }
               required
               minLength={8}
@@ -692,7 +809,9 @@ function EmployeeDashboard() {
   )
 
   return (
-    <div className={`employee-dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}>
+    <div
+      className={`employee-dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}
+    >
       {/* Premium Sidebar */}
       <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="sidebar-header">
