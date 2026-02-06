@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS requests (
     message TEXT NOT NULL,
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, 
-    status VARCHAR(10) NOT NULL CHECK(status IN ('accepted','declined','in queue'))
+    status VARCHAR(10) NOT NULL CHECK(status IN ('accepted','declined','in queue')) DEFAULT 'in queue'
 );
 -- +goose StatementEnd
 

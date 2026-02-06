@@ -41,6 +41,8 @@ type OrgStore interface {
 	CreateOrgWithAdmin(org *Organization, adminUser *User, password string) error
 	GetOrganizationByID(id uuid.UUID) (*Organization, error)
 	GetOrganizationProfile(id uuid.UUID) (*OrganizationProfile, error)
+	GetManagerEmailsByOrgID(orgID uuid.UUID) ([]string, error)
+	GetAdminEmailsByOrgID(orgID uuid.UUID) ([]string, error)
 }
 
 type PostgresOrgStore struct {
@@ -135,4 +137,42 @@ func (s *PostgresOrgStore) GetOrganizationProfile(id uuid.UUID) (*OrganizationPr
 	}
 
 	return &profile, nil
+}
+
+func (s *PostgresOrgStore) GetManagerEmailsByOrgID(orgID uuid.UUID) ([]string, error) {
+	query := `SELECT email FROM users WHERE organization_id = $1 AND user_role = 'manager'`
+	rows, err := s.db.Query(query, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get manager emails: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		emails = append(emails, email)
+	}
+	return emails, nil
+}
+
+func (s *PostgresOrgStore) GetAdminEmailsByOrgID(orgID uuid.UUID) ([]string, error) {
+	query := `SELECT email FROM users WHERE organization_id = $1 AND user_role = 'admin'`
+	rows, err := s.db.Query(query, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get admin emails: %w", err)
+	}
+	defer rows.Close()
+
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		emails = append(emails, email)
+	}
+	return emails, nil
 }

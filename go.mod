@@ -5,6 +5,7 @@ go 1.25.5
 require (
 	github.com/appleboy/gin-jwt/v3 v3.4.1
 	github.com/gin-contrib/cors v1.7.6
+	github.com/gin-contrib/gzip v1.2.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0

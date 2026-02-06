@@ -117,7 +117,7 @@ func (s *PostgresRequestStore) GetRequestsByOrganization(orgID uuid.UUID) ([]*Re
 			u.full_name, u.email
 		FROM requests r
 		JOIN users u ON r.employee_id = u.id
-		WHERE u.organization_id=$1 
+		WHERE u.organization_id=$1' 
 		ORDER BY r.submitted_at DESC`
 
 	rows, err := s.db.Query(query, orgID)

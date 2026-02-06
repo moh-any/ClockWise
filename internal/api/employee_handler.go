@@ -6,6 +6,7 @@ import (
 
 	"github.com/clockwise/clockwise/backend/internal/database"
 	"github.com/clockwise/clockwise/backend/internal/middleware"
+	"github.com/clockwise/clockwise/backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -13,13 +14,17 @@ import (
 type EmployeeHandler struct {
 	userStore    database.UserStore
 	requestStore database.RequestStore
+	orgStore     database.OrgStore
+	EmailService service.SMTPEmailService
 	Logger       *slog.Logger
 }
 
-func NewEmployeeHandler(userStore database.UserStore, requestStore database.RequestStore, logger *slog.Logger) *EmployeeHandler {
+func NewEmployeeHandler(userStore database.UserStore, emailService service.SMTPEmailService, requestStore database.RequestStore, orgStore database.OrgStore, logger *slog.Logger) *EmployeeHandler {
 	return &EmployeeHandler{
 		userStore:    userStore,
 		requestStore: requestStore,
+		orgStore:     orgStore,
+		EmailService: emailService,
 		Logger:       logger,
 	}
 }
@@ -165,6 +170,12 @@ func (h *EmployeeHandler) LayoffEmployee(c *gin.Context) {
 		return
 	}
 
+	go func() {
+		if err := h.EmailService.SendLayoffEmail(employee.Email, employee.FullName, req.Reason); err != nil {
+			h.Logger.Error("failed to send layoff email", "error", err, "email", employee.Email)
+		}
+	}()
+
 	h.Logger.Info("employee laid off successfully", "employee_id", employeeID, "by", user.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Employee laid off successfully",
@@ -307,6 +318,15 @@ func (h *EmployeeHandler) ApproveRequest(c *gin.Context) {
 		return
 	}
 
+	go func() {
+		if err := h.EmailService.SendRequestApprovedEmail(employee.Email, employee.FullName, request.Type); err != nil {
+			h.Logger.Error("failed to send request approved email", "error", err, "email", employee.Email)
+		}
+	}()
+
+	//TODO: Handle If type = resign mark the employee as not working, else if holiday cancel for the whole day if call off cancel for the next shift
+	//TODO: Send to the model to update schedule and redirect to the schedule
+
 	h.Logger.Info("request approved", "request_id", requestID, "by", user.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Request approved successfully",
@@ -381,9 +401,96 @@ func (h *EmployeeHandler) DeclineRequest(c *gin.Context) {
 		return
 	}
 
+	go func() {
+		if err := h.EmailService.SendRequestDeclinedEmail(employee.Email, employee.FullName, request.Type); err != nil {
+			h.Logger.Error("failed to send request declined email", "error", err, "email", employee.Email)
+		}
+	}()
+
 	h.Logger.Info("request declined", "request_id", requestID, "by", user.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "Request declined successfully",
 		"request_id": requestID,
+	})
+}
+
+type CalloffRequest struct {
+	Type    string `json:"type" binding:"required,oneof=calloff holiday resign"`
+	Message string `json:"message" binding:"required"`
+}
+
+// RequestCalloffHandlerForEmployee godoc
+// @Summary      Submit a calloff/holiday/resign request
+// @Description  Allows an employee to submit a calloff, holiday, or resign request to their organization
+// @Tags         Employees
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        org path string true "Organization ID"
+// @Param        request body CalloffRequest true "Request details"
+// @Success      201 {object} map[string]interface{} "Request submitted successfully"
+// @Failure      400 {object} map[string]string "Invalid request body"
+// @Failure      401 {object} map[string]string "Unauthorized"
+// @Failure      500 {object} map[string]string "Failed to submit request"
+// @Router       /{org}/request [post]
+func (h *EmployeeHandler) RequestHandlerForEmployee(c *gin.Context) {
+	h.Logger.Info("employee request received")
+
+	user := middleware.ValidateOrgAccess(c)
+	if user == nil {
+		return
+	}
+
+	if user.UserRole == "admin" {
+		h.Logger.Warn("forbidden decline attempt", "user_id", user.ID, "role", user.UserRole)
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission send requests"})
+		return
+	}
+
+	var req CalloffRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		h.Logger.Warn("invalid request body", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	request := &database.Request{
+		EmployeeID: user.ID,
+		Type:       req.Type,
+		Message:    req.Message,
+	}
+
+	if err := h.requestStore.CreateRequest(request); err != nil {
+		h.Logger.Error("failed to create request", "error", err, "user_id", user.ID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit request"})
+		return
+	}
+
+	go func() {
+		if err := h.EmailService.SendRequestSubmittedEmail(user.Email, user.FullName, req.Type, req.Message); err != nil {
+			h.Logger.Error("failed to send request submitted email", "error", err, "email", user.Email)
+		}
+
+		// Notify managers and admins
+		managerEmails, err := h.orgStore.GetManagerEmailsByOrgID(user.OrganizationID)
+		if err != nil {
+			h.Logger.Error("failed to get manager emails", "error", err)
+		}
+		adminEmails, err := h.orgStore.GetAdminEmailsByOrgID(user.OrganizationID)
+		if err != nil {
+			h.Logger.Error("failed to get admin emails", "error", err)
+		}
+		notifyEmails := append(managerEmails, adminEmails...)
+		if len(notifyEmails) > 0 {
+			if err := h.EmailService.SendRequestNotifyEmail(notifyEmails, user.FullName, req.Type, req.Message); err != nil {
+				h.Logger.Error("failed to send request notification to managers/admins", "error", err)
+			}
+		}
+	}()
+
+	h.Logger.Info("request submitted successfully", "request_id", request.ID, "user_id", user.ID, "type", req.Type)
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "Request submitted successfully",
+		"request_id": request.ID,
 	})
 }
