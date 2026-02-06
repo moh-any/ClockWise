@@ -398,8 +398,19 @@ class SchedulerCPSAT:
                         )
                     
                     # Add to supply with contribution factor
-                contrib_scaled = int(chain.contrib_factor * 100)
-                supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // 100)
+                    # Since contrib_factor is usually 1.0, we can simplify
+                    if chain.contrib_factor == 1.0:
+                        supply_terms.append(self.chain_output[c_idx, d, t])
+                    else:
+                        # Scale by contribution factor
+                        contrib_scaled = int(chain.contrib_factor * SCALE)
+                        # Create variable for scaled output
+                        scaled_output = self.model.NewIntVar(0, max_capacity * 2, f'scaled_{c_idx}_{d}_{t}')
+                        self.model.Add(scaled_output == self.chain_output[c_idx, d, t] * contrib_scaled)
+                        # Create variable for divided result
+                        contrib_var = self.model.NewIntVar(0, max_capacity, f'contrib_{c_idx}_{d}_{t}')
+                        self.model.AddDivisionEquality(contrib_var, scaled_output, SCALE)
+                        supply_terms.append(contrib_var)
                 # Total supply
                 if supply_terms:
                     self.model.Add(self.supply[d, t] == sum(supply_terms))
