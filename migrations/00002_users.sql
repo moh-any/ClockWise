@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users(
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     organization_id UUID REFERENCES organizations(id),
-    user_role VARCHAR(50) CHECK IN ('admin','manager','employee'),
+    user_role VARCHAR(50) CHECK (user_role IN ('admin','manager','employee')),
     salary_per_hour DECIMAL(10,2) CHECK((user_role = 'admin' AND salary_per_hour IS NULL) OR (user_role != 'admin' AND salary_per_hour IS NOT NULL)), 
     max_hours_per_week INTEGER,
     preferred_hours_per_week INTEGER,

@@ -101,13 +101,14 @@ func TestDelegateUser(t *testing.T) {
 	env := setupOrgEnv()
 	orgID := uuid.New()
 	adminUser := &database.User{ID: uuid.New(), OrganizationID: orgID, UserRole: "admin", Email: "admin@test.com"}
+	salary := 20.0
 
 	t.Run("Success_SimpleDelegation", func(t *testing.T) {
 		reqBody := api.DelegateUserRequest{
 			FullName:      "New Employee",
 			Email:         "new@test.com",
 			Role:          "employee",
-			SalaryPerHour: 20.0,
+			SalaryPerHour: &salary,
 		}
 
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}
@@ -131,22 +132,19 @@ func TestDelegateUser(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 
+	salary = 30.0
 	t.Run("Success_WithRoles", func(t *testing.T) {
 		reqBody := api.DelegateUserRequest{
 			FullName:      "Manager User",
 			Email:         "mgr@test.com",
 			Role:          "manager",
-			SalaryPerHour: 30.0,
-			UserRoles:     []string{"Supervisor"},
+			SalaryPerHour:  &salary,
 		}
 
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}
-		existingRoles := []*database.OrganizationRole{{Role: "Supervisor"}}
 
-		env.RolesStore.On("GetRolesByOrganizationID", orgID).Return(existingRoles, nil).Once()
 		env.OrgStore.On("GetOrganizationByID", orgID).Return(org, nil).Once()
 		env.UserStore.On("CreateUser", mock.Anything).Return(nil).Once()
-		env.UserRolesStore.On("SetUserRoles", mock.AnythingOfType("uuid.UUID"), orgID, reqBody.UserRoles).Return(nil).Once()
 		env.EmailService.On("SendWelcomeEmail", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Once()
 
 		jsonBytes, _ := json.Marshal(reqBody)
@@ -172,20 +170,14 @@ func TestDelegateUser(t *testing.T) {
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
 	})
-
+	salary = 10.0
 	t.Run("Failure_InvalidRole", func(t *testing.T) {
 		reqBody := api.DelegateUserRequest{
 			FullName:      "Bad Role User",
 			Email:         "bad@test.com",
 			Role:          "employee",
-			SalaryPerHour: 10,
-			UserRoles:     []string{"NonExistentRole"},
+			SalaryPerHour: &salary,
 		}
-
-		existingRoles := []*database.OrganizationRole{{Role: "Supervisor"}}
-
-		env.RolesStore.On("GetRolesByOrganizationID", orgID).Return(existingRoles, nil).Once()
-
 		jsonBytes, _ := json.Marshal(reqBody)
 		r := gin.New()
 		r.POST("/:org/staffing", authMiddleware(adminUser), env.Handler.DelegateUser)
