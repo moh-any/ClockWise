@@ -15,6 +15,7 @@ type OrganizationRole struct {
 	MinNeededPerShift   int       `json:"min_needed_per_shift"`
 	ItemsPerRolePerHour *int      `json:"items_per_role_per_hour"`
 	NeedForDemand       bool      `json:"need_for_demand"`
+	Independent         *bool     `json:"independent"`
 }
 
 // RolesStore defines the interface for organization roles data operations
@@ -43,8 +44,8 @@ func NewPostgresRolesStore(db *sql.DB, logger *slog.Logger) *PostgresRolesStore 
 // CreateRole creates a new role for an organization
 func (s *PostgresRolesStore) CreateRole(role *OrganizationRole) error {
 	query := `INSERT INTO organizations_roles 
-		(organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand) 
-		VALUES ($1, $2, $3, $4, $5)`
+		(organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent) 
+		VALUES ($1, $2, $3, $4, $5, $6)`
 
 	_, err := s.db.Exec(query,
 		role.OrganizationID,
@@ -52,6 +53,7 @@ func (s *PostgresRolesStore) CreateRole(role *OrganizationRole) error {
 		role.MinNeededPerShift,
 		role.ItemsPerRolePerHour,
 		role.NeedForDemand,
+		role.Independent,
 	)
 	if err != nil {
 		s.Logger.Error("failed to create role", "error", err, "organization_id", role.OrganizationID, "role", role.Role)
@@ -64,7 +66,7 @@ func (s *PostgresRolesStore) CreateRole(role *OrganizationRole) error {
 
 // GetRolesByOrganizationID retrieves all roles for a specific organization
 func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*OrganizationRole, error) {
-	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand 
+	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent 
 		FROM organizations_roles WHERE organization_id = $1 ORDER BY role`
 
 	rows, err := s.db.Query(query, orgID)
@@ -83,6 +85,7 @@ func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*Organ
 			&r.MinNeededPerShift,
 			&r.ItemsPerRolePerHour,
 			&r.NeedForDemand,
+			&r.Independent,
 		); err != nil {
 			s.Logger.Error("failed to scan role", "error", err)
 			return nil, err
@@ -101,7 +104,7 @@ func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*Organ
 func (s *PostgresRolesStore) GetRoleByName(orgID uuid.UUID, roleName string) (*OrganizationRole, error) {
 	var role OrganizationRole
 
-	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand 
+	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent 
 		FROM organizations_roles WHERE organization_id = $1 AND role = $2`
 
 	err := s.db.QueryRow(query, orgID, roleName).Scan(
@@ -110,6 +113,7 @@ func (s *PostgresRolesStore) GetRoleByName(orgID uuid.UUID, roleName string) (*O
 		&role.MinNeededPerShift,
 		&role.ItemsPerRolePerHour,
 		&role.NeedForDemand,
+		&role.Independent,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -127,7 +131,8 @@ func (s *PostgresRolesStore) UpdateRole(role *OrganizationRole) error {
 	query := `UPDATE organizations_roles SET 
 		min_needed_per_shift = $3, 
 		items_per_role_per_hour = $4, 
-		need_for_demand = $5 
+		need_for_demand = $5,
+		independent = $6 
 		WHERE organization_id = $1 AND role = $2`
 
 	result, err := s.db.Exec(query,
@@ -136,6 +141,7 @@ func (s *PostgresRolesStore) UpdateRole(role *OrganizationRole) error {
 		role.MinNeededPerShift,
 		role.ItemsPerRolePerHour,
 		role.NeedForDemand,
+		role.Independent,
 	)
 	if err != nil {
 		s.Logger.Error("failed to update role", "error", err, "organization_id", role.OrganizationID, "role", role.Role)

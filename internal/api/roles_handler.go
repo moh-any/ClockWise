@@ -29,13 +29,15 @@ type CreateRoleRequest struct {
 	MinNeededPerShift   int    `json:"min_needed_per_shift" binding:"min=0"`
 	ItemsPerRolePerHour *int   `json:"items_per_role_per_hour"`
 	NeedForDemand       bool   `json:"need_for_demand"`
+	Independent         *bool  `json:"independent"`
 }
 
 // UpdateRoleRequest represents the request body for updating a role
 type UpdateRoleRequest struct {
-	MinNeededPerShift   int  `json:"min_needed_per_shift" binding:"min=0"`
-	ItemsPerRolePerHour *int `json:"items_per_role_per_hour"`
-	NeedForDemand       bool `json:"need_for_demand"`
+	MinNeededPerShift   int   `json:"min_needed_per_shift" binding:"min=0"`
+	ItemsPerRolePerHour *int  `json:"items_per_role_per_hour"`
+	NeedForDemand       bool  `json:"need_for_demand"`
+	Independent         *bool `json:"independent"`
 }
 
 // GetAllRoles godoc
@@ -165,6 +167,7 @@ func (h *RolesHandler) CreateRole(c *gin.Context) {
 		MinNeededPerShift:   req.MinNeededPerShift,
 		ItemsPerRolePerHour: req.ItemsPerRolePerHour,
 		NeedForDemand:       req.NeedForDemand,
+		Independent:         req.Independent,
 	}
 
 	if err := h.rolesStore.CreateRole(role); err != nil {
@@ -326,6 +329,7 @@ func (h *RolesHandler) UpdateRole(c *gin.Context) {
 		MinNeededPerShift:   req.MinNeededPerShift,
 		ItemsPerRolePerHour: req.ItemsPerRolePerHour,
 		NeedForDemand:       req.NeedForDemand,
+		Independent:         req.Independent,
 	}
 
 	if err := h.rolesStore.UpdateRole(role); err != nil {
