@@ -176,7 +176,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 
 		var empSalary float64
 		if ok {
-			empSalary, err := strconv.ParseFloat(salary, 32)
+			empSalary, err = strconv.ParseFloat(salary, 32)
 			if err != nil {
 				failed = append(failed, map[string]string{
 					"email": email,
