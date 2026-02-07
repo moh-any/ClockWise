@@ -303,7 +303,7 @@ Authorization: Bearer <access_token>
 
 ---
 
-### PUT /api/auth/profile/changepassword
+### POST /api/auth/profile/changepassword
 
 Change the current user's password.
 
@@ -311,7 +311,7 @@ Change the current user's password.
 
 **Request:**
 ```http
-PUT /api/auth/profile/changepassword
+POST /api/auth/profile/changepassword
 Authorization: Bearer <access_token>
 Content-Type: application/json
 ```

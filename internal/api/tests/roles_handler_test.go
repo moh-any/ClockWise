@@ -77,6 +77,7 @@ func TestGetAllRoles(t *testing.T) {
 		employeeRouter.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Contains(t, w.Body.String(), "Access denied")
 	})
 }
 

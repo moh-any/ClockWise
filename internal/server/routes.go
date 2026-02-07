@@ -127,9 +127,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// TODO: Surge ML Model Handlin
 	surge := dashboard.Group("/surge")
-	surge.GET("",s.alertHandler.GetAlertInsightsHandler) // Get All Alerts 
-	surge.GET("/all",s.alertHandler.GetAllAlertsHandler)
-	surge.GET("/week",s.alertHandler.GetAllAlertsForLastWeekHandler)
+	surge.GET("", s.alertHandler.GetAlertInsightsHandler) // Get All Alerts
+	surge.GET("/all", s.alertHandler.GetAllAlertsHandler)
+	surge.GET("/week", s.alertHandler.GetAllAlertsForLastWeekHandler)
 
 	// Only called by external ML api
 	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
@@ -142,11 +142,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// TODO: Campaigns Management & Insights
 	campaigns := organization.Group("/campaigns")
-	campaigns.GET("",s.campaignHandler.GetCampaignsInsightsHandler)         // Campaign insights
-	campaigns.POST("/upload",s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
-	campaigns.POST("/upload/items",s.campaignHandler.UploadCampaignsItemsCSVHandlers)
-	campaigns.GET("/all",s.campaignHandler.GetAllCampaignsHandler)     // Get All Campaigns
-	campaigns.GET("/week",s.campaignHandler.GetAllCampaignsForLastWeekHandler)    // Get All Campaigns for last week
+	campaigns.GET("", s.campaignHandler.GetCampaignsInsightsHandler)       // Campaign insights
+	campaigns.POST("/upload", s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
+	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
+	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)             // Get All Campaigns
+	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler) // Get All Campaigns for last week
 
 	// TODO Add connection to campaign model routes
 

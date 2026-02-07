@@ -81,7 +81,7 @@ func (h *RolesHandler) GetAllRoles(c *gin.Context) {
 
 // CreateRole godoc
 // @Summary      Create a new role
-// @Description  Creates a new role for the organization. Only admins can create roles.
+// @Description  Creates a new role for the organization. 
 // @Tags         Roles
 // @Accept       json
 // @Produce      json
@@ -178,7 +178,7 @@ func (h *RolesHandler) CreateRole(c *gin.Context) {
 
 // GetRole godoc
 // @Summary      Get a specific role
-// @Description  Returns details of a specific role. Only admins and managers can access this.
+// @Description  Returns details of a specific role. 
 // @Tags         Roles
 // @Accept       json
 // @Produce      json
