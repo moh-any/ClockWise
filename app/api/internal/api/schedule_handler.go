@@ -290,7 +290,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		mlURL = "http://cw-ml-service:8000"
 	}
 
-	// Make an api call to the demand model http://cw-ml-service:8000/predict/demand
+	// Make an api call to the demand model http://cw-ml-service:8000/predict/schedule
 	client := &http.Client{}
 
 	// JSON
@@ -318,6 +318,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
+	sh.Logger.Info("request to ML API", "req", jsonPayload)
 	// Validate response status code first
 	if resp.StatusCode != http.StatusOK {
 		sh.Logger.Error("ML API returned error", "status_code", resp.StatusCode)

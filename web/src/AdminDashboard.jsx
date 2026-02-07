@@ -141,7 +141,7 @@ function AdminDashboard() {
     full_name: "",
     email: "",
     role: "",
-    salary_per_hour: "",
+    hourly_salary: "",
   })
   const [delegateLoading, setDelegateLoading] = useState(false)
   const [delegateError, setDelegateError] = useState("")
@@ -3795,7 +3795,7 @@ function AdminDashboard() {
 
       // Parse header
       const headers = lines[0].split(",").map((h) => h.trim())
-      const requiredHeaders = ["full_name", "email", "role", "salary_per_hour"]
+      const requiredHeaders = ["full_name", "email", "role", "hourly_salary"]
       const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
 
       if (missingHeaders.length > 0) {
@@ -3829,7 +3829,7 @@ function AdminDashboard() {
             full_name: employee.full_name,
             email: employee.email,
             role: employee.role,
-            salary_per_hour: parseFloat(employee.salary_per_hour),
+            hourly_salary: parseFloat(employee.hourly_salary),
             max_hours_per_week: employee.max_hours_per_week
               ? parseInt(employee.max_hours_per_week)
               : undefined,
@@ -3906,14 +3906,14 @@ function AdminDashboard() {
     try {
       await api.staffing.createEmployee({
         ...delegateForm,
-        salary_per_hour: parseFloat(delegateForm.salary_per_hour),
+        hourly_salary: parseFloat(delegateForm.hourly_salary),
       })
       setShowDelegateModal(false)
       setDelegateForm({
         full_name: "",
         email: "",
         role: "",
-        salary_per_hour: "",
+        hourly_salary: "",
       })
       setActionMessage({
         type: "success",
@@ -4172,8 +4172,8 @@ function AdminDashboard() {
                         </span>
                       </td>
                       <td style={tdStyle}>
-                        {emp.salary_per_hour != null
-                          ? `$${emp.salary_per_hour}`
+                        {emp.hourly_salary != null
+                          ? `$${emp.hourly_salary}`
                           : "—"}
                       </td>
                       <td style={tdStyle}>
@@ -4292,11 +4292,11 @@ function AdminDashboard() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={delegateForm.salary_per_hour}
+                      value={delegateForm.hourly_salary}
                       onChange={(e) =>
                         setDelegateForm({
                           ...delegateForm,
-                          salary_per_hour: e.target.value,
+                          hourly_salary: e.target.value,
                         })
                       }
                       placeholder="15.50"
@@ -4383,8 +4383,8 @@ function AdminDashboard() {
                       className="kpi-value"
                       style={{ fontSize: "var(--text-xl)" }}
                     >
-                      {selectedEmployee.salary_per_hour != null
-                        ? `$${selectedEmployee.salary_per_hour}`
+                      {selectedEmployee.hourly_salary != null
+                        ? `$${selectedEmployee.hourly_salary}`
                         : "—"}
                     </div>
                   </div>
@@ -4585,7 +4585,7 @@ function AdminDashboard() {
                   <li>Supported formats: CSV, XLSX</li>
                   <li>Maximum size: 25MB</li>
                   <li>
-                    Required columns: full_name, email, role, salary_per_hour
+                    Required columns: full_name, email, role, hourly_salary
                   </li>
                   <li>
                     Optional: max_hours_per_week, preferred_hours_per_week
@@ -6046,8 +6046,8 @@ function AdminDashboard() {
     const displayOrganization =
       currentUser?.organization_name || currentUser?.organization || "N/A"
     const displaySalary =
-      currentUser?.salary_per_hour != null
-        ? `$${currentUser.salary_per_hour}/hr`
+      currentUser?.hourly_salary != null
+        ? `$${currentUser.hourly_salary}/hr`
         : "N/A"
     const displayMaxHours = currentUser?.max_hours_per_week || "N/A"
     const displayPrefHours = currentUser?.preferred_hours_per_week || "N/A"
@@ -6300,9 +6300,9 @@ function AdminDashboard() {
                         className="info-value"
                         style={{ color: "var(--color-accent)" }}
                       >
-                        {currentUser?.salary_per_hour &&
+                        {currentUser?.hourly_salary &&
                         profileData.hours_worked_this_week
-                          ? `$${(currentUser.salary_per_hour * profileData.hours_worked_this_week).toFixed(2)}`
+                          ? `$${(currentUser.hourly_salary * profileData.hours_worked_this_week).toFixed(2)}`
                           : "N/A"}
                       </span>
                     </div>
