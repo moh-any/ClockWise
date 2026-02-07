@@ -45,6 +45,7 @@ type RulesRequest struct {
 	SlotLenHour          float64                 `json:"slot_len_hour" binding:"required,gt=0"`
 	MinShiftLengthSlots  int                     `json:"min_shift_length_slots" binding:"required,min=1"`
 	OperatingHours       []OperatingHoursRequest `json:"operating_hours" binding:"max=7,dive"`
+	ShiftTimes           []database.ShiftTime    `json:"shift_times,omitempty"` // Only if fixed
 }
 
 // RulesResponse represents the response for rules GET
@@ -194,9 +195,16 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "number_of_shifts_per_day must be > 0 when fixed_shifts is true"})
 			return
 		}
+		// Validate shift_times if provided
+		if len(req.ShiftTimes) > 0 && len(req.ShiftTimes) != *req.NumberOfShiftsPerDay {
+			h.Logger.Warn("shift_times count mismatch", "provided", len(req.ShiftTimes), "expected", *req.NumberOfShiftsPerDay)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "shift_times count must match number_of_shifts_per_day"})
+			return
+		}
 	} else {
-		// If not fixed_shifts, number_of_shifts_per_day should be NULL
+		// If not fixed_shifts, number_of_shifts_per_day should be NULL and shift_times should be empty
 		req.NumberOfShiftsPerDay = nil
+		req.ShiftTimes = nil
 	}
 
 	rules := &database.OrganizationRules{
@@ -211,6 +219,7 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 		MinRestSlots:         req.MinRestSlots,
 		SlotLenHour:          req.SlotLenHour,
 		MinShiftLengthSlots:  req.MinShiftLengthSlots,
+		ShiftTimes:           req.ShiftTimes,
 	}
 
 	// Use upsert to handle both create and update scenarios

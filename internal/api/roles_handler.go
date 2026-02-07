@@ -61,13 +61,6 @@ func (h *RolesHandler) GetAllRoles(c *gin.Context) {
 		return
 	}
 
-	// Only admins and managers can view roles
-	if user.UserRole != "admin" && user.UserRole != "manager" {
-		h.Logger.Warn("forbidden access to roles", "user_id", user.ID, "role", user.UserRole)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can view organization roles"})
-		return
-	}
-
 	roles, err := h.rolesStore.GetRolesByOrganizationID(user.OrganizationID)
 	if err != nil {
 		h.Logger.Error("failed to get roles", "error", err, "organization_id", user.OrganizationID)
@@ -203,13 +196,6 @@ func (h *RolesHandler) GetRole(c *gin.Context) {
 
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
-		return
-	}
-
-	// Only admins and managers can view roles
-	if user.UserRole != "admin" && user.UserRole != "manager" {
-		h.Logger.Warn("forbidden access to role", "user_id", user.ID, "role", user.UserRole)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins and managers can view roles"})
 		return
 	}
 

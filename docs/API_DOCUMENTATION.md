@@ -34,6 +34,7 @@ Authorization: Bearer <access_token>
 10. [Orders](#orders-endpoints)
 11. [Deliveries](#deliveries-endpoints)
 12. [Items](#items-endpoints)
+13. [Campaigns](#campaigns-endpoints)
 
 ---
 
@@ -338,7 +339,7 @@ Content-Type: application/json
 
 Get all roles for the organization.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Required
 
 **Request:**
 ```http
@@ -387,7 +388,7 @@ Authorization: Bearer <access_token>
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied (not admin/manager or wrong organization)
+- `500 Internal Server Error` - Failed to retrieve roles
 
 ---
 
@@ -461,7 +462,7 @@ Content-Type: application/json
 
 Get details for a specific role.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Required
 
 **Request:**
 ```http
@@ -490,8 +491,8 @@ Authorization: Bearer <access_token>
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied
 - `404 Not Found` - Role not found
+- `500 Internal Server Error` - Failed to retrieve role
 
 ---
 
@@ -959,13 +960,12 @@ Content-Type: application/json
 {
   "full_name": "string (required)",
   "email": "string (required, valid email)",
-  "role": "string (required - must be valid organization role)",
+  "role": "string (required - employee|manager)",
   "salary_per_hour": "number (required)",
   "max_hours_per_week": "integer (optional)",
   "preferred_hours_per_week": "integer (optional)",
   "max_consec_slots": "integer (optional)",
-  "on_call" : "boolean (optional,default=false)",
-  "user_roles": ["string (optional - additional roles)"]
+  "on_call" : "boolean (optional,default=false)"
 }
 ```
 
@@ -974,7 +974,7 @@ Content-Type: application/json
 {
   "full_name": "Employee One",
   "email": "employee1@testorg.com",
-  "role": "waiter",
+  "role": "employee",
   "salary_per_hour": 15.50
 }
 ```
@@ -987,9 +987,15 @@ Content-Type: application/json
 }
 ```
 
+**Allowed Roles:**
+| Role | Description |
+|------|-------------|
+| `employee` | Regular employee with staff permissions |
+| `manager` | Manager with elevated permissions |
+
 **Notes:**
-- The `role` must exist in the organization's roles
-- An email is sent to the delegated user with login instructions
+- The `role` must be either `employee` or `manager`
+- An email is sent to the delegated user with login credentials
 - A random password is generated for the new user
 
 **Error Responses:**
@@ -2178,6 +2184,340 @@ Or for authentication errors:
 | 403 | Forbidden - Access denied (insufficient permissions) |
 | 404 | Not Found - Resource not found |
 | 500 | Internal Server Error - Server-side error |
+
+---
+
+## Campaigns Endpoints
+
+Marketing campaigns endpoints allow admins and managers to manage promotional campaigns and analyze campaign performance. All campaign endpoints require authentication and admin or manager roles.
+
+### GET /api/:org/campaigns
+
+Get campaign insights and analytics for the organization.
+
+**Authentication:** Required (Admin/Manager only)
+
+**Path Parameters:**
+- `org` (string, required): Organization ID (UUID)
+
+**Request:**
+```http
+GET /api/:org/campaigns
+Authorization: Bearer <access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Campaign insights retrieved successfully",
+  "data": [
+    {
+      "title": "Total Campaigns",
+      "statistic": "15"
+    },
+    {
+      "title": "Longest Campaign (days)",
+      "statistic": "45.2"
+    },
+    {
+      "title": "Biggest Discount (%)",
+      "statistic": "30.00%"
+    },
+    {
+      "title": "Most Featured Item",
+      "statistic": "Burger Deluxe"
+    }
+  ]
+}
+```
+
+**Campaign Insights:**
+- **Total Campaigns**: Count of all campaigns created
+- **Longest Campaign**: Duration in days of the longest-running campaign
+- **Biggest Discount**: Highest discount percentage ever offered
+- **Most Featured Item**: Item that appears most frequently across campaigns
+
+**Error Responses:**
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User is not an admin or manager
+- **500 Internal Server Error**: Server error retrieving insights
+
+---
+
+### POST /api/:org/campaigns/upload
+
+Upload marketing campaigns data from a CSV file.
+
+**Authentication:** Required (Admin/Manager only)
+
+**Path Parameters:**
+- `org` (string, required): Organization ID (UUID)
+
+**Request:**
+```http
+POST /api/:org/campaigns/upload
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+
+file: <campaigns.csv>
+```
+
+**CSV Format:**
+
+Required columns (order-independent):
+
+| Column | Type | Description | Required | Example |
+|--------|------|-------------|----------|---------|
+| id | UUID | Campaign unique identifier | Yes | `550e8400-e29b-41d4-a716-446655440000` |
+| name | String | Campaign name | Yes | `Summer Sale 2024` |
+| status | String | Campaign status (active/inactive) | Yes | `active` |
+| start_time | Timestamp | Campaign start date/time | Yes | `2024-06-01T00:00:00Z` |
+| end_time | Timestamp | Campaign end date/time | Yes | `2024-08-31T23:59:59Z` |
+| discount_percent | Float | Discount percentage (optional) | No | `15.50` |
+
+**Timestamp Formats Supported:**
+- RFC3339: `2024-06-01T00:00:00Z`
+- DateTime: `2024-06-01 00:00:00`
+
+**Status Values:**
+- `active`: Campaign is currently active
+- `inactive`: Campaign is inactive/ended
+
+**Example CSV:**
+```csv
+id,name,status,start_time,end_time,discount_percent
+550e8400-e29b-41d4-a716-446655440000,Summer Sale,active,2024-06-01T00:00:00Z,2024-08-31T23:59:59Z,15.00
+660e8400-e29b-41d4-a716-446655440001,Holiday Promo,inactive,2023-12-01T00:00:00Z,2023-12-31T23:59:59Z,25.00
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Campaigns CSV uploaded successfully",
+  "total_rows": 100,
+  "success_count": 98,
+  "error_count": 2
+}
+```
+
+**Notes:**
+- Campaigns must be uploaded before uploading campaign items
+- Invalid rows are skipped and counted in `error_count`
+- The handler validates UUID formats and timestamp formats
+- Discount percentage is optional
+
+**Error Responses:**
+- **400 Bad Request**: Missing required columns, invalid CSV format, or empty file
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User is not an admin or manager
+- **500 Internal Server Error**: Server error during upload
+
+---
+
+### POST /api/:org/campaigns/upload/items
+
+Upload campaign-item associations from a CSV file. This endpoint associates items with existing campaigns.
+
+**Authentication:** Required (Admin/Manager only)
+
+**Prerequisites:** 
+- Campaigns must already exist (uploaded via `/campaigns/upload`)
+- Items must already exist (uploaded via `/items/upload`)
+
+**Path Parameters:**
+- `org` (string, required): Organization ID (UUID)
+
+**Request:**
+```http
+POST /api/:org/campaigns/upload/items
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Content-Encoding: gzip
+
+file: <campaign_items.csv>
+```
+
+**CSV Format:**
+
+Required columns (order-independent):
+
+| Column | Type | Description | Required | Example |
+|--------|------|-------------|----------|---------|
+| campaign_id | UUID | Campaign identifier | Yes | `550e8400-e29b-41d4-a716-446655440000` |
+| item_id | UUID | Item identifier | Yes | `770e8400-e29b-41d4-a716-446655440001` |
+
+**Example CSV:**
+```csv
+campaign_id,item_id
+550e8400-e29b-41d4-a716-446655440000,770e8400-e29b-41d4-a716-446655440001
+550e8400-e29b-41d4-a716-446655440000,880e8400-e29b-41d4-a716-446655440002
+660e8400-e29b-41d4-a716-446655440001,770e8400-e29b-41d4-a716-446655440001
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Campaign items CSV uploaded successfully",
+  "total_rows": 50,
+  "success_count": 48,
+  "error_count": 2
+}
+```
+
+**Notes:**
+- Multiple items can be associated with the same campaign
+- Items are grouped by campaign_id for efficient batch insertion
+- Duplicate campaign-item pairs are ignored (ON CONFLICT DO NOTHING)
+- Invalid UUIDs are skipped and counted in `error_count`
+- If a campaign doesn't exist or doesn't belong to the organization, all its items will fail
+
+**Error Responses:**
+- **400 Bad Request**: Missing required columns, invalid CSV format, or empty file
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User is not an admin or manager
+- **500 Internal Server Error**: Server error during upload
+
+---
+
+### GET /api/:org/campaigns/all
+
+Retrieve all marketing campaigns for the organization, including associated items.
+
+**Authentication:** Required (Admin/Manager only)
+
+**Path Parameters:**
+- `org` (string, required): Organization ID (UUID)
+
+**Request:**
+```http
+GET /api/:org/campaigns/all
+Authorization: Bearer <access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Campaigns retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Summer Sale 2024",
+      "status": "active",
+      "start_time": "2024-06-01T00:00:00Z",
+      "end_time": "2024-08-31T23:59:59Z",
+      "discount": 15.00,
+      "items_included": [
+        {
+          "item_id": "770e8400-e29b-41d4-a716-446655440001",
+          "name": "Burger Deluxe",
+          "needed_employees": 2,
+          "price": 12.99
+        },
+        {
+          "item_id": "880e8400-e29b-41d4-a716-446655440002",
+          "name": "French Fries",
+          "needed_employees": 1,
+          "price": 3.99
+        }
+      ]
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "name": "Holiday Promo",
+      "status": "inactive",
+      "start_time": "2023-12-01T00:00:00Z",
+      "end_time": "2023-12-31T23:59:59Z",
+      "discount": 25.00,
+      "items_included": []
+    }
+  ]
+}
+```
+
+**Response Fields:**
+- `id`: Campaign unique identifier
+- `name`: Campaign name
+- `status`: Campaign status (active/inactive)
+- `start_time`: Campaign start timestamp (RFC3339)
+- `end_time`: Campaign end timestamp (RFC3339)
+- `discount`: Discount percentage (nullable)
+- `items_included`: Array of items in the campaign (may be empty)
+
+**Items Fields:**
+- `item_id`: Item unique identifier
+- `name`: Item name
+- `needed_employees`: Number of employees needed to prepare
+- `price`: Item price (nullable)
+
+**Notes:**
+- Campaigns are ordered by start date (newest first)
+- Returns all campaigns regardless of status or date
+- Empty `items_included` array indicates no items associated
+
+**Error Responses:**
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User is not an admin or manager
+- **500 Internal Server Error**: Server error retrieving campaigns
+
+---
+
+### GET /api/:org/campaigns/week
+
+Retrieve marketing campaigns started within the last 7 days, including associated items.
+
+**Authentication:** Required (Admin/Manager only)
+
+**Path Parameters:**
+- `org` (string, required): Organization ID (UUID)
+
+**Request:**
+```http
+GET /api/:org/campaigns/week
+Authorization: Bearer <access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Campaigns retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Weekend Flash Sale",
+      "status": "active",
+      "start_time": "2024-02-05T00:00:00Z",
+      "end_time": "2024-02-07T23:59:59Z",
+      "discount": 20.00,
+      "items_included": [
+        {
+          "item_id": "770e8400-e29b-41d4-a716-446655440001",
+          "name": "Pizza Margherita",
+          "needed_employees": 3,
+          "price": 15.99
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Response Structure:** Same as `/campaigns/all`
+
+**Filter Criteria:**
+- Only campaigns where `start_time >= NOW() - INTERVAL '7 days'`
+- Ordered by start date (newest first)
+- Includes all items associated with each campaign
+
+**Notes:**
+- Uses PostgreSQL `INTERVAL` for date filtering
+- "Last week" means the last 7 days from the current timestamp
+- Returns empty array if no campaigns started in the last 7 days
+
+**Error Responses:**
+- **401 Unauthorized**: Missing or invalid authentication token
+- **403 Forbidden**: User is not an admin or manager
+- **500 Internal Server Error**: Server error retrieving campaigns
 
 ---
 

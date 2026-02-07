@@ -52,7 +52,7 @@ func (ih *InsightHandler) GetInsightsHandler(c *gin.Context) {
 		insights, err = ih.InsightsStore.GetInsightsForAdmin(user.OrganizationID)
 	case "manager":
 		insights, err = ih.InsightsStore.GetInsightsForManager(user.OrganizationID, user.ID)
-	default:
+	case "employee":
 		// Any other role is treated as employee
 		insights, err = ih.InsightsStore.GetInsightsForEmployee(user.OrganizationID, user.ID)
 	}

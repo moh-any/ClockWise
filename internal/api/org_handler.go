@@ -46,13 +46,13 @@ type RegisterOrgRequest struct {
 
 type DelegateUserRequest struct {
 	FullName              string   `json:"full_name" binding:"required"`
-	Email                 string   `json:"email" binding:"required,email"`
-	Role                  string   `json:"role" binding:"required"`
-	SalaryPerHour         float64  `json:"salary_per_hour" binding:"required"`
+	Email                 string   `json:"email" binding:"required"`
+	Role                  string   `json:"role" binding:"required,oneof=employee manager"`
+	SalaryPerHour         *float64 `json:"salary_per_hour" binding:"required"`
 	MaxHoursPerWeek       *int     `json:"max_hours_per_week"`
 	PreferredHoursPerWeek *int     `json:"preferred_hours_per_week"`
 	MaxConsecSlots        *int     `json:"max_consec_slots"`
-	UserRoles             []string `json:"user_roles"`
+	OnCall                *bool    `json:"on_call"`
 }
 
 // RegisterOrganization godoc
@@ -135,9 +135,9 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 	}
 	currentUser := currentUserInterface.(*database.User)
 
-	if currentUser.UserRole == "staff" {
-		h.Logger.Warn("forbidden delegation attempt by staff", "user_id", currentUser.ID, "email", currentUser.Email)
-		c.JSON(http.StatusForbidden, gin.H{"error": "Staff cannot delegate users"})
+	if currentUser.UserRole == "employee" {
+		h.Logger.Warn("forbidden delegation attempt by employee", "user_id", currentUser.ID, "email", currentUser.Email)
+		c.JSON(http.StatusForbidden, gin.H{"error": "Employee cannot delegate users"})
 		return
 	}
 
@@ -149,29 +149,6 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 	}
 
 	h.Logger.Debug("delegating user", "email", req.Email, "role", req.Role, "delegated_by", currentUser.ID)
-
-	// Validate user roles if provided
-	if len(req.UserRoles) > 0 {
-		orgRoles, err := h.rolesStore.GetRolesByOrganizationID(currentUser.OrganizationID)
-		if err != nil {
-			h.Logger.Error("failed to get organization roles", "error", err, "org_id", currentUser.OrganizationID)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate roles"})
-			return
-		}
-
-		validRoles := make(map[string]bool)
-		for _, role := range orgRoles {
-			validRoles[role.Role] = true
-		}
-
-		for _, role := range req.UserRoles {
-			if !validRoles[role] {
-				h.Logger.Warn("invalid role in request", "role", role, "organization_id", currentUser.OrganizationID)
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role: " + role + ". Role does not exist in this organization."})
-				return
-			}
-		}
-	}
 
 	org, err := h.orgStore.GetOrganizationByID(currentUser.OrganizationID)
 	if err != nil {
@@ -192,10 +169,11 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		Email:                 req.Email,
 		UserRole:              req.Role,
 		OrganizationID:        currentUser.OrganizationID,
-		SalaryPerHour:         &req.SalaryPerHour,
+		SalaryPerHour:         req.SalaryPerHour,
 		MaxHoursPerWeek:       req.MaxHoursPerWeek,
 		PreferredHoursPerWeek: req.PreferredHoursPerWeek,
 		MaxConsecSlots:        req.MaxConsecSlots,
+		OnCall:                req.OnCall,
 	}
 
 	if err := newUser.PasswordHash.Set(tempPassword); err != nil {
@@ -208,14 +186,6 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		h.Logger.Error("failed to create delegated user", "error", err, "email", req.Email)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
 		return
-	}
-
-	// Set user roles if provided
-	if len(req.UserRoles) > 0 {
-		if err := h.userRolesStore.SetUserRoles(newUser.ID, currentUser.OrganizationID, req.UserRoles); err != nil {
-			h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID)
-			// Don't fail the whole request, just log the error
-		}
 	}
 
 	go func() {
