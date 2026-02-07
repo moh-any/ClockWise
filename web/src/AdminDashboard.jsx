@@ -74,6 +74,41 @@ function AdminDashboard() {
   const orderItemsFileInput = useRef(null)
   const deliveriesFileInput = useRef(null)
 
+    // Shift Rules state
+  const [shiftRules, setShiftRules] = useState(null)
+  const [shiftRulesLoading, setShiftRulesLoading] = useState(false)
+  const [shiftRulesForm, setShiftRulesForm] = useState({
+    shift_max_hours: 8,
+    shift_min_hours: 4,
+    max_weekly_hours: 40,
+    min_weekly_hours: 20,
+    fixed_shifts: false,
+    number_of_shifts_per_day: 3,
+    meet_all_demand: true,
+    min_rest_slots: 2,
+    slot_len_hour: 0.5,
+    min_shift_length_slots: 4,
+    receiving_phone: true,
+    delivery: true,
+    waiting_time: 15,
+    accepting_orders: true,
+  })
+  const [shiftTimes, setShiftTimes] = useState([
+    { from: "10:00", to: "14:00" },
+    { from: "14:00", to: "18:00" },
+    { from: "18:00", to: "22:00" }
+  ])
+  const [operatingHours, setOperatingHours] = useState([
+    { weekday: "Monday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Tuesday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Wednesday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Thursday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Friday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Saturday", opening_time: "09:00", closing_time: "22:00" },
+    { weekday: "Sunday", opening_time: "09:00", closing_time: "22:00" }
+  ])
+  const [customDayShifts, setCustomDayShifts] = useState({})
+
   // Campaigns state
   const [campaignsData, setCampaignsData] = useState([])
   const [campaignsLoading, setCampaignsLoading] = useState(false)
@@ -217,6 +252,115 @@ function AdminDashboard() {
       setProfileLoading(false)
     }
   }
+  // Load shift rules when info tab is active
+useEffect(() => {
+  if (activeTab === "info") {
+    fetchShiftRules()
+  }
+}, [activeTab])
+
+const fetchShiftRules = async () => {
+  try {
+    setShiftRulesLoading(true)
+    const orgId = localStorage.getItem("org_id")
+    const response = await api.rules.getRules()
+    
+    if (response.data) {
+      const rules = response.data
+      setShiftRules(rules)
+      
+      // Populate form with existing data
+      setShiftRulesForm({
+        shift_max_hours: rules.shift_max_hours || 8,
+        shift_min_hours: rules.shift_min_hours || 4,
+        max_weekly_hours: rules.max_weekly_hours || 40,
+        min_weekly_hours: rules.min_weekly_hours || 20,
+        fixed_shifts: rules.fixed_shifts || false,
+        number_of_shifts_per_day: rules.number_of_shifts_per_day || 3,
+        meet_all_demand: rules.meet_all_demand !== undefined ? rules.meet_all_demand : true,
+        min_rest_slots: rules.min_rest_slots || 2,
+        slot_len_hour: rules.slot_len_hour || 0.5,
+        min_shift_length_slots: rules.min_shift_length_slots || 4,
+        receiving_phone: rules.receiving_phone !== undefined ? rules.receiving_phone : true,
+        delivery: rules.delivery !== undefined ? rules.delivery : true,
+        waiting_time: rules.waiting_time || 15,
+        accepting_orders: rules.accepting_orders !== undefined ? rules.accepting_orders : true,
+      })
+      
+      // Populate operating hours if available
+      if (rules.operating_hours && rules.operating_hours.length > 0) {
+        setOperatingHours(rules.operating_hours.map(oh => ({
+          weekday: oh.weekday,
+          opening_time: oh.opening_time ? oh.opening_time.slice(0, 5) : "",
+          closing_time: oh.closing_time ? oh.closing_time.slice(0, 5) : "",
+          closed: oh.closed || false
+        })))
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch shift rules:", err)
+  } finally {
+    setShiftRulesLoading(false)
+  }
+}
+
+const handleSaveShiftRules = async () => {
+  try {
+    setShiftRulesLoading(true)
+    setActionMessage(null)
+    
+    // Build the payload
+    const payload = {
+      shift_max_hours: parseInt(shiftRulesForm.shift_max_hours),
+      shift_min_hours: parseInt(shiftRulesForm.shift_min_hours),
+      max_weekly_hours: parseInt(shiftRulesForm.max_weekly_hours),
+      min_weekly_hours: parseInt(shiftRulesForm.min_weekly_hours),
+      fixed_shifts: shiftRulesForm.fixed_shifts,
+      meet_all_demand: shiftRulesForm.meet_all_demand,
+      min_rest_slots: parseInt(shiftRulesForm.min_rest_slots),
+      slot_len_hour: parseFloat(shiftRulesForm.slot_len_hour),
+      min_shift_length_slots: parseInt(shiftRulesForm.min_shift_length_slots),
+      receiving_phone: shiftRulesForm.receiving_phone,
+      delivery: shiftRulesForm.delivery,
+      waiting_time: parseInt(shiftRulesForm.waiting_time),
+      accepting_orders: shiftRulesForm.accepting_orders,
+      operating_hours: operatingHours
+        .filter(oh => !oh.closed && oh.opening_time && oh.closing_time)
+        .map(oh => ({
+          weekday: oh.weekday,
+          opening_time: oh.opening_time,
+          closing_time: oh.closing_time
+        }))
+    }
+    
+    // Only include number_of_shifts_per_day if fixed_shifts is true
+    if (shiftRulesForm.fixed_shifts) {
+      payload.number_of_shifts_per_day = parseInt(shiftRulesForm.number_of_shifts_per_day)
+    } else {
+      payload.number_of_shifts_per_day = null
+    }
+    
+    await api.rules.saveRules(payload)
+    
+    setActionMessage({
+      type: 'success',
+      text: 'Shift rules saved successfully!'
+    })
+    setTimeout(() => setActionMessage(null), 4000)
+    
+    // Refresh data
+    fetchShiftRules()
+  } catch (err) {
+    console.error("Failed to save shift rules:", err)
+    setActionMessage({
+      type: 'error',
+      text: err.message || 'Failed to save shift rules'
+    })
+    setTimeout(() => setActionMessage(null), 4000)
+  } finally {
+    setShiftRulesLoading(false)
+  }
+}
 
   useEffect(() => {
     const savedColors = localStorage.getItem("orgColors")
@@ -3931,63 +4075,435 @@ const renderInsights = () => {
 
 
 
-      {/* Shift Rules Section */}
-      <div className="section-wrapper">
-        <div className="section-header">
-          <h2 className="section-title">
-            <img
-              src={ScheduleIcon}
-              alt="Shift Rules"
-              className="title-icon-svg"
-            />
-            Shift Rules
-          </h2>
-        </div>
-        <p className="section-description">
-          Configure shift scheduling parameters for your organization
+{/* Shift Rules Section */}
+<div className="section-wrapper">
+  <div className="section-header">
+    <h2 className="section-title">
+      <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
+      Shift Rules & Operating Hours
+    </h2>
+  </div>
+  <p className="section-description">
+    Configure shift scheduling parameters and operating hours for your organization
+  </p>
+
+  <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+    {/* Basic Shift Parameters */}
+    <div className="setting-item">
+      <label className="setting-label">Minimum Shift Length (hours)</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="1" 
+        max="24"
+        value={shiftRulesForm.shift_min_hours}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_min_hours: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Maximum Shift Length (hours)</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="1" 
+        max="24"
+        value={shiftRulesForm.shift_max_hours}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_max_hours: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Minimum Weekly Hours</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="0" 
+        max="168"
+        value={shiftRulesForm.min_weekly_hours}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_weekly_hours: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Maximum Weekly Hours</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="0" 
+        max="168"
+        value={shiftRulesForm.max_weekly_hours}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, max_weekly_hours: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Minimum Rest Slots Between Shifts</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="0" 
+        max="24"
+        value={shiftRulesForm.min_rest_slots}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_rest_slots: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Slot Length (hours)</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        step="0.25"
+        min="0.25" 
+        max="4"
+        value={shiftRulesForm.slot_len_hour}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, slot_len_hour: e.target.value})}
+      />
+      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)', marginTop: 'var(--space-1)' }}>
+        Time unit for scheduling (e.g., 0.5 = 30 minutes)
+      </p>
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Minimum Shift Length (slots)</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="1" 
+        max="48"
+        value={shiftRulesForm.min_shift_length_slots}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_shift_length_slots: e.target.value})}
+      />
+    </div>
+    <div className="setting-item">
+      <label className="setting-label">Waiting Time (minutes)</label>
+      <input 
+        className="setting-input" 
+        type="number" 
+        min="0" 
+        max="120"
+        value={shiftRulesForm.waiting_time}
+        onChange={(e) => setShiftRulesForm({...shiftRulesForm, waiting_time: e.target.value})}
+      />
+    </div>
+  </div>
+
+  {/* Toggle Switches */}
+  <div style={{ marginTop: 'var(--space-6)' }}>
+    <div className="toggle-item">
+      <div className="toggle-content">
+        <h4 className="toggle-title">Fixed Shifts</h4>
+        <p className="toggle-description">
+          Enable if you have predefined shift times each day
         </p>
-        <div className="settings-grid" style={{ marginTop: "var(--space-4)" }}>
-          <div className="setting-item">
-            <label className="setting-label">Minimum Shift Length</label>
-            <select className="setting-input">
-              <option>4 hours</option>
-              <option>6 hours</option>
-              <option>8 hours</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Maximum Shift Length</label>
-            <select className="setting-input">
-              <option>8 hours</option>
-              <option>10 hours</option>
-              <option>12 hours</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Break Duration</label>
-            <select className="setting-input">
-              <option>15 minutes</option>
-              <option>30 minutes</option>
-              <option>60 minutes</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Grace Period</label>
-            <select className="setting-input">
-              <option>5 minutes</option>
-              <option>10 minutes</option>
-              <option>15 minutes</option>
-            </select>
-          </div>
+      </div>
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={shiftRulesForm.fixed_shifts}
+          onChange={(e) => setShiftRulesForm({...shiftRulesForm, fixed_shifts: e.target.checked})}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+    </div>
+
+    {shiftRulesForm.fixed_shifts && (
+      <div style={{ 
+        marginTop: 'var(--space-4)', 
+        padding: 'var(--space-4)', 
+        background: 'var(--gray-50)', 
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--gray-200)'
+      }}>
+        <h4 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-base)', fontWeight: 600 }}>
+          Fixed Shift Configuration
+        </h4>
+        
+        <div className="setting-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <label className="setting-label">Number of Shifts per Day</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="1" 
+            max="10"
+            value={shiftRulesForm.number_of_shifts_per_day}
+            onChange={(e) => {
+              const num = parseInt(e.target.value)
+              setShiftRulesForm({...shiftRulesForm, number_of_shifts_per_day: num})
+              
+              // Adjust shift times array
+              const newShifts = [...shiftTimes]
+              while (newShifts.length < num) {
+                const lastShift = newShifts[newShifts.length - 1] || { to: "09:00" }
+                newShifts.push({ from: lastShift.to, to: "17:00" })
+              }
+              while (newShifts.length > num) {
+                newShifts.pop()
+              }
+              setShiftTimes(newShifts)
+            }}
+          />
         </div>
-        <div
-          className="settings-footer"
-          style={{ marginTop: "var(--space-6)" }}
-        >
-          <button className="btn-secondary">Reset to Defaults</button>
-          <button className="btn-primary">Save Shift Rules</button>
+
+        <h5 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+          Default Shift Times
+        </h5>
+        {shiftTimes.map((shift, index) => (
+          <div key={index} style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', alignItems: 'center' }}>
+            <span style={{ minWidth: '80px', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+              Shift {index + 1}:
+            </span>
+            <input
+              type="time"
+              className="setting-input"
+              style={{ flex: 1 }}
+              value={shift.from}
+              onChange={(e) => {
+                const newShifts = [...shiftTimes]
+                newShifts[index].from = e.target.value
+                setShiftTimes(newShifts)
+              }}
+            />
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>to</span>
+            <input
+              type="time"
+              className="setting-input"
+              style={{ flex: 1 }}
+              value={shift.to}
+              onChange={(e) => {
+                const newShifts = [...shiftTimes]
+                newShifts[index].to = e.target.value
+                setShiftTimes(newShifts)
+              }}
+            />
+          </div>
+        ))}
+
+        <div style={{ marginTop: 'var(--space-4)' }}>
+          <h5 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+            Custom Day Shifts (Optional)
+          </h5>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)', marginBottom: 'var(--space-3)' }}>
+            Override default shifts for specific days of the week
+          </p>
+          
+          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+            <div key={day} style={{ marginBottom: 'var(--space-3)' }}>
+              <div className="toggle-item" style={{ padding: 'var(--space-2)', background: 'white', borderRadius: 'var(--radius-md)' }}>
+                <div className="toggle-content">
+                  <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)' }}>{day}</h4>
+                  <p className="toggle-description" style={{ fontSize: 'var(--text-xs)' }}>
+                    Use custom shifts for this day
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={!!customDayShifts[day]}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCustomDayShifts({
+                          ...customDayShifts,
+                          [day]: [...shiftTimes]
+                        })
+                      } else {
+                        const newCustom = {...customDayShifts}
+                        delete newCustom[day]
+                        setCustomDayShifts(newCustom)
+                      }
+                    }}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              
+              {customDayShifts[day] && (
+                <div style={{ marginTop: 'var(--space-2)', marginLeft: 'var(--space-4)', padding: 'var(--space-3)', background: 'white', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)' }}>
+                  {customDayShifts[day].map((shift, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'center' }}>
+                      <span style={{ minWidth: '60px', fontSize: 'var(--text-xs)' }}>Shift {idx + 1}:</span>
+                      <input
+                        type="time"
+                        className="setting-input"
+                        style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
+                        value={shift.from}
+                        onChange={(e) => {
+                          const newCustom = {...customDayShifts}
+                          newCustom[day][idx].from = e.target.value
+                          setCustomDayShifts(newCustom)
+                        }}
+                      />
+                      <span style={{ fontSize: 'var(--text-xs)' }}>to</span>
+                      <input
+                        type="time"
+                        className="setting-input"
+                        style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
+                        value={shift.to}
+                        onChange={(e) => {
+                          const newCustom = {...customDayShifts}
+                          newCustom[day][idx].to = e.target.value
+                          setCustomDayShifts(newCustom)
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
+    )}
+
+    <div className="toggle-item">
+      <div className="toggle-content">
+        <h4 className="toggle-title">Meet All Demand</h4>
+        <p className="toggle-description">
+          Schedule enough staff to meet all predicted demand
+        </p>
+      </div>
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={shiftRulesForm.meet_all_demand}
+          onChange={(e) => setShiftRulesForm({...shiftRulesForm, meet_all_demand: e.target.checked})}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div className="toggle-item">
+      <div className="toggle-content">
+        <h4 className="toggle-title">Receiving Phone Orders</h4>
+        <p className="toggle-description">
+          Organization accepts phone orders
+        </p>
+      </div>
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={shiftRulesForm.receiving_phone}
+          onChange={(e) => setShiftRulesForm({...shiftRulesForm, receiving_phone: e.target.checked})}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div className="toggle-item">
+      <div className="toggle-content">
+        <h4 className="toggle-title">Delivery Service</h4>
+        <p className="toggle-description">
+          Organization offers delivery service
+        </p>
+      </div>
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={shiftRulesForm.delivery}
+          onChange={(e) => setShiftRulesForm({...shiftRulesForm, delivery: e.target.checked})}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div className="toggle-item">
+      <div className="toggle-content">
+        <h4 className="toggle-title">Accepting Orders</h4>
+        <p className="toggle-description">
+          Organization is currently accepting new orders
+        </p>
+      </div>
+      <label className="toggle-switch">
+        <input
+          type="checkbox"
+          checked={shiftRulesForm.accepting_orders}
+          onChange={(e) => setShiftRulesForm({...shiftRulesForm, accepting_orders: e.target.checked})}
+        />
+        <span className="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  {/* Operating Hours */}
+  <div style={{ marginTop: 'var(--space-6)' }}>
+    <h4 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+      Operating Hours
+    </h4>
+    <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+      {operatingHours.map((day, index) => (
+        <div key={day.weekday} style={{ 
+          display: 'flex', 
+          gap: 'var(--space-3)', 
+          alignItems: 'center',
+          padding: 'var(--space-3)',
+          background: 'var(--gray-50)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--gray-200)'
+        }}>
+          <span style={{ minWidth: '100px', fontWeight: 500 }}>{day.weekday}</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <input
+              type="checkbox"
+              checked={day.closed || false}
+              onChange={(e) => {
+                const newHours = [...operatingHours]
+                newHours[index].closed = e.target.checked
+                if (e.target.checked) {
+                  newHours[index].opening_time = ""
+                  newHours[index].closing_time = ""
+                }
+                setOperatingHours(newHours)
+              }}
+            />
+            <span style={{ fontSize: 'var(--text-sm)' }}>Closed</span>
+          </label>
+          {!day.closed && (
+            <>
+              <input
+                type="time"
+                className="setting-input"
+                style={{ flex: 1 }}
+                value={day.opening_time}
+                onChange={(e) => {
+                  const newHours = [...operatingHours]
+                  newHours[index].opening_time = e.target.value
+                  setOperatingHours(newHours)
+                }}
+              />
+              <span style={{ color: 'var(--gray-500)' }}>to</span>
+              <input
+                type="time"
+                className="setting-input"
+                style={{ flex: 1 }}
+                value={day.closing_time}
+                onChange={(e) => {
+                  const newHours = [...operatingHours]
+                  newHours[index].closing_time = e.target.value
+                  setOperatingHours(newHours)
+                }}
+              />
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <div className="settings-footer" style={{ marginTop: 'var(--space-6)' }}>
+    <button 
+      className="btn-secondary"
+      onClick={() => {
+        fetchShiftRules()
+        setActionMessage({ type: 'success', text: 'Reset to saved values' })
+        setTimeout(() => setActionMessage(null), 3000)
+      }}
+    >
+      Reset to Defaults
+    </button>
+    <button 
+      className="btn-primary"
+      onClick={handleSaveShiftRules}
+      disabled={shiftRulesLoading}
+    >
+      {shiftRulesLoading ? 'Saving...' : 'Save Shift Rules'}
+    </button>
+  </div>
+</div>
 
       {/* Roles Management Section */}
       <div className="section-wrapper">
