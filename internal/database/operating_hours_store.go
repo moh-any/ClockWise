@@ -12,8 +12,9 @@ import (
 type OperatingHours struct {
 	OrganizationID uuid.UUID `json:"organization_id"`
 	Weekday        string    `json:"weekday"`
-	OpeningTime    string    `json:"opening_time"`
-	ClosingTime    string    `json:"closing_time"`
+	OpeningTime    string    `json:"opening_time,omitempty"`
+	ClosingTime    string    `json:"closing_time,omitempty"`
+	Closed         *bool     `json:"closed,omitempty"`
 }
 
 // OperatingHoursStore defines the interface for operating hours data operations
@@ -67,7 +68,8 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*Ope
 	}
 	defer rows.Close()
 
-	var hours []*OperatingHours
+	// Create a map to store existing operating hours by weekday
+	hoursMap := make(map[string]*OperatingHours)
 	for rows.Next() {
 		var h OperatingHours
 		if err := rows.Scan(
@@ -79,7 +81,27 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*Ope
 			s.Logger.Error("failed to scan operating hours", "error", err)
 			return nil, err
 		}
-		hours = append(hours, &h)
+		hoursMap[h.Weekday] = &h
+	}
+
+	// Define all weekdays in order
+	allWeekdays := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
+
+	// Build the complete result with all 7 days
+	var hours []*OperatingHours
+	closed := true
+	for _, weekday := range allWeekdays {
+		if existingHours, found := hoursMap[weekday]; found {
+			// Day has operating hours
+			hours = append(hours, existingHours)
+		} else {
+			// Day is closed - add with closed flag
+			hours = append(hours, &OperatingHours{
+				OrganizationID: orgID,
+				Weekday:        weekday,
+				Closed:         &closed,
+			})
+		}
 	}
 
 	return hours, nil
@@ -100,7 +122,13 @@ func (s *PostgresOperatingHoursStore) GetOperatingHoursByDay(orgID uuid.UUID, we
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			// Day not found - return closed status
+			closed := true
+			return &OperatingHours{
+				OrganizationID: orgID,
+				Weekday:        weekday,
+				Closed:         &closed,
+			}, nil
 		}
 		s.Logger.Error("failed to get operating hours by day", "error", err, "organization_id", orgID, "weekday", weekday)
 		return nil, err

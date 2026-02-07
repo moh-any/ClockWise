@@ -637,6 +637,11 @@ Authorization: Bearer <access_token>
     "operating_hours": [
       {
         "organization_id": "uuid",
+        "weekday": "Sunday",
+        "closed": true
+      },
+      {
+        "organization_id": "uuid",
         "weekday": "Monday",
         "opening_time": "09:00:00",
         "closing_time": "22:00:00"
@@ -646,11 +651,41 @@ Authorization: Bearer <access_token>
         "weekday": "Tuesday",
         "opening_time": "09:00:00",
         "closing_time": "22:00:00"
+      },
+      {
+        "organization_id": "uuid",
+        "weekday": "Wednesday",
+        "opening_time": "09:00:00",
+        "closing_time": "22:00:00"
+      },
+      {
+        "organization_id": "uuid",
+        "weekday": "Thursday",
+        "opening_time": "09:00:00",
+        "closing_time": "22:00:00"
+      },
+      {
+        "organization_id": "uuid",
+        "weekday": "Friday",
+        "opening_time": "09:00:00",
+        "closing_time": "22:00:00"
+      },
+      {
+        "organization_id": "uuid",
+        "weekday": "Saturday",
+        "opening_time": "09:00:00",
+        "closing_time": "22:00:00"
       }
     ]
   }
 }
 ```
+
+**Operating Hours Notes:**
+- All 7 days of the week are always returned (Sunday through Saturday)
+- Days with operating hours will have `opening_time` and `closing_time` fields
+- Days that are closed will have `closed: true` and omit the time fields
+- The `closed` field is omitted when the business is open on that day
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
