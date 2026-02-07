@@ -142,7 +142,7 @@ func TestUpdateCurrentEmployeePreferences(t *testing.T) {
 			OnCall:                &onCall,
 		}
 
-		orgRoles := []*database.OrganizationRole{{Role: "Server"}}
+		orgRoles := []database.OrganizationRole{{Role: "Server"}}
 		fullUser := &database.User{ID: userID}
 
 		// 1. Upsert Preferences
@@ -230,7 +230,7 @@ func TestUpdateCurrentEmployeePreferences(t *testing.T) {
 			UserRoles:   []string{"Wizard"},
 		}
 
-		orgRoles := []*database.OrganizationRole{{Role: "Server"}}
+		orgRoles := []database.OrganizationRole{{Role: "Server"}}
 
 		env.PreferencesStore.On("UpsertPreferences", userID, mock.Anything).Return(nil).Once()
 		env.RolesStore.On("GetRolesByOrganizationID", orgID).Return(orgRoles, nil).Once()

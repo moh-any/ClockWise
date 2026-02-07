@@ -198,12 +198,12 @@ type MockRolesStore struct {
 	mock.Mock
 }
 
-func (m *MockRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*database.OrganizationRole, error) {
+func (m *MockRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]database.OrganizationRole, error) {
 	args := m.Called(orgID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*database.OrganizationRole), args.Error(1)
+	return args.Get(0).([]database.OrganizationRole), args.Error(1)
 }
 
 func (m *MockRolesStore) CreateRole(role *database.OrganizationRole) error {
