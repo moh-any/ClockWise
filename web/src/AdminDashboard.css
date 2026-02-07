@@ -3719,3 +3719,83 @@ body:has(.admin-profile-overlay.show) {
     transform: translate(0, 0);
   }
 }
+
+
+/* ========================================
+   CAMPAIGN RECOMMENDATIONS DARK MODE
+   ======================================== */
+
+/* Form inputs in recommendation modal */
+.dashboard-wrapper.dark-mode .form-input {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.dashboard-wrapper.dark-mode .form-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  background: var(--bg-primary);
+}
+
+.dashboard-wrapper.dark-mode .form-input:hover {
+  border-color: var(--color-primary);
+  background: var(--bg-secondary);
+}
+
+/* Form labels in recommendation modal */
+.dashboard-wrapper.dark-mode .form-label {
+  color: var(--text-secondary);
+}
+
+/* Info items in recommendation results */
+.dashboard-wrapper.dark-mode .info-item {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.dashboard-wrapper.dark-mode .info-item:hover {
+  background: var(--bg-secondary);
+  border-color: var(--color-primary);
+}
+
+/* Stat items in recommendation cards */
+.dashboard-wrapper.dark-mode .stat-item {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+.dashboard-wrapper.dark-mode .stat-value {
+  color: var(--color-primary);
+}
+
+.dashboard-wrapper.dark-mode .stat-label {
+  color: var(--text-secondary);
+}
+
+/* Badge styling in recommendations */
+.dashboard-wrapper.dark-mode .badge {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Profile cards used in recommendations */
+.dashboard-wrapper.dark-mode .profile-card {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.dashboard-wrapper.dark-mode .profile-card:hover {
+  border-color: var(--color-primary);
+}
+
+/* Alert cards for AI insights */
+.dashboard-wrapper.dark-mode .alert-card.alert-low {
+  background: linear-gradient(90deg, var(--success-50) 0%, var(--card-bg) 100%);
+  border-left-color: var(--color-success);
+}
+
+.dashboard-wrapper.dark-mode .alert-card p {
+  color: var(--text-primary);
+}

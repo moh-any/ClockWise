@@ -89,17 +89,24 @@ class CampaignAnalyzer:
     ) -> CampaignMetrics:
         """Calculate detailed metrics for a single campaign"""
         
-        start_dt = pd.to_datetime(campaign['start_time'])
-        end_dt = pd.to_datetime(campaign['end_time'])
+        # Parse campaign dates - ensure timezone-aware
+        start_dt = pd.to_datetime(campaign['start_time'], utc=True)
+        end_dt = pd.to_datetime(campaign['end_time'], utc=True)
         
         # Define time windows
         duration = (end_dt - start_dt).days
         before_start = start_dt - timedelta(days=duration)
         after_end = end_dt + timedelta(days=duration)
         
-        # Filter orders by time periods
-        orders_df['timestamp'] = pd.to_datetime(orders_df['created'], unit='s')
+        # CRITICAL FIX: Ensure orders timestamps are timezone-aware (UTC)
+        # Convert 'created' (Unix timestamp) to datetime with UTC timezone
+        if 'timestamp' not in orders_df.columns:
+            orders_df['timestamp'] = pd.to_datetime(orders_df['created'], unit='s', utc=True)
+        else:
+            # If timestamp already exists, ensure it's UTC
+            orders_df['timestamp'] = pd.to_datetime(orders_df['timestamp'], utc=True)
         
+        # Now all comparisons are between timezone-aware datetimes
         before_orders = orders_df[
             (orders_df['timestamp'] >= before_start) & 
             (orders_df['timestamp'] < start_dt)
@@ -133,16 +140,17 @@ class CampaignAnalyzer:
         
         revenue_impact = revenue_during - revenue_before
         
-        # Contextual features
-        day_of_week = start_dt.dayofweek
-        hour_of_day = start_dt.hour
-        season = self._get_season(start_dt)
+        # Contextual features - convert to naive datetime for these operations
+        start_dt_naive = start_dt.tz_localize(None) if start_dt.tzinfo else start_dt
+        day_of_week = start_dt_naive.dayofweek
+        hour_of_day = start_dt_naive.hour
+        season = self._get_season(start_dt_naive)
         
         # Weather during campaign (if available)
         weather_during = self._extract_weather_features(during_orders)
         
         # Holiday check
-        was_holiday = self._check_holiday_overlap(start_dt, end_dt)
+        was_holiday = self._check_holiday_overlap(start_dt_naive, end_dt.tz_localize(None) if end_dt.tzinfo else end_dt)
         
         # Profitability (simplified - assumes 30% margin before discount)
         base_margin = 0.30
@@ -156,8 +164,8 @@ class CampaignAnalyzer:
         
         return CampaignMetrics(
             campaign_id=campaign.get('id', f"campaign_{start_dt.timestamp()}"),
-            start_date=start_dt,
-            end_date=end_dt,
+            start_date=start_dt_naive,
+            end_date=end_dt.tz_localize(None) if end_dt.tzinfo else end_dt,
             items_included=campaign['items_included'],
             discount=campaign['discount'],
             avg_daily_orders_during=avg_orders_during,
@@ -342,11 +350,16 @@ class CampaignAnalyzer:
             Dictionary with patterns by day_of_week, hour, season
         """
         
-        orders_df['timestamp'] = pd.to_datetime(orders_df['created'], unit='s')
+        # CRITICAL FIX: Ensure timezone-aware timestamps
+        if 'timestamp' not in orders_df.columns:
+            orders_df['timestamp'] = pd.to_datetime(orders_df['created'], unit='s', utc=True)
+        else:
+            orders_df['timestamp'] = pd.to_datetime(orders_df['timestamp'], utc=True)
+        
         orders_df['day_of_week'] = orders_df['timestamp'].dt.dayofweek
         orders_df['hour'] = orders_df['timestamp'].dt.hour
         orders_df['season'] = orders_df['timestamp'].apply(
-            lambda x: self._get_season(x)
+            lambda x: self._get_season(x.tz_localize(None) if x.tzinfo else x)
         )
         
         patterns = {
@@ -382,7 +395,7 @@ class CampaignAnalyzer:
         
         self.temporal_patterns = patterns
         return patterns
-    
+        
     def get_best_performing_campaigns(
         self,
         top_n: int = 5,

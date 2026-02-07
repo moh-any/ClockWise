@@ -880,7 +880,20 @@ export const campaignsAPI = {
       body: formData,
     })
   },
-
+    recommendCampaigns: async (params) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/recommend`, {
+      method: "POST",
+      body: JSON.stringify(params),
+    })
+  },
+    submitCampaignFeedback: async (feedback) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/feedback`, {
+      method: "POST",
+      body: JSON.stringify(feedback),
+    })
+  },
   /**
    * Upload campaign items CSV file
    * @param {File} file - CSV file with campaign items data
