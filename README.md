@@ -91,6 +91,12 @@ ClockWise is the **Shift Wizard** — an intelligent system that monitors schedu
 - **Manager Dashboard**: Team management, request approvals, schedule oversight
 - **Employee Dashboard**: Personal schedule view, preference submission, request management
 
+**Business Approach**
+- **Problem Solved:** Reduces overstaffing and understaffing by forecasting demand and automating schedules.
+- **Who Benefits:** Store managers, operations leads, and workforce planners at multi-location retail and hospitality businesses.
+- **Value Delivered:** Lower labor costs, improved service levels, faster response to demand surges, and simplified operational planning.
+- **How It's Used:** Integrates with payroll and POS systems; ingest employee lists (including roles), forecasts demand, and generates optimized shift schedules.
+
 ---
 
 ## System Architecture
