@@ -435,16 +435,26 @@ class CampaignRecommender:
         
         X = pd.DataFrame([features])
         
-        # Ensure same columns as training
-        if hasattr(self.reward_model, 'feature_names_in_'):
-            for col in self.reward_model.feature_names_in_:
-                if col not in X.columns:
-                    X[col] = 0
-            X = X[self.reward_model.feature_names_in_]
+        # Ensure same columns as training (FIXED)
+        try:
+            if hasattr(self.reward_model, 'feature_names_in_'):
+                # Add missing columns with default value 0
+                for col in self.reward_model.feature_names_in_:
+                    if col not in X.columns:
+                        X[col] = 0
+                # Reorder columns to match training
+                X = X[self.reward_model.feature_names_in_]
+            
+            prediction = self.reward_model.predict(X)[0]
+            
+            # Ensure prediction is reasonable (ROI between -100% and 500%)
+            prediction = np.clip(prediction, -100, 500)
+            
+            return float(prediction)
         
-        prediction = self.reward_model.predict(X)[0]
-        
-        return prediction
+        except Exception as e:
+            print(f"Warning: Prediction failed ({e}), using historical average")
+            return template['avg_roi']
     
     def _generate_novel_campaigns(
         self,
@@ -626,11 +636,27 @@ class CampaignRecommender:
     def save_model(self, filepath: str):
         """Save trained model to disk"""
         
+        # Convert numpy types to Python native types for JSON serialization
+        def convert_to_native(obj):
+            """Convert numpy types to native Python types"""
+            if isinstance(obj, (np.integer, np.int64, np.int32)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, dict):
+                return {k: convert_to_native(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_to_native(item) for item in obj]
+            else:
+                return obj
+        
         model_data = {
-            'campaign_templates': self.campaign_templates,
-            'thompson_params': {k: list(v) for k, v in self.thompson_params.items()},
-            'feature_importance': self.feature_importance,
-            'exploration_rate': self.exploration_rate
+            'campaign_templates': convert_to_native(self.campaign_templates),
+            'thompson_params': {k: [float(v[0]), float(v[1])] for k, v in self.thompson_params.items()},
+            'feature_importance': {k: float(v) for k, v in self.feature_importance.items()},
+            'exploration_rate': float(self.exploration_rate)
         }
         
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)
@@ -648,8 +674,7 @@ class CampaignRecommender:
                 import joblib
                 joblib.dump(self.reward_model, model_path)
         
-        print(f"Model saved to {filepath}")
-    
+        print(f"Model saved to {filepath}")    
     def load_model(self, filepath: str):
         """Load trained model from disk"""
         

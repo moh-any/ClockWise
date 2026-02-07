@@ -1,22 +1,50 @@
-# API Documentation - Request & Response Examples
+# 📋 Complete API Documentation
 
-## Complete API Reference with Examples
+**File: `docs/API_DOCUMENTATION.md`**
+
+```markdown
+# Restaurant Management API Documentation
+
+**Version:** 3.1.0  
+**Base URL:** `http://localhost:8000`
+
+## Overview
+
+This API provides three main services for restaurant management:
+1. **Demand Prediction** - Predict hourly item and order counts
+2. **Staff Scheduling** - Generate optimal staff schedules with management insights
+3. **Campaign Recommendations** - AI-powered marketing campaign suggestions
 
 ---
 
-## 1. Health Check
+## Table of Contents
+
+1. [Authentication](#authentication)
+2. [Health & Status Endpoints](#health--status-endpoints)
+3. [Demand Prediction](#demand-prediction)
+4. [Staff Scheduling](#staff-scheduling)
+5. [Campaign Recommendations](#campaign-recommendations)
+6. [Error Handling](#error-handling)
+7. [Data Models Reference](#data-models-reference)
+
+---
+
+## Authentication
+
+Currently, the API does not require authentication. For production deployment, implement JWT or API key authentication.
+
+---
+
+## Health & Status Endpoints
+
+### 1. Health Check
 
 **Endpoint:** `GET /`
 
-**Description:** Check API health and available features
+**Description:** Check API health and feature availability.
 
-### Request
-```http
-GET / HTTP/1.1
-Host: localhost:8000
-```
+**Response:**
 
-### Response
 ```json
 {
   "status": "online",
@@ -24,99 +52,62 @@ Host: localhost:8000
   "scheduler_available": true,
   "weather_api_available": true,
   "holiday_api_available": true,
-  "campaign_recommender_available": true,
+  "campaign_available": true,
   "version": "3.1.0",
   "features": [
     "demand_prediction",
     "staff_scheduling",
-    "campaign_recommendations"
+    "campaign_recommendations",
+    "management_insights"
   ]
 }
 ```
 
 ---
 
-## 2. Model Information
+### 2. Model Information
 
 **Endpoint:** `GET /model/info`
 
-**Description:** Get ML model metadata and performance metrics
+**Description:** Get demand prediction model metadata.
 
-### Request
-```http
-GET /model/info HTTP/1.1
-Host: localhost:8000
-```
+**Response:**
 
-### Response
 ```json
 {
+  "python_version": "3.12.0",
+  "sklearn_version": "1.3.0",
   "model_type": "RandomForestRegressor",
-  "version": "1.0.0",
-  "trained_date": "2024-01-10",
-  "n_estimators": 600,
-  "features": [
-    "place_id",
-    "hour",
-    "day_of_week",
-    "month",
-    "week_of_year",
-    "type_id",
-    "waiting_time",
-    "rating",
-    "delivery",
-    "accepting_orders",
-    "total_campaigns",
-    "avg_discount",
-    "prev_hour_items",
-    "prev_day_items",
-    "prev_week_items",
-    "prev_month_items",
-    "rolling_7d_avg_items",
-    "temperature_2m",
-    "relative_humidity_2m",
-    "precipitation",
-    "rain",
-    "snowfall",
-    "weather_code",
-    "cloud_cover",
-    "wind_speed_10m",
-    "is_rainy",
-    "is_snowy",
-    "is_cold",
-    "is_hot",
-    "is_cloudy",
-    "is_windy",
-    "good_weather",
-    "weather_severity",
-    "is_holiday"
-  ],
-  "target_variables": [
-    "item_count",
-    "order_count"
-  ],
-  "training_samples": 50000,
-  "performance_metrics": {
-    "mae": 3.2,
-    "rmse": 5.1,
-    "r2_score": 0.85
-  }
+  "features": ["place_id", "hour", "day_of_week", "..."],
+  "hyperparameters": {
+    "max_depth": 12,
+    "min_samples_leaf": 7,
+    "max_features": 0.5,
+    "n_estimators": 600,
+    "bootstrap": true
+  },
+  "training_size": 65608,
+  "test_size": 16403,
+  "version": "2.1_fixed_lag_features"
 }
 ```
 
 ---
 
-## 3. Demand Prediction (Standalone)
+## Demand Prediction
+
+### 3. Predict Demand
 
 **Endpoint:** `POST /predict/demand`
 
-**Description:** Predict hourly demand for orders and items based on historical data
+**Description:** Predict hourly demand (item_count and order_count) for specified days.
 
-### Request
+**Request Body:**
+
 ```json
 {
   "place": {
-    "place_id": "pl_12345",
+    "place_id": "rest_001",
     "place_name": "Pizza Paradise",
     "type": "restaurant",
     "latitude": 55.6761,
@@ -125,347 +116,149 @@ Host: localhost:8000
     "receiving_phone": true,
     "delivery": true,
     "opening_hours": {
-      "monday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "tuesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "wednesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "thursday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "friday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "saturday": {
-        "from": "11:00",
-        "to": "23:00"
-      },
-      "sunday": {
-        "closed": true
-      }
+      "monday": {"from": "10:00", "to": "22:00"},
+      "tuesday": {"from": "10:00", "to": "22:00"},
+      "wednesday": {"from": "10:00", "to": "22:00"},
+      "thursday": {"from": "10:00", "to": "22:00"},
+      "friday": {"from": "10:00", "to": "23:00"},
+      "saturday": {"from": "11:00", "to": "23:00"},
+      "sunday": {"closed": true}
     },
     "fixed_shifts": true,
     "number_of_shifts_per_day": 3,
-    "shift_times": [
-      "10:00-15:00",
-      "15:00-20:00",
-      "20:00-23:00"
-    ],
+    "shift_times": ["10:00-14:00", "14:00-18:00", "18:00-22:00"],
     "rating": 4.5,
     "accepting_orders": true
   },
   "orders": [
     {
-      "time": "2024-01-01T12:30:00",
+      "time": "2024-01-15T12:30:00",
       "items": 3,
       "status": "completed",
-      "total_amount": 45.5,
-      "discount_amount": 5.0
+      "total_amount": 45.50,
+      "discount_amount": 5.00
     },
     {
-      "time": "2024-01-01T13:15:00",
+      "time": "2024-01-15T13:15:00",
       "items": 2,
       "status": "completed",
-      "total_amount": 32.0,
-      "discount_amount": 0.0
-    },
-    {
-      "time": "2024-01-01T18:45:00",
-      "items": 5,
-      "status": "completed",
-      "total_amount": 67.5,
-      "discount_amount": 10.0
-    },
-    {
-      "time": "2024-01-02T12:00:00",
-      "items": 2,
-      "status": "completed",
-      "total_amount": 28.0,
-      "discount_amount": 0.0
-    },
-    {
-      "time": "2024-01-02T19:30:00",
-      "items": 4,
-      "status": "completed",
-      "total_amount": 52.0,
-      "discount_amount": 5.0
-    },
-    {
-      "time": "2024-01-03T11:45:00",
-      "items": 3,
-      "status": "completed",
-      "total_amount": 41.0,
-      "discount_amount": 0.0
-    },
-    {
-      "time": "2024-01-03T20:15:00",
-      "items": 6,
-      "status": "completed",
-      "total_amount": 78.0,
-      "discount_amount": 12.0
+      "total_amount": 32.00,
+      "discount_amount": 0.00
     }
   ],
   "campaigns": [
     {
-      "start_time": "2024-01-01T00:00:00",
-      "end_time": "2024-01-07T23:59:59",
-      "items_included": [
-        "pizza_margherita",
-        "pizza_pepperoni"
-      ],
+      "start_time": "2024-01-10T00:00:00",
+      "end_time": "2024-01-17T23:59:59",
+      "items_included": ["pizza_margherita", "drink_cola"],
       "discount": 15.0
     }
   ],
-  "prediction_start_date": "2024-01-15",
+  "prediction_start_date": "2024-02-01",
   "prediction_days": 7
 }
 ```
 
-### Response
+**Response:**
+
 ```json
 {
   "demand_output": {
     "restaurant_name": "Pizza Paradise",
-    "prediction_period": "2024-01-15 to 2024-01-21",
+    "prediction_period": "2024-02-01 to 2024-02-07",
     "days": [
       {
-        "day_name": "monday",
-        "date": "2024-01-15",
+        "day_name": "thursday",
+        "date": "2024-02-01",
         "hours": [
           {
             "hour": 0,
-            "order_count": 0,
-            "item_count": 0
+            "order_count": 2,
+            "item_count": 5
           },
           {
             "hour": 1,
-            "order_count": 0,
-            "item_count": 0
+            "order_count": 1,
+            "item_count": 3
           },
           {
             "hour": 10,
-            "order_count": 3,
-            "item_count": 8
+            "order_count": 8,
+            "item_count": 18
           },
           {
             "hour": 11,
-            "order_count": 5,
-            "item_count": 12
-          },
-          {
-            "hour": 12,
             "order_count": 12,
-            "item_count": 32
-          },
-          {
-            "hour": 13,
-            "order_count": 10,
-            "item_count": 26
-          },
-          {
-            "hour": 14,
-            "order_count": 6,
-            "item_count": 15
-          },
-          {
-            "hour": 15,
-            "order_count": 4,
-            "item_count": 10
-          },
-          {
-            "hour": 16,
-            "order_count": 3,
-            "item_count": 8
-          },
-          {
-            "hour": 17,
-            "order_count": 8,
-            "item_count": 20
-          },
-          {
-            "hour": 18,
-            "order_count": 15,
-            "item_count": 38
-          },
-          {
-            "hour": 19,
-            "order_count": 18,
-            "item_count": 45
-          },
-          {
-            "hour": 20,
-            "order_count": 16,
-            "item_count": 40
-          },
-          {
-            "hour": 21,
-            "order_count": 12,
-            "item_count": 30
-          },
-          {
-            "hour": 22,
-            "order_count": 6,
-            "item_count": 15
-          },
-          {
-            "hour": 23,
-            "order_count": 2,
-            "item_count": 5
-          }
-        ]
-      },
-      {
-        "day_name": "tuesday",
-        "date": "2024-01-16",
-        "hours": [
-          {
-            "hour": 12,
-            "order_count": 11,
             "item_count": 28
           },
           {
+            "hour": 12,
+            "order_count": 25,
+            "item_count": 58
+          },
+          {
             "hour": 13,
-            "order_count": 9,
-            "item_count": 23
-          },
-          {
-            "hour": 18,
-            "order_count": 16,
-            "item_count": 40
-          },
-          {
-            "hour": 19,
-            "order_count": 20,
-            "item_count": 50
-          },
-          {
-            "hour": 20,
-            "order_count": 18,
-            "item_count": 45
-          }
-        ]
-      },
-      {
-        "day_name": "wednesday",
-        "date": "2024-01-17",
-        "hours": [
-          {
-            "hour": 12,
-            "order_count": 13,
-            "item_count": 33
-          },
-          {
-            "hour": 19,
-            "order_count": 19,
-            "item_count": 48
-          }
-        ]
-      },
-      {
-        "day_name": "thursday",
-        "date": "2024-01-18",
-        "hours": [
-          {
-            "hour": 12,
-            "order_count": 14,
-            "item_count": 35
-          },
-          {
-            "hour": 19,
-            "order_count": 21,
-            "item_count": 52
-          }
-        ]
-      },
-      {
-        "day_name": "friday",
-        "date": "2024-01-19",
-        "hours": [
-          {
-            "hour": 12,
-            "order_count": 16,
-            "item_count": 40
-          },
-          {
-            "hour": 18,
             "order_count": 22,
-            "item_count": 55
-          },
-          {
-            "hour": 19,
-            "order_count": 28,
-            "item_count": 70
-          },
-          {
-            "hour": 20,
-            "order_count": 25,
-            "item_count": 62
-          }
-        ]
-      },
-      {
-        "day_name": "saturday",
-        "date": "2024-01-20",
-        "hours": [
-          {
-            "hour": 12,
-            "order_count": 18,
-            "item_count": 45
-          },
-          {
-            "hour": 13,
-            "order_count": 20,
-            "item_count": 50
+            "item_count": 51
           },
           {
             "hour": 18,
-            "order_count": 25,
-            "item_count": 62
+            "order_count": 35,
+            "item_count": 82
           },
           {
             "hour": 19,
             "order_count": 30,
-            "item_count": 75
+            "item_count": 70
           },
           {
             "hour": 20,
-            "order_count": 28,
-            "item_count": 70
+            "order_count": 20,
+            "item_count": 45
+          },
+          {
+            "hour": 21,
+            "order_count": 15,
+            "item_count": 35
+          },
+          {
+            "hour": 22,
+            "order_count": 8,
+            "item_count": 18
+          },
+          {
+            "hour": 23,
+            "order_count": 3,
+            "item_count": 7
           }
         ]
-      },
-      {
-        "day_name": "sunday",
-        "date": "2024-01-21",
-        "hours": []
       }
     ]
   }
 }
 ```
 
+**Notes:**
+- Minimum 7 days of historical orders recommended
+- Weather and holiday data automatically fetched based on coordinates
+- Predictions are hourly (24 hours per day)
+
 ---
 
-## 4. Schedule Generation (Standalone)
+## Staff Scheduling
+
+### 4. Generate Schedule
 
 **Endpoint:** `POST /predict/schedule`
 
-**Description:** Generate optimal staff schedules based on demand predictions
+**Description:** Generate optimized staff schedule with management insights.
 
-### Request
+**Request Body:**
+
 ```json
 {
   "place": {
-    "place_id": "pl_12345",
+    "place_id": "rest_001",
     "place_name": "Pizza Paradise",
     "type": "restaurant",
     "latitude": 55.6761,
@@ -474,41 +267,17 @@ Host: localhost:8000
     "receiving_phone": true,
     "delivery": true,
     "opening_hours": {
-      "monday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "tuesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "wednesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "thursday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "friday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "saturday": {
-        "from": "11:00",
-        "to": "23:00"
-      },
-      "sunday": {
-        "closed": true
-      }
+      "monday": {"from": "10:00", "to": "22:00"},
+      "tuesday": {"from": "10:00", "to": "22:00"},
+      "wednesday": {"from": "10:00", "to": "22:00"},
+      "thursday": {"from": "10:00", "to": "22:00"},
+      "friday": {"from": "10:00", "to": "23:00"},
+      "saturday": {"from": "11:00", "to": "23:00"},
+      "sunday": {"closed": true}
     },
     "fixed_shifts": true,
     "number_of_shifts_per_day": 3,
-    "shift_times": [
-      "10:00-15:00",
-      "15:00-20:00",
-      "20:00-23:00"
-    ],
+    "shift_times": ["10:00-14:00", "14:00-18:00", "18:00-22:00"],
     "rating": 4.5,
     "accepting_orders": true
   },
@@ -518,29 +287,13 @@ Host: localhost:8000
         "role_id": "chef",
         "role_name": "Chef",
         "producing": true,
-        "items_per_employee_per_hour": 15.0,
-        "min_present": 2,
-        "is_independent": false
-      },
-      {
-        "role_id": "pizza_maker",
-        "role_name": "Pizza Maker",
-        "producing": true,
-        "items_per_employee_per_hour": 12.0,
+        "items_per_employee_per_hour": 20.0,
         "min_present": 1,
-        "is_independent": false
-      },
-      {
-        "role_id": "server",
-        "role_name": "Server",
-        "producing": false,
-        "items_per_employee_per_hour": null,
-        "min_present": 2,
         "is_independent": true
       },
       {
-        "role_id": "cashier",
-        "role_name": "Cashier",
+        "role_id": "waiter",
+        "role_name": "Waiter",
         "producing": false,
         "items_per_employee_per_hour": null,
         "min_present": 1,
@@ -550,449 +303,239 @@ Host: localhost:8000
     "employees": [
       {
         "employee_id": "emp_001",
-        "role_ids": [
-          "chef",
-          "pizza_maker"
-        ],
-        "available_days": [
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday"
-        ],
-        "preferred_days": [
-          "monday",
-          "wednesday",
-          "friday"
-        ],
+        "role_ids": ["chef"],
+        "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        "preferred_days": ["monday", "wednesday", "friday"],
         "available_hours": {
-          "monday": {
-            "from": "10:00",
-            "to": "23:00"
-          },
-          "tuesday": {
-            "from": "10:00",
-            "to": "23:00"
-          },
-          "wednesday": {
-            "from": "10:00",
-            "to": "23:00"
-          },
-          "thursday": {
-            "from": "10:00",
-            "to": "23:00"
-          },
-          "friday": {
-            "from": "10:00",
-            "to": "23:00"
-          }
+          "monday": {"from": "10:00", "to": "22:00"},
+          "tuesday": {"from": "10:00", "to": "22:00"},
+          "wednesday": {"from": "10:00", "to": "22:00"},
+          "thursday": {"from": "10:00", "to": "22:00"},
+          "friday": {"from": "10:00", "to": "22:00"}
         },
         "preferred_hours": {
-          "monday": {
-            "from": "15:00",
-            "to": "23:00"
-          },
-          "wednesday": {
-            "from": "15:00",
-            "to": "23:00"
-          },
-          "friday": {
-            "from": "15:00",
-            "to": "23:00"
-          }
+          "monday": {"from": "10:00", "to": "18:00"},
+          "wednesday": {"from": "10:00", "to": "18:00"},
+          "friday": {"from": "10:00", "to": "18:00"}
         },
-        "hourly_wage": 25.5,
+        "hourly_wage": 25.0,
         "max_hours_per_week": 40.0,
         "max_consec_slots": 8,
         "pref_hours": 32.0
       },
       {
         "employee_id": "emp_002",
-        "role_ids": [
-          "chef"
-        ],
-        "available_days": [
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday"
-        ],
-        "preferred_days": [
-          "tuesday",
-          "thursday",
-          "saturday"
-        ],
+        "role_ids": ["waiter"],
+        "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+        "preferred_days": ["tuesday", "thursday", "saturday"],
         "available_hours": {
-          "monday": {
-            "from": "10:00",
-            "to": "20:00"
-          },
-          "tuesday": {
-            "from": "10:00",
-            "to": "20:00"
-          },
-          "wednesday": {
-            "from": "10:00",
-            "to": "20:00"
-          },
-          "thursday": {
-            "from": "10:00",
-            "to": "20:00"
-          },
-          "friday": {
-            "from": "10:00",
-            "to": "20:00"
-          },
-          "saturday": {
-            "from": "11:00",
-            "to": "23:00"
-          }
+          "monday": {"from": "14:00", "to": "22:00"},
+          "tuesday": {"from": "14:00", "to": "22:00"},
+          "wednesday": {"from": "14:00", "to": "22:00"},
+          "thursday": {"from": "14:00", "to": "22:00"},
+          "friday": {"from": "14:00", "to": "23:00"},
+          "saturday": {"from": "14:00", "to": "23:00"}
         },
         "preferred_hours": {
-          "tuesday": {
-            "from": "10:00",
-            "to": "15:00"
-          },
-          "thursday": {
-            "from": "10:00",
-            "to": "15:00"
-          },
-          "saturday": {
-            "from": "15:00",
-            "to": "23:00"
-          }
-        },
-        "hourly_wage": 28.0,
-        "max_hours_per_week": 40.0,
-        "max_consec_slots": 8,
-        "pref_hours": 35.0
-      },
-      {
-        "employee_id": "emp_003",
-        "role_ids": [
-          "server",
-          "cashier"
-        ],
-        "available_days": [
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday"
-        ],
-        "preferred_days": [
-          "friday",
-          "saturday"
-        ],
-        "available_hours": {
-          "wednesday": {
-            "from": "14:00",
-            "to": "23:00"
-          },
-          "thursday": {
-            "from": "14:00",
-            "to": "23:00"
-          },
-          "friday": {
-            "from": "10:00",
-            "to": "23:00"
-          },
-          "saturday": {
-            "from": "11:00",
-            "to": "23:00"
-          }
-        },
-        "preferred_hours": {
-          "friday": {
-            "from": "18:00",
-            "to": "23:00"
-          },
-          "saturday": {
-            "from": "18:00",
-            "to": "23:00"
-          }
+          "tuesday": {"from": "14:00", "to": "22:00"},
+          "thursday": {"from": "14:00", "to": "22:00"},
+          "saturday": {"from": "14:00", "to": "23:00"}
         },
         "hourly_wage": 18.0,
-        "max_hours_per_week": 30.0,
-        "max_consec_slots": 6,
-        "pref_hours": 25.0
+        "max_hours_per_week": 35.0,
+        "max_consec_slots": 8,
+        "pref_hours": 28.0
       }
     ],
-    "production_chains": [
-      {
-        "chain_id": "kitchen_chain",
-        "role_ids": [
-          "chef",
-          "pizza_maker"
-        ],
-        "contrib_factor": 1.0
-      }
-    ],
+    "production_chains": [],
     "scheduler_config": {
       "slot_len_hour": 1.0,
       "min_rest_slots": 2,
-      "min_shift_length_slots": 2,
+      "min_shift_length_slots": 4,
       "meet_all_demand": false
     }
   },
   "demand_predictions": [
     {
       "day_name": "monday",
-      "date": "2024-01-15",
+      "date": "2024-02-05",
       "hours": [
-        {
-          "hour": 10,
-          "order_count": 3,
-          "item_count": 8
-        },
-        {
-          "hour": 11,
-          "order_count": 5,
-          "item_count": 12
-        },
-        {
-          "hour": 12,
-          "order_count": 12,
-          "item_count": 32
-        },
-        {
-          "hour": 13,
-          "order_count": 10,
-          "item_count": 26
-        },
-        {
-          "hour": 18,
-          "order_count": 15,
-          "item_count": 38
-        },
-        {
-          "hour": 19,
-          "order_count": 18,
-          "item_count": 45
-        },
-        {
-          "hour": 20,
-          "order_count": 16,
-          "item_count": 40
-        }
-      ]
-    },
-    {
-      "day_name": "friday",
-      "date": "2024-01-19",
-      "hours": [
-        {
-          "hour": 12,
-          "order_count": 16,
-          "item_count": 40
-        },
-        {
-          "hour": 18,
-          "order_count": 22,
-          "item_count": 55
-        },
-        {
-          "hour": 19,
-          "order_count": 28,
-          "item_count": 70
-        },
-        {
-          "hour": 20,
-          "order_count": 25,
-          "item_count": 62
-        }
-      ]
-    },
-    {
-      "day_name": "saturday",
-      "date": "2024-01-20",
-      "hours": [
-        {
-          "hour": 12,
-          "order_count": 18,
-          "item_count": 45
-        },
-        {
-          "hour": 19,
-          "order_count": 30,
-          "item_count": 75
-        },
-        {
-          "hour": 20,
-          "order_count": 28,
-          "item_count": 70
-        }
+        {"hour": 10, "order_count": 8, "item_count": 18},
+        {"hour": 11, "order_count": 12, "item_count": 28},
+        {"hour": 12, "order_count": 25, "item_count": 58},
+        {"hour": 13, "order_count": 22, "item_count": 51},
+        {"hour": 18, "order_count": 35, "item_count": 82},
+        {"hour": 19, "order_count": 30, "item_count": 70},
+        {"hour": 20, "order_count": 20, "item_count": 45},
+        {"hour": 21, "order_count": 15, "item_count": 35}
       ]
     }
   ],
-  "prediction_start_date": "2024-01-15"
+  "prediction_start_date": "2024-02-05"
 }
 ```
 
-### Response
+**Response:**
+
 ```json
 {
   "schedule_output": {
     "monday": [
       {
-        "10:00-15:00": [
-          "emp_001",
-          "emp_002"
-        ]
+        "10:00-14:00": ["emp_001"]
       },
       {
-        "15:00-20:00": [
-          "emp_001",
-          "emp_002"
-        ]
+        "14:00-18:00": ["emp_001", "emp_002"]
       },
       {
-        "20:00-23:00": [
-          "emp_001"
-        ]
+        "18:00-22:00": ["emp_002"]
       }
     ],
     "tuesday": [
       {
-        "10:00-15:00": [
-          "emp_002"
-        ]
+        "10:00-14:00": ["emp_001"]
       },
       {
-        "15:00-20:00": [
-          "emp_001"
-        ]
+        "14:00-18:00": ["emp_001", "emp_002"]
+      },
+      {
+        "18:00-22:00": ["emp_002"]
       }
     ],
-    "wednesday": [
-      {
-        "10:00-15:00": [
-          "emp_001",
-          "emp_002"
-        ]
-      },
-      {
-        "15:00-20:00": [
-          "emp_001",
-          "emp_003"
-        ]
-      },
-      {
-        "20:00-23:00": [
-          "emp_003"
-        ]
-      }
-    ],
-    "thursday": [
-      {
-        "15:00-20:00": [
-          "emp_002",
-          "emp_003"
-        ]
-      },
-      {
-        "20:00-23:00": [
-          "emp_003"
-        ]
-      }
-    ],
-    "friday": [
-      {
-        "10:00-15:00": [
-          "emp_001",
-          "emp_002"
-        ]
-      },
-      {
-        "15:00-20:00": [
-          "emp_001",
-          "emp_002",
-          "emp_003"
-        ]
-      },
-      {
-        "20:00-23:00": [
-          "emp_001",
-          "emp_003"
-        ]
-      }
-    ],
-    "saturday": [
-      {
-        "11:00-15:00": [
-          "emp_002"
-        ]
-      },
-      {
-        "15:00-20:00": [
-          "emp_002",
-          "emp_003"
-        ]
-      },
-      {
-        "20:00-23:00": [
-          "emp_003"
-        ]
-      }
-    ],
+    "wednesday": [],
+    "thursday": [],
+    "friday": [],
+    "saturday": [],
     "sunday": []
   },
-  "schedule_status": "optimal",
-  "schedule_message": "Optimal schedule found. All constraints satisfied.",
-  "objective_value": 1250.75,
-  "total_labor_cost": 1250.75,
-  "employee_summary": {
-    "emp_001": {
-      "total_hours": 32.0,
-      "days_worked": 5,
-      "shifts": [
-        "Monday 10:00-23:00",
-        "Tuesday 15:00-20:00",
-        "Wednesday 10:00-20:00",
-        "Friday 10:00-23:00"
-      ]
+  "schedule_status": "OPTIMAL",
+  "schedule_message": "Schedule generated successfully",
+  "objective_value": 1250.5,
+  "management_insights": {
+    "has_solution": true,
+    "peak_periods": [
+      {
+        "slot": 18,
+        "average_demand": 82.0,
+        "max_demand": 82.0,
+        "recommendation": "Consider scheduling more staff during this time slot"
+      },
+      {
+        "slot": 19,
+        "average_demand": 70.0,
+        "max_demand": 70.0,
+        "recommendation": "Consider scheduling more staff during this time slot"
+      }
+    ],
+    "capacity_analysis": {
+      "chef": {
+        "eligible_employees": 1,
+        "total_available_hours": 40.0,
+        "potential_output": 800.0,
+        "capacity_ratio": 2.4,
+        "is_sufficient": true
+      },
+      "waiter": {
+        "eligible_employees": 1,
+        "total_available_hours": 35.0,
+        "potential_output": 0.0,
+        "capacity_ratio": 0.0,
+        "is_sufficient": true
+      }
     },
-    "emp_002": {
-      "total_hours": 28.0,
-      "days_worked": 6,
-      "shifts": [
-        "Monday 10:00-20:00",
-        "Tuesday 10:00-15:00",
-        "Wednesday 10:00-15:00",
-        "Thursday 15:00-20:00",
-        "Friday 10:00-20:00",
-        "Saturday 11:00-20:00"
-      ]
+    "employee_utilization": [
+      {
+        "employee": "emp_001",
+        "hours_worked": 32.0,
+        "max_hours": 40.0,
+        "utilization_rate": 0.8,
+        "hours_deviation": 0.0,
+        "status": "well_utilized"
+      },
+      {
+        "employee": "emp_002",
+        "hours_worked": 28.0,
+        "max_hours": 35.0,
+        "utilization_rate": 0.8,
+        "hours_deviation": 0.0,
+        "status": "well_utilized"
+      }
+    ],
+    "role_demand": {
+      "chef": {
+        "eligible_employees": 1,
+        "working_employees": 1,
+        "total_hours_worked": 32.0,
+        "capacity_utilization": 0.85,
+        "is_bottleneck": false
+      },
+      "waiter": {
+        "eligible_employees": 1,
+        "working_employees": 1,
+        "total_hours_worked": 28.0,
+        "capacity_utilization": 0.0,
+        "is_bottleneck": false
+      }
     },
-    "emp_003": {
-      "total_hours": 24.0,
-      "days_worked": 4,
-      "shifts": [
-        "Wednesday 15:00-23:00",
-        "Thursday 15:00-23:00",
-        "Friday 15:00-23:00",
-        "Saturday 15:00-23:00"
-      ]
-    }
+    "hiring_recommendations": [],
+    "coverage_gaps": [],
+    "cost_analysis": {
+      "total_wage_cost": 1304.0,
+      "cost_by_role": {
+        "chef": 800.0,
+        "waiter": 504.0
+      },
+      "opportunity_cost_unmet_demand": 0.0,
+      "total_cost": 1304.0,
+      "cost_per_item_served": 3.25
+    },
+    "workload_distribution": {
+      "average_hours": 30.0,
+      "max_hours": 32.0,
+      "min_hours": 28.0,
+      "range": 4.0,
+      "unused_employees": 0,
+      "underutilized_employees": 0,
+      "well_utilized_employees": 2,
+      "overutilized_employees": 0,
+      "balance_score": 0.88
+    },
+    "feasibility_analysis": null
   }
 }
 ```
 
+**Management Insights Fields:**
+
+| Field | Description | Available When |
+|-------|-------------|----------------|
+| `has_solution` | Whether a feasible schedule was found | Always |
+| `peak_periods` | High-demand time slots | Always |
+| `capacity_analysis` | Role-by-role capacity analysis | Always |
+| `employee_utilization` | Per-employee work hours and utilization rates | With solution |
+| `role_demand` | Role coverage and bottleneck analysis | With solution |
+| `hiring_recommendations` | Suggested hiring by role with reasoning | With solution or no solution |
+| `coverage_gaps` | Time slots with insufficient staff | With solution |
+| `cost_analysis` | Wage costs and opportunity costs | With solution |
+| `workload_distribution` | Fairness and balance metrics | With solution |
+| `feasibility_analysis` | Why no solution was found | Without solution |
+
 ---
 
-## 5. Campaign Recommendations
+## Campaign Recommendations
+
+### 5. Get Campaign Recommendations
 
 **Endpoint:** `POST /recommend/campaigns`
 
-**Description:** Get AI-powered campaign recommendations based on historical data
+**Description:** Generate AI-powered marketing campaign recommendations. Weather and holiday data automatically fetched.
 
-### Request
+**Request Body:**
+
 ```json
 {
   "place": {
-    "place_id": "pl_12345",
+    "place_id": "rest_001",
     "place_name": "Pizza Paradise",
     "type": "restaurant",
     "latitude": 55.6761,
@@ -1001,130 +544,54 @@ Host: localhost:8000
     "receiving_phone": true,
     "delivery": true,
     "opening_hours": {
-      "monday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "tuesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "wednesday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "thursday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "friday": {
-        "from": "10:00",
-        "to": "23:00"
-      },
-      "saturday": {
-        "from": "11:00",
-        "to": "23:00"
-      },
-      "sunday": {
-        "closed": true
-      }
+      "monday": {"from": "10:00", "to": "22:00"},
+      "tuesday": {"from": "10:00", "to": "22:00"},
+      "wednesday": {"from": "10:00", "to": "22:00"},
+      "thursday": {"from": "10:00", "to": "22:00"},
+      "friday": {"from": "10:00", "to": "23:00"},
+      "saturday": {"from": "11:00", "to": "23:00"},
+      "sunday": {"closed": true}
     },
     "fixed_shifts": true,
     "number_of_shifts_per_day": 3,
-    "shift_times": [
-      "10:00-15:00",
-      "15:00-20:00",
-      "20:00-23:00"
-    ],
+    "shift_times": ["10:00-14:00", "14:00-18:00", "18:00-22:00"],
     "rating": 4.5,
     "accepting_orders": true
   },
   "orders": [
     {
-      "time": "2024-01-01T12:30:00",
+      "time": "2024-01-15T12:30:00",
       "items": 3,
       "status": "completed",
-      "total_amount": 45.5,
-      "discount_amount": 5.0
+      "total_amount": 45.50,
+      "discount_amount": 0.00
     },
     {
-      "time": "2024-01-01T18:45:00",
-      "items": 5,
-      "status": "completed",
-      "total_amount": 67.5,
-      "discount_amount": 10.0
-    },
-    {
-      "time": "2024-01-02T12:00:00",
+      "time": "2024-01-15T13:15:00",
       "items": 2,
       "status": "completed",
-      "total_amount": 28.0,
-      "discount_amount": 0.0
-    },
-    {
-      "time": "2024-01-02T19:30:00",
-      "items": 4,
-      "status": "completed",
-      "total_amount": 52.0,
-      "discount_amount": 5.0
-    },
-    {
-      "time": "2024-01-03T11:45:00",
-      "items": 3,
-      "status": "completed",
-      "total_amount": 41.0,
-      "discount_amount": 0.0
+      "total_amount": 32.00,
+      "discount_amount": 0.00
     }
   ],
   "campaigns": [
     {
-      "start_time": "2024-01-01T00:00:00",
-      "end_time": "2024-01-07T23:59:59",
-      "items_included": [
-        "pizza_margherita",
-        "pizza_pepperoni"
-      ],
+      "start_time": "2024-01-10T00:00:00",
+      "end_time": "2024-01-17T23:59:59",
+      "items_included": ["pizza_margherita", "drink_cola"],
       "discount": 15.0
-    },
-    {
-      "start_time": "2024-01-15T00:00:00",
-      "end_time": "2024-01-21T23:59:59",
-      "items_included": [
-        "pasta_carbonara",
-        "salad_caesar"
-      ],
-      "discount": 20.0
-    },
-    {
-      "start_time": "2024-02-01T00:00:00",
-      "end_time": "2024-02-07T23:59:59",
-      "items_included": [
-        "pizza_margherita",
-        "drink_cola"
-      ],
-      "discount": 18.0
     }
   ],
   "order_items": [
     {
-      "order_id": "order_0",
+      "order_id": "order_1",
       "item_id": "pizza_margherita",
-      "quantity": 2
-    },
-    {
-      "order_id": "order_0",
-      "item_id": "drink_cola",
-      "quantity": 2
-    },
-    {
-      "order_id": "order_1",
-      "item_id": "pizza_pepperoni",
-      "quantity": 3
-    },
-    {
-      "order_id": "order_1",
-      "item_id": "drink_cola",
       "quantity": 1
+    },
+    {
+      "order_id": "order_1",
+      "item_id": "drink_cola",
+      "quantity": 2
     },
     {
       "order_id": "order_2",
@@ -1135,24 +602,9 @@ Host: localhost:8000
       "order_id": "order_2",
       "item_id": "salad_caesar",
       "quantity": 1
-    },
-    {
-      "order_id": "order_3",
-      "item_id": "pizza_margherita",
-      "quantity": 1
-    },
-    {
-      "order_id": "order_3",
-      "item_id": "dessert_tiramisu",
-      "quantity": 1
-    },
-    {
-      "order_id": "order_4",
-      "item_id": "pizza_pepperoni",
-      "quantity": 2
     }
   ],
-  "recommendation_start_date": "2024-03-01",
+  "recommendation_start_date": "2024-02-01",
   "num_recommendations": 5,
   "optimize_for": "roi",
   "max_discount": 30.0,
@@ -1162,272 +614,193 @@ Host: localhost:8000
     "pizza_margherita",
     "pizza_pepperoni",
     "pasta_carbonara",
+    "pasta_bolognese",
     "salad_caesar",
     "drink_cola",
     "drink_water",
     "dessert_tiramisu"
-  ],
-  "weather_forecast": {
-    "avg_temperature": 18.0,
-    "avg_precipitation": 0.2,
-    "good_weather_ratio": 0.75
-  },
-  "upcoming_holidays": [
-    "2024-03-17",
-    "2024-03-25"
   ]
 }
 ```
 
-### Response
+**Response:**
+
 ```json
 {
   "restaurant_name": "Pizza Paradise",
-  "recommendation_date": "2024-02-15 14:30:25",
+  "recommendation_date": "2024-01-20 14:30:45",
   "recommendations": [
     {
-      "campaign_id": "rec_template_0_1708009825",
-      "items": [
-        "pizza_margherita",
-        "drink_cola"
-      ],
+      "campaign_id": "rec_template_0_1705758645",
+      "items": ["pizza_margherita", "drink_cola"],
       "discount_percentage": 15.0,
-      "start_date": "2024-03-17",
-      "end_date": "2024-03-20",
-      "duration_days": 4,
-      "expected_uplift": 28.5,
+      "start_date": "2024-02-02",
+      "end_date": "2024-02-08",
+      "duration_days": 6,
+      "expected_uplift": 25.5,
       "expected_roi": 185.3,
-      "expected_revenue": 1420.0,
-      "confidence_score": 0.87,
-      "reasoning": "Recommended because: historically high ROI (185.3%), optimal day of week, upcoming holiday period, predicted ROI: 185.3%",
-      "priority_score": 94.2,
-      "recommended_for_context": {
-        "day_of_week": 6,
-        "season": "spring"
-      }
-    },
-    {
-      "campaign_id": "rec_template_1_1708009825",
-      "items": [
-        "pasta_carbonara",
-        "salad_caesar"
-      ],
-      "discount_percentage": 20.0,
-      "start_date": "2024-03-05",
-      "end_date": "2024-03-11",
-      "duration_days": 7,
-      "expected_uplift": 22.3,
-      "expected_roi": 156.8,
-      "expected_revenue": 1180.0,
-      "confidence_score": 0.82,
-      "reasoning": "Recommended because: good historical ROI (156.8%), seasonally appropriate, predicted ROI: 156.8%",
-      "priority_score": 88.5,
-      "recommended_for_context": {
-        "day_of_week": 1,
-        "season": "spring"
-      }
-    },
-    {
-      "campaign_id": "rec_template_2_1708009825",
-      "items": [
-        "pizza_pepperoni",
-        "dessert_tiramisu"
-      ],
-      "discount_percentage": 18.0,
-      "start_date": "2024-03-08",
-      "end_date": "2024-03-10",
-      "duration_days": 3,
-      "expected_uplift": 32.0,
-      "expected_roi": 172.5,
-      "expected_revenue": 920.0,
-      "confidence_score": 0.75,
-      "reasoning": "Recommended because: good historical ROI (172.5%), optimal day of week, predicted ROI: 172.5%",
-      "priority_score": 85.0,
+      "expected_revenue": 4500.0,
+      "confidence_score": 0.85,
+      "reasoning": "Recommended because: historically high ROI (185.3%), optimal day of week, predicted ROI: 185.3%",
+      "priority_score": 142.5,
       "recommended_for_context": {
         "day_of_week": 4,
-        "season": "spring"
+        "season": "winter"
       }
     },
     {
-      "campaign_id": "novel_affinity_1708009825_pizza_margherita_drink_cola",
-      "items": [
-        "pizza_margherita",
-        "drink_cola"
-      ],
-      "discount_percentage": 22.5,
-      "start_date": "2024-03-02",
-      "end_date": "2024-03-08",
+      "campaign_id": "rec_template_1_1705758645",
+      "items": ["pasta_carbonara", "salad_caesar"],
+      "discount_percentage": 20.0,
+      "start_date": "2024-02-02",
+      "end_date": "2024-02-09",
       "duration_days": 7,
-      "expected_uplift": 20.0,
-      "expected_roi": 50.0,
-      "expected_revenue": 1260.0,
-      "confidence_score": 0.3,
-      "reasoning": "Novel campaign combining high-affinity items (pizza_margherita, drink_cola) with lift score 2.85",
-      "priority_score": 57.0,
+      "expected_uplift": 18.2,
+      "expected_roi": 120.5,
+      "expected_revenue": 3800.0,
+      "confidence_score": 0.75,
+      "reasoning": "Recommended because: good historical ROI (120.5%), seasonally appropriate, predicted ROI: 120.5%",
+      "priority_score": 118.3,
       "recommended_for_context": {
-        "day_of_week": 5,
-        "season": "spring"
+        "day_of_week": 4,
+        "season": "winter"
       }
     },
     {
-      "campaign_id": "novel_affinity_1708009825_pizza_pepperoni_drink_cola",
-      "items": [
-        "pizza_pepperoni",
-        "drink_cola"
-      ],
-      "discount_percentage": 18.3,
-      "start_date": "2024-03-02",
-      "end_date": "2024-03-09",
+      "campaign_id": "novel_affinity_1705758645_pasta_carbonara_salad_caesar",
+      "items": ["pasta_carbonara", "salad_caesar"],
+      "discount_percentage": 18.5,
+      "start_date": "2024-02-02",
+      "end_date": "2024-02-10",
       "duration_days": 8,
       "expected_uplift": 20.0,
       "expected_roi": 50.0,
-      "expected_revenue": 1440.0,
+      "expected_revenue": 4200.0,
       "confidence_score": 0.3,
-      "reasoning": "Novel campaign combining high-affinity items (pizza_pepperoni, drink_cola) with lift score 2.12",
-      "priority_score": 42.4,
+      "reasoning": "Novel campaign combining high-affinity items (pasta_carbonara, salad_caesar) with lift score 2.15",
+      "priority_score": 43.0,
       "recommended_for_context": {
-        "day_of_week": 5,
-        "season": "spring"
+        "day_of_week": 4,
+        "season": "winter"
       }
     }
   ],
   "analysis_summary": {
-    "total_campaigns_analyzed": 3,
-    "avg_uplift": 27.6,
-    "median_uplift": 28.5,
-    "avg_roi": 171.5,
-    "median_roi": 172.5,
-    "total_revenue_impact": 3520.0,
-    "successful_campaigns": 3,
-    "success_rate": 100.0
+    "total_campaigns_analyzed": 15,
+    "avg_uplift": 22.3,
+    "median_uplift": 18.5,
+    "avg_roi": 125.7,
+    "median_roi": 110.2,
+    "total_revenue_impact": 45000.0,
+    "successful_campaigns": 12,
+    "success_rate": 80.0
   },
   "insights": {
     "best_day_of_week": {
       "day": "Friday",
-      "avg_revenue": 2850.0
+      "avg_revenue": 5200.0
     },
-    "best_hours": [
-      18,
-      19,
-      20
-    ],
+    "best_hours": [18, 19, 12],
     "top_item_pairs": [
       {
-        "items": [
-          "drink_cola",
-          "pizza_margherita"
-        ],
-        "affinity_score": 2.85
+        "items": ["pasta_carbonara", "salad_caesar"],
+        "affinity_score": 2.15
       },
       {
-        "items": [
-          "drink_cola",
-          "pizza_pepperoni"
-        ],
-        "affinity_score": 2.12
+        "items": ["pizza_margherita", "drink_cola"],
+        "affinity_score": 1.85
       },
       {
-        "items": [
-          "pasta_carbonara",
-          "salad_caesar"
-        ],
-        "affinity_score": 1.95
+        "items": ["pizza_pepperoni", "drink_water"],
+        "affinity_score": 1.72
       }
     ]
   },
-  "confidence_level": "medium"
+  "confidence_level": "high"
 }
 ```
+
+**Notes:**
+- Weather forecast automatically fetched from Open-Meteo API
+- Holidays automatically detected using Nominatim + holidays library
+- User-provided weather/holiday data is ignored in favor of real-time data
+- `order_items` field is optional but recommended for better item affinity analysis
 
 ---
 
-## 6. Campaign Feedback
+### 6. Submit Campaign Feedback
 
 **Endpoint:** `POST /recommend/campaigns/feedback`
 
-**Description:** Submit feedback on executed campaigns for model improvement
+**Description:** Submit actual campaign performance for model improvement (online learning).
 
-### Request
+**Request Body:**
+
 ```json
 {
-  "campaign_id": "rec_template_0_1708009825",
-  "actual_uplift": 32.8,
-  "actual_roi": 198.5,
-  "actual_revenue": 1580.0,
+  "campaign_id": "rec_template_0_1705758645",
+  "actual_uplift": 28.3,
+  "actual_roi": 195.7,
+  "actual_revenue": 4850.0,
   "success": true,
-  "notes": "Campaign exceeded expectations. St. Patrick's Day weekend drove strong performance. Pizza and cola combo was very popular. Recommend repeating for Easter weekend."
+  "notes": "Campaign exceeded expectations, especially on Friday evening"
 }
 ```
 
-### Response
+**Response:**
+
 ```json
 {
   "status": "success",
-  "message": "Feedback for campaign rec_template_0_1708009825 received successfully",
+  "message": "Feedback for rec_template_0_1705758645 received",
   "updated_parameters": {
-    "status": "model_updated",
-    "campaign_id": "rec_template_0_1708009825"
+    "status": "feedback_stored"
   }
 }
 ```
 
 ---
 
-## Common Error Responses
+## Error Handling
 
-### 400 Bad Request
+### Error Response Format
+
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+### Common HTTP Status Codes
+
+| Code | Meaning | Common Causes |
+|------|---------|---------------|
+| 200 | Success | Request processed successfully |
+| 400 | Bad Request | Invalid input data, missing required fields |
+| 503 | Service Unavailable | Model not loaded, scheduler unavailable |
+| 500 | Internal Server Error | Unexpected error during processing |
+
+### Example Error Responses
+
+**Missing Required Field:**
 ```json
 {
   "detail": "At least some historical orders are required for campaign recommendations"
 }
 ```
 
-### 422 Validation Error
+**Model Not Loaded:**
 ```json
 {
-  "detail": [
-    {
-      "type": "string_type",
-      "loc": [
-        "body",
-        "prediction_start_date"
-      ],
-      "msg": "Input should be a valid string",
-      "input": 20240115
-    }
-  ]
+  "detail": "Model not loaded"
 }
 ```
 
-### 500 Internal Server Error
+**Invalid Date Format:**
 ```json
 {
-  "detail": "Failed to generate campaign recommendations: 'dict' object has no attribute 'time'"
-}
-```
-
-### 503 Service Unavailable
-```json
-{
-  "detail": "Model not loaded. Please wait for initialization."
+  "detail": "Demand prediction failed: time data '2024-13-01' does not match format '%Y-%m-%d'"
 }
 ```
 
 ---
-
-## Notes
-
-- **Date Format**: All dates in ISO 8601 format (`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS`)
-- **Time Format**: 24-hour format (`HH:MM`)
-- **Timezone**: Use restaurant's local timezone for all timestamps
-- **Currency**: All monetary values in restaurant's local currency
-- **Authentication**: Currently no authentication required (add in production)
-- **Rate Limiting**: No rate limiting currently (implement in production)
-- **CORS**: All origins allowed (restrict in production)
-
----
-
-**API Version**: 3.1.0  
-**Last Updated**: 2024-02-06  
-**Documentation**: http://localhost:8000/docs (Swagger UI)  
-**ReDoc**: http://localhost:8000/redoc

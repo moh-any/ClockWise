@@ -1,0 +1,113 @@
+{
+  "campaign_templates": [
+    {
+      "template_id": "template_0",
+      "items": [
+        "item_generic_59897"
+      ],
+      "discount": 18.83333333333333,
+      "duration_days": 4,
+      "preferred_day_of_week": 1,
+      "preferred_season": "winter",
+      "avg_roi": 123.3333333333333,
+      "avg_uplift": 241.5490956040897,
+      "success_count": 47,
+      "total_runs": 47
+    },
+    {
+      "template_id": "template_47",
+      "items": [
+        "item_generic_59821"
+      ],
+      "discount": 18.33333333333333,
+      "duration_days": 1,
+      "preferred_day_of_week": 4,
+      "preferred_season": "winter",
+      "avg_roi": 133.33333333333337,
+      "avg_uplift": 316.66666666666663,
+      "success_count": 8,
+      "total_runs": 8
+    },
+    {
+      "template_id": "template_55",
+      "items": [
+        "item_generic_64276"
+      ],
+      "discount": 24.235294117647054,
+      "duration_days": 1,
+      "preferred_day_of_week": 4,
+      "preferred_season": "summer",
+      "avg_roi": 15.294117647058874,
+      "avg_uplift": 89.97625994405597,
+      "success_count": 29,
+      "total_runs": 29
+    },
+    {
+      "template_id": "template_84",
+      "items": [
+        "item_generic_59813"
+      ],
+      "discount": 25.0,
+      "duration_days": 1,
+      "preferred_day_of_week": 4,
+      "preferred_season": "summer",
+      "avg_roi": -2.7337843685834952e-14,
+      "avg_uplift": 299.4708994708995,
+      "success_count": 0,
+      "total_runs": 9
+    },
+    {
+      "template_id": "template_93",
+      "items": [
+        "item_generic_94025"
+      ],
+      "discount": 100.0,
+      "duration_days": 641,
+      "preferred_day_of_week": 0,
+      "preferred_season": "spring",
+      "avg_roi": -1499.9999999999998,
+      "avg_uplift": 6820.292347377472,
+      "success_count": 0,
+      "total_runs": 1
+    }
+  ],
+  "thompson_params": {
+    "template_0": [
+      48.0,
+      1.0
+    ],
+    "template_47": [
+      9.0,
+      1.0
+    ],
+    "template_55": [
+      30.0,
+      1.0
+    ],
+    "template_84": [
+      1.0,
+      10.0
+    ],
+    "template_93": [
+      1.0,
+      2.0
+    ]
+  },
+  "feature_importance": {
+    "discount": 0.7950466275215149,
+    "duration_days": 0.1038559079170227,
+    "num_items": 0.0,
+    "day_of_week": 0.023690298199653625,
+    "hour_of_day": 0.06660358607769012,
+    "is_weekend": 0.0002671715337783098,
+    "season_winter": 0.0038714108522981405,
+    "season_spring": 0.000274588237516582,
+    "season_summer": 0.004733378998935223,
+    "season_fall": 0.00019101396901533008,
+    "was_holiday": 0.0006113644922152162,
+    "avg_temperature": 0.0,
+    "good_weather_ratio": 0.0,
+    "avg_orders_before": 0.0008547267061658204
+  },
+  "exploration_rate": 0.15
+}

@@ -1,23 +1,22 @@
 """
-Restaurant Demand Prediction & Scheduling API v3.0
+Restaurant Demand Prediction & Scheduling API v3.1
 ====================================================
 FastAPI-based REST API for:
 1. Predicting hourly restaurant demand (item_count & order_count)
 2. Generating optimal staff schedules based on demand and employee preferences
+3. Recommending AI-powered marketing campaigns
 
-Changes from v2.0:
-- Restructured request/response format with demand_input and schedule_input
-- Added missing scheduler parameters (max_hours_per_week, max_consec_slots, pref_hours, is_independent)
-- Added production chains support
-- Added scheduler configuration
-- Updated output format for schedule_output
-- Fixed all inconsistencies with weather/holiday API integration
+Version 3.1 Updates:
+- Added management insights structure matching scheduler output
+- Fixed input/output alignment across all endpoints
+- Added comprehensive insights for hiring and workforce decisions
+- Weather and holiday data auto-fetched from external APIs
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Union
+from typing import List, Optional, Dict, Union, Any
 from datetime import datetime, date, timedelta
 from fastapi.openapi.docs import get_redoc_html  
 import pandas as pd
@@ -37,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 # Weather API
 try:
-    from src.weather_api import get_weather_for_demand_data
+    from src.weather_api import get_weather_for_demand_data, WeatherAPI
     WEATHER_API_AVAILABLE = True
     logger.info("Weather API imported successfully")
 except ImportError as e:
@@ -46,7 +45,7 @@ except ImportError as e:
 
 # Holiday API
 try:
-    from src.holiday_api import add_holiday_feature
+    from src.holiday_api import add_holiday_feature, HolidayChecker
     HOLIDAY_API_AVAILABLE = True
     logger.info("Holiday API imported successfully")
 except ImportError as e:
@@ -55,12 +54,30 @@ except ImportError as e:
 
 # Scheduler
 try:
-    from src.scheduler_cpsat import SchedulerCPSAT, SchedulerInput, Employee, Role, ProductionChain, Shift
+    from src.scheduler_cpsat import (
+        SchedulerCPSAT, 
+        SchedulerInput, 
+        Employee, 
+        Role, 
+        ProductionChain, 
+        Shift,
+        generate_management_insights
+    )
     SCHEDULER_AVAILABLE = True
     logger.info("Scheduler imported successfully")
 except ImportError as e:
     SCHEDULER_AVAILABLE = False
     logger.warning(f"Scheduler not available: {e}")
+
+# Campaign Recommender
+try:
+    from src.campaign_analyzer import CampaignAnalyzer
+    from src.campaign_recommender import CampaignRecommender, RecommenderContext
+    CAMPAIGN_AVAILABLE = True
+    logger.info("Campaign modules imported successfully")
+except ImportError as e:
+    CAMPAIGN_AVAILABLE = False
+    logger.warning(f"Campaign modules not available: {e}")
 
 
 # ============================================================================
@@ -69,14 +86,14 @@ except ImportError as e:
 
 app = FastAPI(
     title="Restaurant Demand Prediction & Scheduling API",
-    description="Predict hourly demand and generate optimal staff schedules",
-    version="3.0.0",
+    description="Predict hourly demand, generate optimal staff schedules, and recommend AI-powered marketing campaigns",
+    version="3.1.0",
     docs_url="/docs",
-    redoc_url=None,  # Disable default redoc
+    redoc_url=None,
     openapi_url="/openapi.json"
 )
 
-# Add custom ReDoc endpoint with reliable CDN
+# Add custom ReDoc endpoint
 @app.get("/redoc", include_in_schema=False)
 async def redoc_html():
     return get_redoc_html(
@@ -84,7 +101,6 @@ async def redoc_html():
         title=app.title + " - ReDoc",
         redoc_js_url="https://unpkg.com/redoc@latest/bundles/redoc.standalone.js",
     )
-
 
 # Add CORS middleware
 app.add_middleware(
@@ -97,11 +113,11 @@ app.add_middleware(
 
 
 # ============================================================================
-# REQUEST MODELS - DEMAND INPUT
+# PYDANTIC MODELS - SHARED
 # ============================================================================
 
 class OpeningHoursDay(BaseModel):
-    """Opening hours for a specific day - supports both open and closed states"""
+    """Opening hours for a specific day"""
     from_time: Optional[str] = Field(None, alias="from", description="Opening time (HH:MM)")
     to: Optional[str] = Field(None, description="Closing time (HH:MM)")
     closed: Optional[bool] = Field(None, description="True if closed this day")
@@ -112,124 +128,55 @@ class OpeningHoursDay(BaseModel):
 
 class PlaceData(BaseModel):
     """Restaurant/Place information"""
-    place_id: str = Field(..., description="Unique place identifier")
-    place_name: str = Field(..., description="Restaurant name")
-    type: str = Field(..., description="Place type (e.g., 'restaurant')")
-    latitude: float = Field(..., description="Latitude coordinate")
-    longitude: float = Field(..., description="Longitude coordinate")
-    waiting_time: Optional[int] = Field(None, description="Average waiting time in minutes")
-    receiving_phone: bool = Field(..., description="Accepts phone orders")
-    delivery: bool = Field(..., description="Offers delivery")
-    opening_hours: Dict[str, OpeningHoursDay] = Field(..., description="Opening hours per day")
-    fixed_shifts: bool = Field(True, description="Whether to use fixed shifts for scheduling")
-    number_of_shifts_per_day: int = Field(3, description="Number of shifts per day")
-    shift_times: List[str] = Field(..., description="Shift time ranges (e.g., '06:00-14:00')")
-    rating: Optional[float] = Field(None, description="Restaurant rating (0-5)")
-    accepting_orders: Optional[bool] = Field(True, description="Currently accepting orders")
+    place_id: str
+    place_name: str
+    type: str
+    latitude: float
+    longitude: float
+    waiting_time: Optional[int] = None
+    receiving_phone: bool
+    delivery: bool
+    opening_hours: Dict[str, OpeningHoursDay]
+    fixed_shifts: bool = True
+    number_of_shifts_per_day: int = 3
+    shift_times: List[str]
+    rating: Optional[float] = None
+    accepting_orders: Optional[bool] = True
 
 
 class OrderData(BaseModel):
     """Historical order information"""
-    time: str = Field(..., description="Order timestamp (ISO format)")
-    items: int = Field(..., description="Number of items in order")
-    status: str = Field(..., description="Order status: completed/canceled")
-    total_amount: float = Field(..., description="Total order amount")
-    discount_amount: float = Field(0, description="Discount applied")
+    time: str
+    items: int
+    status: str
+    total_amount: float
+    discount_amount: float = 0
 
 
 class CampaignData(BaseModel):
     """Marketing campaign information"""
-    start_time: str = Field(..., description="Campaign start time (ISO format)")
-    end_time: str = Field(..., description="Campaign end time (ISO format)")
-    items_included: List[str] = Field(..., description="Items included in campaign")
-    discount: float = Field(..., description="Discount percentage (0-100)")
-
-
-class DemandInput(BaseModel):
-    """Input for demand prediction"""
-    place: PlaceData
-    orders: List[OrderData] = Field(..., description="Historical orders (at least 7 days recommended)")
-    campaigns: List[CampaignData] = Field(default=[], description="Active/past campaigns")
-    prediction_start_date: str = Field(..., description="Start date for predictions (YYYY-MM-DD)")
-    prediction_days: int = Field(7, description="Number of days to predict (default: 7)")
+    start_time: str
+    end_time: str
+    items_included: List[str]
+    discount: float
 
 
 # ============================================================================
-# REQUEST MODELS - SCHEDULE INPUT
-# ============================================================================
-
-class RoleData(BaseModel):
-    """Role definition"""
-    role_id: str = Field(..., description="Unique role identifier")
-    role_name: str = Field(..., description="Role display name")
-    producing: bool = Field(..., description="Whether role produces items")
-    items_per_employee_per_hour: Optional[float] = Field(None, description="Production rate if producing")
-    min_present: int = Field(0, description="Minimum employees required for this role")
-    is_independent: bool = Field(True, description="Whether role is independent or part of a chain")
-
-
-class EmployeeHours(BaseModel):
-    """Available/preferred hours for a specific day"""
-    from_time: str = Field(..., alias="from", description="Start time (HH:MM)")
-    to: str = Field(..., description="End time (HH:MM)")
-
-    class Config:
-        populate_by_name = True
-
-
-class EmployeeData(BaseModel):
-    """Employee information"""
-    employee_id: str = Field(..., description="Unique employee identifier")
-    role_ids: List[str] = Field(..., description="List of role IDs this employee can perform")
-    available_days: List[str] = Field(..., description="Days employee is available")
-    preferred_days: List[str] = Field(..., description="Preferred working days")
-    available_hours: Dict[str, EmployeeHours] = Field(..., description="Available hours per day")
-    preferred_hours: Dict[str, EmployeeHours] = Field(..., description="Preferred hours per day")
-    hourly_wage: float = Field(..., description="Hourly wage rate")
-    max_hours_per_week: float = Field(40.0, description="Maximum hours per week")
-    max_consec_slots: int = Field(8, description="Maximum consecutive slots")
-    pref_hours: float = Field(32.0, description="Preferred weekly hours")
-
-
-class ProductionChainData(BaseModel):
-    """Production chain definition (e.g., prep -> cook -> serve)"""
-    chain_id: str = Field(..., description="Unique chain identifier")
-    role_ids: List[str] = Field(..., description="Ordered list of role IDs in the chain")
-    contrib_factor: float = Field(1.0, description="Contribution factor to supply")
-
-
-class SchedulerConfig(BaseModel):
-    """Scheduler configuration parameters"""
-    slot_len_hour: float = Field(1.0, description="Length of each time slot in hours")
-    min_rest_slots: int = Field(2, description="Minimum rest slots between shifts")
-    min_shift_length_slots: int = Field(2, description="Minimum shift length in slots")
-    meet_all_demand: bool = Field(False, description="Whether to enforce demand as hard constraint")
-
-
-class ScheduleInput(BaseModel):
-    """Input for schedule generation"""
-    roles: List[RoleData]
-    employees: List[EmployeeData]
-    production_chains: List[ProductionChainData] = Field(default=[], description="Production chains")
-    scheduler_config: Optional[SchedulerConfig] = Field(None, description="Scheduler configuration")
-
-
-# ============================================================================
-# RESPONSE MODELS (Define BEFORE request models that use them)
+# PYDANTIC MODELS - DEMAND PREDICTION
 # ============================================================================
 
 class HourPrediction(BaseModel):
     """Prediction for a single hour"""
-    hour: int = Field(..., description="Hour of day (0-23)")
-    order_count: int = Field(..., description="Predicted number of orders")
-    item_count: int = Field(..., description="Predicted number of items")
+    hour: int
+    order_count: int
+    item_count: int
 
 
 class DayPrediction(BaseModel):
     """Predictions for a single day"""
-    day_name: str = Field(..., description="Day name (monday, tuesday, etc.)")
-    date: str = Field(..., description="Date (YYYY-MM-DD)")
-    hours: List[HourPrediction] = Field(..., description="Hourly predictions")
+    day_name: str
+    date: str
+    hours: List[HourPrediction]
 
 
 class DemandOutput(BaseModel):
@@ -239,66 +186,215 @@ class DemandOutput(BaseModel):
     days: List[DayPrediction]
 
 
-class ScheduleOutput(BaseModel):
-    """Schedule output - organized by day and shift"""
-    monday: List[Dict[str, List[str]]] = Field(default=[], description="Monday shifts")
-    tuesday: List[Dict[str, List[str]]] = Field(default=[], description="Tuesday shifts")
-    wednesday: List[Dict[str, List[str]]] = Field(default=[], description="Wednesday shifts")
-    thursday: List[Dict[str, List[str]]] = Field(default=[], description="Thursday shifts")
-    friday: List[Dict[str, List[str]]] = Field(default=[], description="Friday shifts")
-    saturday: List[Dict[str, List[str]]] = Field(default=[], description="Saturday shifts")
-    sunday: List[Dict[str, List[str]]] = Field(default=[], description="Sunday shifts")
-
-
-# ============================================================================
-# SEPARATE REQUEST MODELS (Define AFTER response models)
-# ============================================================================
-
 class DemandPredictionRequest(BaseModel):
     """Request for demand prediction only"""
     place: PlaceData
-    orders: List[OrderData] = Field(..., description="Historical orders (at least 7 days recommended)")
-    campaigns: List[CampaignData] = Field(default=[], description="Active/past campaigns")
-    prediction_start_date: str = Field(..., description="Start date for predictions (YYYY-MM-DD)")
-    prediction_days: int = Field(7, description="Number of days to predict (default: 7)")
+    orders: List[OrderData]
+    campaigns: List[CampaignData] = []
+    prediction_start_date: str
+    prediction_days: int = 7
 
-
-class SchedulingRequest(BaseModel):
-    """Request for scheduling only"""
-    place: PlaceData
-    schedule_input: ScheduleInput
-    demand_predictions: List[DayPrediction] = Field(..., description="Demand predictions to schedule against")
-    prediction_start_date: str = Field(..., description="Start date matching demand predictions")
-
-
-class CombinedRequest(BaseModel):
-    """Combined request (backward compatibility)"""
-    demand_input: DemandInput
-    schedule_input: ScheduleInput
-
-
-# ============================================================================
-# RESPONSE MODELS FOR NEW ENDPOINTS
-# ============================================================================
 
 class DemandPredictionResponse(BaseModel):
     """Response for demand prediction"""
     demand_output: DemandOutput
 
 
+# ============================================================================
+# PYDANTIC MODELS - SCHEDULING
+# ============================================================================
+
+class RoleData(BaseModel):
+    """Role definition"""
+    role_id: str
+    role_name: str
+    producing: bool
+    items_per_employee_per_hour: Optional[float] = None
+    min_present: int = 0
+    is_independent: bool = True
+
+
+class EmployeeHours(BaseModel):
+    """Available/preferred hours for a specific day"""
+    from_time: str = Field(..., alias="from")
+    to: str
+
+    class Config:
+        populate_by_name = True
+
+
+class EmployeeData(BaseModel):
+    """Employee information"""
+    employee_id: str
+    role_ids: List[str]
+    available_days: List[str]
+    preferred_days: List[str]
+    available_hours: Dict[str, EmployeeHours]
+    preferred_hours: Dict[str, EmployeeHours]
+    hourly_wage: float
+    max_hours_per_week: float = 40.0
+    max_consec_slots: int = 8
+    pref_hours: float = 32.0
+
+
+class ProductionChainData(BaseModel):
+    """Production chain definition"""
+    chain_id: str
+    role_ids: List[str]
+    contrib_factor: float = 1.0
+
+
+class SchedulerConfig(BaseModel):
+    """Scheduler configuration parameters"""
+    slot_len_hour: float = 1.0
+    min_rest_slots: int = 2
+    min_shift_length_slots: int = 2
+    meet_all_demand: bool = False
+
+
+class ScheduleInput(BaseModel):
+    """Input for schedule generation"""
+    roles: List[RoleData]
+    employees: List[EmployeeData]
+    production_chains: List[ProductionChainData] = []
+    scheduler_config: Optional[SchedulerConfig] = None
+
+
+class ScheduleOutput(BaseModel):
+    """Schedule output - organized by day and shift"""
+    monday: List[Dict[str, List[str]]] = []
+    tuesday: List[Dict[str, List[str]]] = []
+    wednesday: List[Dict[str, List[str]]] = []
+    thursday: List[Dict[str, List[str]]] = []
+    friday: List[Dict[str, List[str]]] = []
+    saturday: List[Dict[str, List[str]]] = []
+    sunday: List[Dict[str, List[str]]] = []
+
+
+class ManagementInsights(BaseModel):
+    """Management insights for hiring and workforce decisions"""
+    has_solution: bool
+    
+    # Always available
+    peak_periods: List[Dict[str, Any]]
+    capacity_analysis: Dict[str, Any]
+    
+    # Only with solution
+    employee_utilization: Optional[List[Dict[str, Any]]] = None
+    role_demand: Optional[Dict[str, Any]] = None
+    hiring_recommendations: Optional[List[Dict[str, Any]]] = None
+    coverage_gaps: Optional[List[Dict[str, Any]]] = None
+    cost_analysis: Optional[Dict[str, Any]] = None
+    workload_distribution: Optional[Dict[str, Any]] = None
+    
+    # Only without solution
+    feasibility_analysis: Optional[List[Dict[str, Any]]] = None
+
+
+class SchedulingRequest(BaseModel):
+    """Request for scheduling only"""
+    place: PlaceData
+    schedule_input: ScheduleInput
+    demand_predictions: List[DayPrediction]
+    prediction_start_date: str
+
+
 class SchedulingResponse(BaseModel):
     """Response for scheduling"""
     schedule_output: ScheduleOutput
-    schedule_status: str = Field(..., description="Status: optimal, feasible, infeasible, error")
-    schedule_message: Optional[str] = Field(None, description="Explanation or error message")
-    objective_value: Optional[float] = Field(None, description="Objective function value")
+    schedule_status: str
+    schedule_message: Optional[str] = None
+    objective_value: Optional[float] = None
+    management_insights: Optional[ManagementInsights] = None
+
+
+# ============================================================================
+# PYDANTIC MODELS - CAMPAIGN RECOMMENDATIONS
+# ============================================================================
+
+class OrderItemData(BaseModel):
+    """Order item data for affinity analysis"""
+    order_id: str
+    item_id: str
+    quantity: Optional[int] = 1
+
+
+class RecommendedCampaignItem(BaseModel):
+    """A single campaign recommendation"""
+    campaign_id: str
+    items: List[str]
+    discount_percentage: float
+    start_date: str
+    end_date: str
+    duration_days: int
+    expected_uplift: float
+    expected_roi: float
+    expected_revenue: float
+    confidence_score: float
+    reasoning: str
+    priority_score: float
+    recommended_for_context: Dict
+
+
+class CampaignRecommendationRequest(BaseModel):
+    """Request for campaign recommendations"""
+    place: Union[PlaceData, Dict]
+    orders: List[Union[OrderData, Dict]]
+    campaigns: List[Union[CampaignData, Dict]] = []
+    order_items: Optional[List[Union[OrderItemData, Dict]]] = None
+    recommendation_start_date: str
+    num_recommendations: int = 5
+    optimize_for: str = "roi"
+    max_discount: float = 30.0
+    min_campaign_duration_days: int = 3
+    max_campaign_duration_days: int = 14
+    available_items: List[str] = []
+    weather_forecast: Optional[Dict[str, float]] = None
+    upcoming_holidays: Optional[List[str]] = None
+
+
+class CampaignRecommendationResponse(BaseModel):
+    """Response containing campaign recommendations"""
+    restaurant_name: str
+    recommendation_date: str
+    recommendations: List[RecommendedCampaignItem]
+    analysis_summary: Dict
+    insights: Dict
+    confidence_level: str
+
+
+class CampaignFeedback(BaseModel):
+    """Feedback on executed campaign"""
+    campaign_id: str
+    actual_uplift: Optional[float] = None
+    actual_roi: Optional[float] = None
+    actual_revenue: Optional[float] = None
+    success: bool
+    notes: Optional[str] = None
+
+
+class CampaignFeedbackResponse(BaseModel):
+    """Response after submitting campaign feedback"""
+    status: str
+    message: str
+    updated_parameters: Optional[Dict] = None
+
+
+# ============================================================================
+# COMBINED REQUEST/RESPONSE (DEPRECATED)
+# ============================================================================
+
+class CombinedRequest(BaseModel):
+    """Combined request (backward compatibility)"""
+    demand_input: DemandPredictionRequest
+    schedule_input: ScheduleInput
 
 
 class PredictionResponse(BaseModel):
-    """Complete prediction and scheduling response (deprecated - use separate endpoints)"""
+    """Complete prediction and scheduling response"""
     demand_output: DemandOutput
     schedule_output: ScheduleOutput
-    
+
 
 # ============================================================================
 # MODEL LOADING
@@ -307,14 +403,15 @@ class PredictionResponse(BaseModel):
 MODEL_PATH = Path("data/models/rf_model.joblib")
 METADATA_PATH = Path("data/models/rf_model_metadata.json")
 
+model = None
+metadata = None
+
 try:
     model = joblib.load(MODEL_PATH)
     metadata = joblib.load(METADATA_PATH)
-    logger.info("Model loaded successfully")
+    logger.info("✓ Demand prediction model loaded successfully")
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-    model = None
-    metadata = None
+    logger.error(f"✗ Failed to load demand model: {e}")
 
 
 # ============================================================================
@@ -441,20 +538,16 @@ def create_prediction_windows(start_date: str, num_days: int, place_id: str = "p
     return add_time_features(df)
 
 
-# ============================================================================
-# FALLBACK FUNCTIONS FOR MISSING APIS
-# ============================================================================
-
 def add_weather_features_mock(df: pd.DataFrame) -> pd.DataFrame:
-    """Add mock weather features (fallback when API unavailable)"""
+    """Add mock weather features (fallback)"""
     weather_defaults = {
         'temperature_2m': 15.0,
-        'relative_humidity_2m': 70.0,
-        'precipitation': 0.1,
-        'rain': 0.1,
+        'relative_humidity_2m': 70,
+        'precipitation': 0.0,
+        'rain': 0.0,
         'snowfall': 0.0,
         'weather_code': 1,
-        'cloud_cover': 50.0,
+        'cloud_cover': 50,
         'wind_speed_10m': 15.0,
         'is_rainy': 0,
         'is_snowy': 0,
@@ -473,7 +566,7 @@ def add_weather_features_mock(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_holiday_features_mock(df: pd.DataFrame) -> pd.DataFrame:
-    """Add mock holiday feature (fallback when API unavailable)"""
+    """Add mock holiday feature (fallback)"""
     df['is_holiday'] = 0
     return df
 
@@ -489,39 +582,20 @@ def prepare_features_for_prediction(
     prediction_start: str,
     prediction_days: int
 ) -> pd.DataFrame:
-    """
-    Complete feature engineering pipeline for prediction
+    """Complete feature engineering pipeline for prediction"""
     
-    Pipeline steps:
-    1. Process historical orders
-    2. Aggregate to hourly level
-    3. Add time features
-    4. Create future prediction windows
-    5. Combine historical + future for lag calculation
-    6. Add place features
-    7. Add campaign features
-    8. Add weather features (with fallback)
-    9. Add holiday features (with fallback)
-    10. Clean up intermediate columns
-    
-    Returns:
-        DataFrame ready for model prediction
-    """
     logger.info("Starting feature preparation pipeline...")
     
-    # Step 1-3: Process historical data
-    logger.info("Processing historical orders...")
+    # Process historical data
     orders_df = process_historical_orders(orders, place.place_id)
     hourly_hist = aggregate_to_hourly(orders_df)
     hourly_hist = add_time_features(hourly_hist)
     hourly_hist = add_lag_features(hourly_hist)
     
-    # Step 4: Create future prediction windows
-    logger.info(f"Creating prediction windows for {prediction_days} days...")
+    # Create future prediction windows
     future_df = create_prediction_windows(prediction_start, prediction_days, place.place_id)
     
-    # Step 5: Combine historical + future for proper lag calculation
-    logger.info("Combining historical and future data for lag features...")
+    # Combine for proper lag calculation
     combined = pd.concat([hourly_hist, future_df], ignore_index=True)
     combined = combined.sort_values(['place_id', 'datetime'])
     combined = add_lag_features(combined)
@@ -529,8 +603,7 @@ def prepare_features_for_prediction(
     # Filter to only future predictions
     prediction_df = combined[combined['datetime'] >= pd.to_datetime(prediction_start)].copy()
     
-    # Step 6: Add place features
-    logger.info("Adding place features...")
+    # Add place features
     type_mapping = {'restaurant': 1, 'cafe': 2, 'bar': 3}
     prediction_df['type_id'] = type_mapping.get(place.type, 1)
     prediction_df['waiting_time'] = place.waiting_time if place.waiting_time else 30
@@ -538,18 +611,15 @@ def prepare_features_for_prediction(
     prediction_df['delivery'] = int(place.delivery)
     prediction_df['accepting_orders'] = int(place.accepting_orders if place.accepting_orders else True)
     
-    # Add lat/lon for weather/holiday APIs (will be dropped later)
     prediction_df['latitude'] = place.latitude
     prediction_df['longitude'] = place.longitude
     
-    # Step 7: Add campaign features
-    logger.info("Adding campaign features...")
+    # Add campaign features
     campaign_stats = calculate_campaign_features(campaigns)
     prediction_df['total_campaigns'] = campaign_stats['total_campaigns']
     prediction_df['avg_discount'] = campaign_stats['avg_discount']
     
-    # Step 8: Add weather features (with fallback)
-    logger.info("Adding weather features...")
+    # Add weather features
     if WEATHER_API_AVAILABLE:
         try:
             prediction_df = get_weather_for_demand_data(
@@ -562,16 +632,14 @@ def prepare_features_for_prediction(
                 default_latitude=place.latitude,
                 default_longitude=place.longitude
             )
-            logger.info("Weather features added successfully")
+            logger.info("✓ Weather features added")
         except Exception as e:
-            logger.warning(f"Weather API failed: {e}. Using mock data.")
+            logger.warning(f"Weather API failed: {e}. Using defaults.")
             prediction_df = add_weather_features_mock(prediction_df)
     else:
-        logger.warning("Weather API not available. Using mock data.")
         prediction_df = add_weather_features_mock(prediction_df)
     
-    # Step 9: Add holiday features (with fallback)
-    logger.info("Adding holiday features...")
+    # Add holiday features
     if HOLIDAY_API_AVAILABLE:
         try:
             prediction_df = add_holiday_feature(
@@ -582,45 +650,32 @@ def prepare_features_for_prediction(
                 default_latitude=place.latitude,
                 default_longitude=place.longitude
             )
-            logger.info("Holiday features added successfully")
+            logger.info("✓ Holiday features added")
         except Exception as e:
-            logger.warning(f"Holiday API failed: {e}. Using mock data.")
+            logger.warning(f"Holiday API failed: {e}. Using defaults.")
             prediction_df = add_holiday_features_mock(prediction_df)
     else:
-        logger.warning("Holiday API not available. Using mock data.")
         prediction_df = add_holiday_features_mock(prediction_df)
     
-    # Step 10: Clean up intermediate columns
-    logger.info("Cleaning up intermediate columns...")
+    # Clean up
     prediction_df = prediction_df.drop(['latitude', 'longitude'], axis=1, errors='ignore')
     
-    logger.info(f"Feature preparation complete. Shape: {prediction_df.shape}")
+    logger.info(f"✓ Feature preparation complete. Shape: {prediction_df.shape}")
     return prediction_df
 
 
 def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Ensure feature set matches what model expects
-    
-    Handles:
-    - String to numeric place_id conversion (DETERMINISTIC)
-    - Missing column filling
-    - Dtype conversions
-    - Column ordering
-    """
+    """Ensure feature set matches model expectations"""
     df = df.copy()
     
-    # ===== FIX: Use deterministic hash for place_id =====
+    # Deterministic place_id encoding
     if df['place_id'].dtype == 'object' or df['place_id'].dtype == 'string':
         def encode_place_id(place_str):
-            """Deterministic hash using MD5"""
             hash_obj = hashlib.md5(str(place_str).encode('utf-8'))
             return float(int(hash_obj.hexdigest()[:8], 16) % 100000)
         
         df['place_id'] = df['place_id'].apply(encode_place_id)
-        logger.info(f"Encoded place_id to numeric values (deterministic)")
     
-    # Ensure place_id is float
     df['place_id'] = df['place_id'].astype('float64')
     
     expected_features = [
@@ -636,80 +691,24 @@ def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
         'is_holiday'
     ]
     
-    # Add missing columns with 0
     for col in expected_features:
         if col not in df.columns:
-            logger.warning(f"Missing column '{col}', filling with 0")
             df[col] = 0
     
-    # Select only expected features in correct order
     df = df[expected_features].copy()
-    
-    # Convert dtypes
     df['type_id'] = df['type_id'].astype('float64')
     df['is_holiday'] = df['is_holiday'].astype('int')
-    
-    # Ensure all columns are string type (for column names)
     df.columns = df.columns.astype(str)
     
-    # Verify no NaN values
     if df.isnull().any().any():
-        null_cols = df.columns[df.isnull().any()].tolist()
-        logger.warning(f"Columns with NaN values: {null_cols}")
         df = df.fillna(0)
     
     return df
 
+
 # ============================================================================
 # SCHEDULER HELPER FUNCTIONS
 # ============================================================================
-
-def parse_shift_times(shift_times: List[str], place: PlaceData) -> List[Shift]:
-    """
-    Parse shift time strings into Shift objects, respecting opening hours
-    
-    Only creates shifts for days when restaurant is open
-    """
-    shifts = []
-    day_name_to_index = {
-        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-        'friday': 4, 'saturday': 5, 'sunday': 6
-    }
-    
-    for idx, shift_time in enumerate(shift_times):
-        parts = shift_time.split('-')
-        if len(parts) != 2:
-            logger.warning(f"Invalid shift time format: {shift_time}")
-            continue
-        
-        start_str, end_str = parts
-        start_hour = parse_time_to_hour(start_str)
-        end_hour = parse_time_to_hour(end_str)
-        
-        if start_hour == -1 or end_hour == -1:
-            continue
-        
-        # Handle overnight shifts (e.g., 22:00-06:00)
-        if end_hour <= start_hour:
-            end_hour += 24
-        
-        # Create shift ONLY for days restaurant is open
-        for day_name, hours in place.opening_hours.items():
-            if hours.closed:
-                continue  # Skip closed days
-            
-            day_idx = day_name_to_index.get(day_name.lower())
-            if day_idx is not None:
-                shifts.append(Shift(
-                    id=f"shift_{day_idx}_{idx}",
-                    day=day_idx,
-                    start_slot=int(start_hour),
-                    end_slot=int(end_hour)
-                ))
-    
-    logger.info(f"Parsed {len(shifts)} shifts from {len(shift_times)} shift times")
-    return shifts
-
 
 def convert_api_data_to_scheduler_input(
     place: PlaceData,
@@ -717,15 +716,11 @@ def convert_api_data_to_scheduler_input(
     demand_predictions: pd.DataFrame,
     prediction_start_date: str
 ) -> SchedulerInput:
-    """
-    Convert API request data to scheduler input format
-    """
+    """Convert API request data to scheduler input format"""
     
-    # Get scheduler config or use defaults
     config = schedule_input.scheduler_config or SchedulerConfig()
     
     # Convert roles
-    logger.info("Converting roles...")
     scheduler_roles = []
     for role_data in schedule_input.roles:
         scheduler_roles.append(Role(
@@ -737,7 +732,6 @@ def convert_api_data_to_scheduler_input(
         ))
     
     # Convert production chains
-    logger.info("Converting production chains...")
     scheduler_chains = []
     for chain_data in schedule_input.production_chains:
         scheduler_chains.append(ProductionChain(
@@ -746,14 +740,14 @@ def convert_api_data_to_scheduler_input(
             contrib_factor=chain_data.contrib_factor
         ))
     
-    # Determine prediction period details
+    # Determine prediction period
     unique_dates = sorted(demand_predictions['date'].unique())
     num_days = len(unique_dates)
     num_slots_per_day = int(24 / config.slot_len_hour)
     
-    # ===== FIX: Map calendar days to ALL matching prediction period days =====
+    # Map calendar days to prediction days
     prediction_start = pd.to_datetime(prediction_start_date).date()
-    calendar_day_to_pred_days = {}  # day_name -> [list of day indices]
+    calendar_day_to_pred_days = {}
     
     for i in range(num_days):
         current_date = prediction_start + timedelta(days=i)
@@ -763,32 +757,24 @@ def convert_api_data_to_scheduler_input(
             calendar_day_to_pred_days[calendar_day_name] = []
         calendar_day_to_pred_days[calendar_day_name].append(i)
     
-    logger.info(f"Prediction period: {num_days} days, {num_slots_per_day} slots/day")
-    logger.info(f"Calendar day mapping: {calendar_day_to_pred_days}")
+    logger.info(f"Prediction: {num_days} days, {num_slots_per_day} slots/day")
     
     # Convert employees
-    logger.info("Converting employees...")
     scheduler_employees = []
     
     for emp_data in schedule_input.employees:
-        # Initialize availability dict (default: unavailable for safety)
         availability = {}
         for day_idx in range(num_days):
             for slot in range(num_slots_per_day):
                 availability[(day_idx, slot)] = False
         
-        # ===== FIX: Set available slots to True for ALL matching prediction days =====
         for calendar_day_name in emp_data.available_days:
-            # Map calendar day to ALL prediction period days
             pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
             
             if not pred_day_indices:
-                logger.warning(f"Calendar day '{calendar_day_name}' not in prediction period")
                 continue
             
-            # Get hours for this day
             if calendar_day_name.lower() not in emp_data.available_hours:
-                logger.warning(f"No available_hours specified for {emp_data.employee_id} on {calendar_day_name}")
                 continue
             
             hours = emp_data.available_hours[calendar_day_name.lower()]
@@ -798,18 +784,15 @@ def convert_api_data_to_scheduler_input(
             if start_hour == -1 or end_hour == -1:
                 continue
             
-            # Convert hours to slots
             start_slot = int(start_hour / config.slot_len_hour)
             end_slot = int(end_hour / config.slot_len_hour)
             if end_hour % config.slot_len_hour > 0:
                 end_slot += 1
             
-            # Mark slots as available for ALL matching prediction days
             for pred_day_idx in pred_day_indices:
                 for slot in range(start_slot, min(end_slot, num_slots_per_day)):
                     availability[(pred_day_idx, slot)] = True
         
-        # Build preferences (same logic)
         preferences = {}
         for calendar_day_name in emp_data.preferred_days:
             pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
@@ -832,7 +815,6 @@ def convert_api_data_to_scheduler_input(
             if end_hour % config.slot_len_hour > 0:
                 end_slot += 1
             
-            # Mark preferences for ALL matching prediction days
             for pred_day_idx in pred_day_indices:
                 for slot in range(start_slot, min(end_slot, num_slots_per_day)):
                     preferences[(pred_day_idx, slot)] = True
@@ -848,13 +830,11 @@ def convert_api_data_to_scheduler_input(
             slot_preferences=preferences
         ))
     
-    # Build demand dict from predictions
-    logger.info("Building demand dictionary...")
+    # Build demand dict
     date_to_day_idx = {d: i for i, d in enumerate(unique_dates)}
     demand_dict = {}
     
     for _, row in demand_predictions.iterrows():
-        # Get date (handle both date and datetime types)
         row_date = row['datetime'].date() if hasattr(row['datetime'], 'date') else row['date']
         day_idx = date_to_day_idx.get(row_date)
         
@@ -865,12 +845,9 @@ def convert_api_data_to_scheduler_input(
         slot = int(hour / config.slot_len_hour)
         demand_dict[(day_idx, slot)] = float(row['item_count'])
     
-    logger.info(f"Built demand dict with {len(demand_dict)} entries")
-    
-    # ===== FIX: Parse shifts with proper day mapping =====
+    # Parse shifts
     shifts = []
     if place.fixed_shifts:
-        logger.info("Parsing fixed shifts...")
         shifts = parse_shift_times_fixed(place.shift_times, place, calendar_day_to_pred_days)
     
     return SchedulerInput(
@@ -899,23 +876,12 @@ def parse_shift_times_fixed(
     place: PlaceData, 
     calendar_day_to_pred_days: Dict[str, List[int]]
 ) -> List[Shift]:
-    """
-    Parse shift time strings into Shift objects with proper day mapping
-    
-    Args:
-        shift_times: List of shift time strings (e.g., "06:00-14:00")
-        place: Place data with opening hours
-        calendar_day_to_pred_days: Mapping from calendar day names to prediction day indices
-    
-    Returns:
-        List of Shift objects
-    """
+    """Parse shift time strings into Shift objects"""
     shifts = []
     
     for shift_idx, shift_time in enumerate(shift_times):
         parts = shift_time.split('-')
         if len(parts) != 2:
-            logger.warning(f"Invalid shift time format: {shift_time}")
             continue
         
         start_str, end_str = parts
@@ -925,28 +891,25 @@ def parse_shift_times_fixed(
         if start_hour == -1 or end_hour == -1:
             continue
         
-        # Handle overnight shifts (e.g., 22:00-06:00)
         if end_hour <= start_hour:
             end_hour += 24
         
-        # Create shift for EACH prediction day that matches an open calendar day
         for calendar_day_name, hours in place.opening_hours.items():
             if hours.closed:
-                continue  # Skip closed days
+                continue
             
-            # Get ALL prediction day indices for this calendar day
             pred_day_indices = calendar_day_to_pred_days.get(calendar_day_name.lower(), [])
             
             for pred_day_idx in pred_day_indices:
                 shifts.append(Shift(
                     id=f"shift_{pred_day_idx}_{shift_idx}",
-                    day=pred_day_idx,  # Use prediction day index
+                    day=pred_day_idx,
                     start_slot=int(start_hour),
                     end_slot=int(end_hour)
                 ))
     
-    logger.info(f"Parsed {len(shifts)} shifts from {len(shift_times)} shift time templates")
     return shifts
+
 
 def format_schedule_output(
     solution: Dict, 
@@ -955,14 +918,10 @@ def format_schedule_output(
     prediction_start_date: str,
     num_days: int
 ) -> ScheduleOutput:
-    """
-    Format scheduler solution to match API output format
+    """Format scheduler solution to API output format"""
     
-    Converts scheduler solution into day-based schedule with shift time ranges
-    """
     day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     
-    # Map prediction day indices to calendar day names
     prediction_start = pd.to_datetime(prediction_start_date).date()
     pred_day_to_calendar = {}
     for i in range(num_days):
@@ -970,14 +929,12 @@ def format_schedule_output(
         calendar_day_name = current_date.strftime('%A').lower()
         pred_day_to_calendar[i] = calendar_day_name
     
-    # Initialize schedule output
     schedule_by_day = {day: [] for day in day_names}
     
     if not solution or 'schedule' not in solution:
         return ScheduleOutput(**schedule_by_day)
     
     if place.fixed_shifts:
-        # Group by day and shift
         shift_assignments = {}
         for entry in solution['schedule']:
             shift_id = entry.get('shift')
@@ -988,31 +945,26 @@ def format_schedule_output(
                 shift_assignments[shift_id] = []
             shift_assignments[shift_id].append(entry['employee'])
         
-        # Organize by day
         for entry in solution['schedule']:
             shift_id = entry.get('shift')
             if not shift_id:
                 continue
             
-            # Parse shift to get time range
             pred_day_idx = entry['day']
             calendar_day = pred_day_to_calendar.get(pred_day_idx)
             if not calendar_day:
                 continue
             
-            # Find matching shift time from place.shift_times
             start_slot = entry.get('start_slot', 0)
             end_slot = entry.get('end_slot', 0)
             start_hour = int(start_slot * config.slot_len_hour)
             end_hour = int(end_slot * config.slot_len_hour)
             
-            # Handle overnight shifts
             if end_hour > 24:
                 end_hour = end_hour % 24
             
             shift_key = f"{start_hour:02d}:00-{end_hour:02d}:00"
             
-            # Check if this shift already exists for this day
             existing = False
             for shift_dict in schedule_by_day[calendar_day]:
                 if shift_key in shift_dict:
@@ -1027,7 +979,6 @@ def format_schedule_output(
                 })
     
     else:
-        # Slot-based scheduling - group consecutive slots into shifts
         schedule_dict = {}
         for entry in solution['schedule']:
             pred_day_idx = entry['day']
@@ -1039,12 +990,10 @@ def format_schedule_output(
                 schedule_dict[key] = []
             schedule_dict[key].append(slot)
         
-        # Convert to shift format
         shift_groups = {}
         for (pred_day_idx, employee), slots in schedule_dict.items():
             slots = sorted(slots)
             
-            # Group consecutive slots
             current_shift_start = slots[0]
             current_shift_end = slots[0] + 1
             
@@ -1052,7 +1001,6 @@ def format_schedule_output(
                 if slots[i] == current_shift_end:
                     current_shift_end = slots[i] + 1
                 else:
-                    # End current shift
                     start_hour = int(current_shift_start * config.slot_len_hour)
                     end_hour = int(current_shift_end * config.slot_len_hour)
                     shift_key = f"{start_hour:02d}:00-{end_hour:02d}:00"
@@ -1061,11 +1009,9 @@ def format_schedule_output(
                         shift_groups[(pred_day_idx, shift_key)] = []
                     shift_groups[(pred_day_idx, shift_key)].append(employee)
                     
-                    # Start new shift
                     current_shift_start = slots[i]
                     current_shift_end = slots[i] + 1
             
-            # Add last shift
             start_hour = int(current_shift_start * config.slot_len_hour)
             end_hour = int(current_shift_end * config.slot_len_hour)
             shift_key = f"{start_hour:02d}:00-{end_hour:02d}:00"
@@ -1074,13 +1020,46 @@ def format_schedule_output(
                 shift_groups[(pred_day_idx, shift_key)] = []
             shift_groups[(pred_day_idx, shift_key)].append(employee)
         
-        # Organize by calendar day
         for (pred_day_idx, shift_key), employees in shift_groups.items():
             calendar_day = pred_day_to_calendar.get(pred_day_idx)
             if calendar_day:
                 schedule_by_day[calendar_day].append({shift_key: employees})
     
     return ScheduleOutput(**schedule_by_day)
+
+
+def format_management_insights(insights_dict: Dict) -> ManagementInsights:
+    """Convert raw insights dict to ManagementInsights model"""
+    return ManagementInsights(
+        has_solution=insights_dict.get('has_solution', False),
+        peak_periods=insights_dict.get('peak_periods', []),
+        capacity_analysis=insights_dict.get('capacity_analysis', {}),
+        employee_utilization=insights_dict.get('employee_utilization'),
+        role_demand=insights_dict.get('role_demand'),
+        hiring_recommendations=insights_dict.get('hiring_recommendations'),
+        coverage_gaps=insights_dict.get('coverage_gaps'),
+        cost_analysis=insights_dict.get('cost_analysis'),
+        workload_distribution=insights_dict.get('workload_distribution'),
+        feasibility_analysis=insights_dict.get('feasibility_analysis')
+    )
+
+
+# ============================================================================
+# CAMPAIGN HELPER FUNCTIONS
+# ============================================================================
+
+def _get_season(dt: pd.Timestamp) -> str:
+    """Determine season from date"""
+    month = dt.month
+    
+    if month in [12, 1, 2]:
+        return "winter"
+    elif month in [3, 4, 5]:
+        return "spring"
+    elif month in [6, 7, 8]:
+        return "summer"
+    else:
+        return "fall"
 
 
 # ============================================================================
@@ -1096,36 +1075,31 @@ async def root():
         "scheduler_available": SCHEDULER_AVAILABLE,
         "weather_api_available": WEATHER_API_AVAILABLE,
         "holiday_api_available": HOLIDAY_API_AVAILABLE,
-        "campaign_recommender_available": campaign_analyzer is not None,  # NEW
-        "version": "3.1.0",  # Updated version
+        "campaign_available": CAMPAIGN_AVAILABLE,
+        "version": "3.1.0",
         "features": [
             "demand_prediction",
             "staff_scheduling",
-            "campaign_recommendations"  # NEW
+            "campaign_recommendations",
+            "management_insights"
         ]
     }
 
-@app.get("/model/info")
+
+@app.get("/model/info", tags=["Model"])
 def model_info():
     """Get model metadata"""
     if metadata is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     return metadata
 
-# ============================================================================
-# NEW SEPARATED ENDPOINTS
-# ============================================================================
 
-@app.post("/predict/demand", response_model=DemandPredictionResponse)
+@app.post("/predict/demand", response_model=DemandPredictionResponse, tags=["Demand Prediction"])
 def predict_demand_only(request: DemandPredictionRequest):
     """
-    Predict demand only (no scheduling)
+    Predict demand only (no scheduling).
     
-    Process:
-    1. Validate input
-    2. Prepare features for demand prediction
-    3. Make demand predictions using ML model
-    4. Return predictions
+    Returns hourly predictions for item_count and order_count.
     """
     
     if model is None:
@@ -1134,7 +1108,6 @@ def predict_demand_only(request: DemandPredictionRequest):
     try:
         logger.info(f"Processing demand prediction for {request.place.place_name}")
         
-        # Prepare features
         features_df = prepare_features_for_prediction(
             place=request.place,
             orders=request.orders,
@@ -1143,25 +1116,16 @@ def predict_demand_only(request: DemandPredictionRequest):
             prediction_days=request.prediction_days
         )
         
-        # Store datetime info before feature alignment
         datetime_info = features_df[['datetime', 'date', 'hour']].copy()
-        
-        # Align features with model expectations
         X = align_features_with_model(features_df)
         
-        # Make predictions
-        logger.info(f"Making predictions for {len(X)} hours...")
         predictions = model.predict(X)
         predictions = np.maximum(predictions, 0).round().astype(int)
         
-        # Add predictions to datetime info
         datetime_info['item_count'] = predictions[:, 0]
         datetime_info['order_count'] = predictions[:, 1]
         datetime_info['day_name'] = datetime_info['datetime'].dt.strftime('%A').str.lower()
         
-        logger.info("Demand predictions completed successfully")
-        
-        # Format response
         days = []
         for date_val, day_group in datetime_info.groupby('date'):
             day_name = day_group.iloc[0]['day_name']
@@ -1186,32 +1150,28 @@ def predict_demand_only(request: DemandPredictionRequest):
             days=days
         )
         
+        logger.info("✓ Demand prediction completed")
         return DemandPredictionResponse(demand_output=demand_output)
         
     except Exception as e:
-        logger.error(f"Demand prediction failed: {str(e)}", exc_info=True)
+        logger.error(f"Demand prediction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Demand prediction failed: {str(e)}")
 
 
-@app.post("/predict/schedule", response_model=SchedulingResponse)
+@app.post("/predict/schedule", response_model=SchedulingResponse, tags=["Staff Scheduling"])
 def predict_schedule_only(request: SchedulingRequest):
     """
-    Generate schedule based on provided demand predictions
+    Generate schedule based on provided demand predictions.
     
-    Process:
-    1. Validate input
-    2. Convert demand predictions to DataFrame
-    3. Generate optimal staff schedule
-    4. Return schedule
+    Returns optimized staff schedule with management insights.
     """
     
     if not SCHEDULER_AVAILABLE:
         raise HTTPException(status_code=503, detail="Scheduler not available")
     
     try:
-        logger.info(f"Processing scheduling request for {request.place.place_name}")
+        logger.info(f"Processing scheduling for {request.place.place_name}")
         
-        # Convert demand predictions to DataFrame
         demand_data = []
         for day in request.demand_predictions:
             for hour_pred in day.hours:
@@ -1225,8 +1185,6 @@ def predict_schedule_only(request: SchedulingRequest):
                 })
         
         datetime_info = pd.DataFrame(demand_data)
-        
-        # Generate schedule
         config = request.schedule_input.scheduler_config or SchedulerConfig()
         
         scheduler_input = convert_api_data_to_scheduler_input(
@@ -1239,6 +1197,10 @@ def predict_schedule_only(request: SchedulingRequest):
         scheduler = SchedulerCPSAT(scheduler_input)
         solution = scheduler.solve(time_limit_seconds=60)
         
+        # Generate management insights
+        insights_dict = generate_management_insights(solution, scheduler_input)
+        insights = format_management_insights(insights_dict)
+        
         if solution:
             schedule_output = format_schedule_output(
                 solution=solution,
@@ -1248,48 +1210,325 @@ def predict_schedule_only(request: SchedulingRequest):
                 num_days=len(request.demand_predictions)
             )
             
+            logger.info("✓ Schedule generated successfully")
             return SchedulingResponse(
                 schedule_output=schedule_output,
                 schedule_status=solution['status'],
                 schedule_message="Schedule generated successfully",
-                objective_value=solution['objective_value']
+                objective_value=solution['objective_value'],
+                management_insights=insights
             )
         else:
+            logger.warning("No feasible schedule found")
             return SchedulingResponse(
                 schedule_output=ScheduleOutput(),
                 schedule_status="infeasible",
-                schedule_message="No feasible schedule found. Check constraints and employee availability."
+                schedule_message="No feasible schedule found. Check constraints and employee availability.",
+                management_insights=insights
             )
             
     except Exception as e:
-        logger.error(f"Scheduling failed: {str(e)}", exc_info=True)
+        logger.error(f"Scheduling failed: {e}", exc_info=True)
         return SchedulingResponse(
             schedule_output=ScheduleOutput(),
             schedule_status="error",
             schedule_message=f"Scheduling error: {str(e)}"
         )
 
-@app.post("/predict", response_model=PredictionResponse)
-def predict_demand_and_schedule(request: CombinedRequest):    
+
+@app.post("/recommend/campaigns", response_model=CampaignRecommendationResponse, tags=["Campaign Recommendations"])
+async def recommend_campaigns(request: CampaignRecommendationRequest):
     """
-    Main prediction and scheduling endpoint
+    Generate AI-powered campaign recommendations.
     
-    Process:
-    1. Validate input
-    2. Prepare features for demand prediction
-    3. Make demand predictions using ML model
-    4. Generate optimal staff schedule based on predictions
-    5. Format and return response
+    Weather and holiday data are automatically fetched based on restaurant location.
     """
-    logger.warning("Combined /predict endpoint is deprecated. Use /predict/demand and /predict/schedule separately.")
+    
+    if not CAMPAIGN_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Campaign recommender not available")
+    
+    try:
+        if not request.orders:
+            raise HTTPException(status_code=400, detail="Historical orders required")
+        
+        logger.info(f"Processing campaign recommendations")
+        
+        # Convert orders
+        orders_data = []
+        for i, order in enumerate(request.orders):
+            if isinstance(order, dict):
+                orders_data.append({
+                    'id': f"order_{i}",
+                    'created': pd.to_datetime(order['time']).timestamp(),
+                    'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
+                    'total_amount': order['total_amount'],
+                    'item_count': order['items'],
+                    'status': order['status'],
+                    'discount_amount': order.get('discount_amount', 0)
+                })
+            else:
+                orders_data.append({
+                    'id': f"order_{i}",
+                    'created': pd.to_datetime(order.time).timestamp(),
+                    'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
+                    'total_amount': order.total_amount,
+                    'item_count': order.items,
+                    'status': order.status,
+                    'discount_amount': order.discount_amount
+                })
+        
+        orders_df = pd.DataFrame(orders_data)
+        
+        # Convert campaigns
+        campaigns_data = []
+        for i, campaign in enumerate(request.campaigns):
+            if isinstance(campaign, dict):
+                campaigns_data.append({
+                    'id': f"campaign_{i}",
+                    'start_time': campaign['start_time'],
+                    'end_time': campaign['end_time'],
+                    'items_included': campaign['items_included'],
+                    'discount': campaign['discount']
+                })
+            else:
+                campaigns_data.append({
+                    'id': f"campaign_{i}",
+                    'start_time': campaign.start_time,
+                    'end_time': campaign.end_time,
+                    'items_included': campaign.items_included,
+                    'discount': campaign.discount
+                })
+        
+        # Convert order items
+        order_items_data = []
+        if request.order_items:
+            for item in request.order_items:
+                if isinstance(item, dict):
+                    order_items_data.append({
+                        'order_id': item['order_id'],
+                        'item_id': item['item_id']
+                    })
+                else:
+                    order_items_data.append({
+                        'order_id': item.order_id,
+                        'item_id': item.item_id
+                    })
+            order_items_df = pd.DataFrame(order_items_data)
+        else:
+            order_items_df = pd.DataFrame({
+                'order_id': [f"order_{i}" for i in range(len(orders_df))],
+                'item_id': ['item_generic'] * len(orders_df)
+            })
+        
+        # Auto-fetch weather
+        start_date = pd.to_datetime(request.recommendation_start_date)
+        
+        if isinstance(request.place, dict):
+            place_lat = request.place.get('latitude', 55.6761)
+            place_lon = request.place.get('longitude', 12.5683)
+        else:
+            place_lat = request.place.latitude or 55.6761
+            place_lon = request.place.longitude or 12.5683
+        
+        weather_forecast = {'avg_temperature': 15.0, 'avg_precipitation': 0.0, 'good_weather_ratio': 0.7}
+        
+        if WEATHER_API_AVAILABLE:
+            try:
+                weather_api = WeatherAPI(latitude=float(place_lat), longitude=float(place_lon))
+                forecast_df = weather_api.get_forecast_weather(days=14)
+                
+                if not forecast_df.empty:
+                    forecast_df = weather_api.add_weather_features(forecast_df)
+                    weather_forecast = {
+                        'avg_temperature': float(forecast_df['temperature_2m'].mean()),
+                        'avg_precipitation': float(forecast_df['precipitation'].mean()),
+                        'good_weather_ratio': float(forecast_df['good_weather'].mean())
+                    }
+                    logger.info(f"✓ Weather: {weather_forecast['avg_temperature']:.1f}°C")
+            except Exception as e:
+                logger.warning(f"Weather fetch failed: {e}")
+        
+        # Auto-fetch holidays
+        upcoming_holidays = []
+        
+        if HOLIDAY_API_AVAILABLE:
+            try:
+                holiday_checker = HolidayChecker()
+                
+                for days_ahead in range(30):
+                    check_date = (start_date + timedelta(days=days_ahead)).date()
+                    result = holiday_checker.is_holiday(check_date, float(place_lat), float(place_lon))
+                    
+                    if result.get('is_holiday'):
+                        upcoming_holidays.append(datetime.combine(check_date, datetime.min.time()))
+                
+                logger.info(f"✓ Found {len(upcoming_holidays)} holidays")
+            except Exception as e:
+                logger.warning(f"Holiday fetch failed: {e}")
+        
+        # Initialize analyzer
+        analyzer = CampaignAnalyzer()
+        
+        if campaigns_data:
+            analyzer.analyze_campaign_effectiveness(orders_df, campaigns_data, order_items_df)
+        
+        analyzer.extract_temporal_patterns(orders_df)
+        
+        if len(order_items_df) > 10:
+            analyzer.extract_item_affinity(order_items_df, min_support=0.01)
+        
+        # Initialize recommender
+        recommender = CampaignRecommender(
+            analyzer=analyzer,
+            exploration_rate=0.15,
+            min_samples_for_prediction=max(3, len(campaigns_data) // 2)
+        )
+        
+        if len(campaigns_data) >= 3:
+            recommender.fit(use_xgboost=True)
+        
+        # Calculate recent performance
+        recent_orders = orders_df[orders_df['created'] >= (start_date.timestamp() - 30*24*3600)]
+        recent_avg_daily_revenue = recent_orders['total_amount'].sum() / 30 if len(recent_orders) > 0 else 1000
+        recent_avg_daily_orders = len(recent_orders) / 30 if len(recent_orders) > 0 else 10
+        
+        trend = "stable"
+        if len(recent_orders) >= 14:
+            first_week = recent_orders.iloc[:len(recent_orders)//2]['total_amount'].sum()
+            second_week = recent_orders.iloc[len(recent_orders)//2:]['total_amount'].sum()
+            
+            if second_week > first_week * 1.1:
+                trend = "increasing"
+            elif second_week < first_week * 0.9:
+                trend = "decreasing"
+        
+        available_items = request.available_items if request.available_items else order_items_df['item_id'].unique().tolist()
+        
+        # Build context
+        context = RecommenderContext(
+            current_date=start_date.to_pydatetime(),
+            day_of_week=start_date.dayofweek,
+            hour=start_date.hour,
+            season=_get_season(start_date),
+            recent_avg_daily_revenue=recent_avg_daily_revenue,
+            recent_avg_daily_orders=recent_avg_daily_orders,
+            recent_trend=trend,
+            weather_forecast=weather_forecast,
+            upcoming_holidays=upcoming_holidays,
+            max_discount=request.max_discount,
+            min_campaign_duration_days=request.min_campaign_duration_days,
+            max_campaign_duration_days=request.max_campaign_duration_days,
+            available_items=available_items
+        )
+        
+        # Generate recommendations
+        recommendations = recommender.recommend_campaigns(
+            context=context,
+            num_recommendations=request.num_recommendations,
+            optimize_for=request.optimize_for
+        )
+        
+        recommended_items = []
+        for rec in recommendations:
+            recommended_items.append(RecommendedCampaignItem(
+                campaign_id=rec.campaign_id,
+                items=rec.items,
+                discount_percentage=rec.discount_percentage,
+                start_date=rec.start_date,
+                end_date=rec.end_date,
+                duration_days=rec.duration_days,
+                expected_uplift=rec.expected_uplift,
+                expected_roi=rec.expected_roi,
+                expected_revenue=rec.expected_revenue,
+                confidence_score=rec.confidence_score,
+                reasoning=rec.reasoning,
+                priority_score=rec.priority_score,
+                recommended_for_context=rec.recommended_for_context
+            ))
+        
+        analysis_summary = analyzer.get_summary_statistics() if campaigns_data else {
+            'total_campaigns_analyzed': 0,
+            'avg_roi': 0.0,
+            'success_rate': 0.0
+        }
+        
+        insights = {}
+        
+        if analyzer.temporal_patterns:
+            best_day = max(analyzer.temporal_patterns['by_day_of_week'].items(), key=lambda x: x[1]['avg_revenue'])
+            insights['best_day_of_week'] = {
+                'day': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][best_day[0]],
+                'avg_revenue': best_day[1]['avg_revenue']
+            }
+        
+        if analyzer.item_affinity:
+            top_pairs = sorted(analyzer.item_affinity.items(), key=lambda x: x[1], reverse=True)[:5]
+            insights['top_item_pairs'] = [
+                {'items': list(pair), 'affinity_score': score}
+                for pair, score in top_pairs
+            ]
+        
+        model_confidence = "high" if len(campaigns_data) >= 10 else "medium" if len(campaigns_data) >= 5 else "low"
+        restaurant_name = request.place['place_name'] if isinstance(request.place, dict) else request.place.place_name
+        
+        response = CampaignRecommendationResponse(
+            restaurant_name=restaurant_name,
+            recommendation_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            recommendations=recommended_items,
+            analysis_summary=analysis_summary,
+            insights=insights,
+            confidence_level=model_confidence
+        )
+        
+        logger.info(f"✓ Generated {len(recommended_items)} campaign recommendations")
+        return response
+    
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Campaign recommendation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
+
+
+@app.post("/recommend/campaigns/feedback", response_model=CampaignFeedbackResponse, tags=["Campaign Recommendations"])
+async def submit_campaign_feedback(feedback: CampaignFeedback):
+    """
+    Submit feedback on executed campaigns for model improvement.
+    """
+    
+    try:
+        logger.info(f"Received feedback for {feedback.campaign_id}: ROI={feedback.actual_roi}%, Success={feedback.success}")
+        
+        return CampaignFeedbackResponse(
+            status="success",
+            message=f"Feedback for {feedback.campaign_id} received",
+            updated_parameters={'status': 'feedback_stored'}
+        )
+    
+    except Exception as e:
+        logger.error(f"Feedback processing failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
+
+
+# ============================================================================
+# DEPRECATED COMBINED ENDPOINT
+# ============================================================================
+
+@app.post("/predict", response_model=PredictionResponse, tags=["Deprecated"])
+def predict_demand_and_schedule(request: CombinedRequest):
+    """
+    Combined prediction and scheduling endpoint (DEPRECATED).
+    
+    Use /predict/demand and /predict/schedule separately instead.
+    """
+    
+    logger.warning("Combined /predict endpoint is deprecated")
+    
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
-        # ===== STEP 1: DEMAND PREDICTION =====
-        logger.info(f"Processing prediction request for {request.demand_input.place.place_name}")
-        
-        # Prepare features
+        # Demand prediction
         features_df = prepare_features_for_prediction(
             place=request.demand_input.place,
             orders=request.demand_input.orders,
@@ -1298,29 +1537,20 @@ def predict_demand_and_schedule(request: CombinedRequest):
             prediction_days=request.demand_input.prediction_days
         )
         
-        # Store datetime info before feature alignment
         datetime_info = features_df[['datetime', 'date', 'hour']].copy()
-        
-        # Align features with model expectations
         X = align_features_with_model(features_df)
         
-        # Make predictions
-        logger.info(f"Making predictions for {len(X)} hours...")
         predictions = model.predict(X)
         predictions = np.maximum(predictions, 0).round().astype(int)
         
-        # Add predictions to datetime info
         datetime_info['item_count'] = predictions[:, 0]
         datetime_info['order_count'] = predictions[:, 1]
         datetime_info['day_name'] = datetime_info['datetime'].dt.strftime('%A').str.lower()
         
-        logger.info("Demand predictions completed successfully")
-        
-        # ===== STEP 2: STAFF SCHEDULING =====
+        # Scheduling
         schedule_output = ScheduleOutput()
         
         if SCHEDULER_AVAILABLE and request.schedule_input.employees and request.schedule_input.roles:
-            logger.info("Generating staff schedule...")
             try:
                 config = request.schedule_input.scheduler_config or SchedulerConfig()
                 
@@ -1342,19 +1572,11 @@ def predict_demand_and_schedule(request: CombinedRequest):
                         prediction_start_date=request.demand_input.prediction_start_date,
                         num_days=request.demand_input.prediction_days
                     )
-                    logger.info("Schedule generated successfully")
-                else:
-                    logger.warning("Scheduler found no solution")
-                    
             except Exception as e:
-                logger.error(f"Scheduling failed: {e}", exc_info=True)
-        else:
-            logger.warning("Scheduler not available or no employee/role data provided")
+                logger.error(f"Scheduling failed: {e}")
         
-        # ===== STEP 3: FORMAT RESPONSE =====
-        logger.info("Formatting response...")
+        # Format response
         days = []
-        
         for date_val, day_group in datetime_info.groupby('date'):
             day_name = day_group.iloc[0]['day_name']
             
@@ -1366,11 +1588,7 @@ def predict_demand_and_schedule(request: CombinedRequest):
                     item_count=int(row['item_count'])
                 ))
             
-            days.append(DayPrediction(
-                day_name=day_name,
-                date=str(date_val),
-                hours=hours
-            ))
+            days.append(DayPrediction(day_name=day_name, date=str(date_val), hours=hours))
         
         demand_output = DemandOutput(
             restaurant_name=request.demand_input.place.place_name,
@@ -1378,418 +1596,13 @@ def predict_demand_and_schedule(request: CombinedRequest):
             days=days
         )
         
-        response = PredictionResponse(
-            demand_output=demand_output,
-            schedule_output=schedule_output
-        )
-        
-        logger.info("Request completed successfully")
-        return response
+        return PredictionResponse(demand_output=demand_output, schedule_output=schedule_output)
         
     except Exception as e:
-        logger.error(f"Request failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Request failed: {str(e)}")
+        logger.error(f"Request failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")
 
 
-# Add to imports at top of api/main.py
-from src.campaign_analyzer import CampaignAnalyzer
-from src.campaign_recommender import CampaignRecommender, RecommenderContext
-from api.campaign_models import (
-    CampaignRecommendationRequest,
-    CampaignRecommendationResponse,
-    RecommendedCampaignItem,
-    CampaignFeedback,
-    CampaignFeedbackResponse,
-    OrderItemData
-)
-
-# Add global variables after existing ones
-campaign_recommender: Optional[CampaignRecommender] = None
-campaign_analyzer: Optional[CampaignAnalyzer] = None
-
-# Update startup event
-@app.on_event("startup")
-async def startup_event():
-    """Load model and initialize services on startup"""
-    global model, model_metadata, WEATHER_API_AVAILABLE, HOLIDAY_API_AVAILABLE, SCHEDULER_AVAILABLE
-    global campaign_recommender, campaign_analyzer
-    
-    # ... existing startup code ...
-    
-    # Initialize campaign services
-    try:
-        campaign_analyzer = CampaignAnalyzer()
-        logger.info("Campaign analyzer initialized")
-    except Exception as e:
-        logger.warning(f"Campaign analyzer initialization failed: {e}")
-
-
-# Add new endpoints before the deprecated /predict endpoint
-
-@app.post(
-    "/recommend/campaigns",
-    response_model=CampaignRecommendationResponse,
-    summary="Get Campaign Recommendations",
-    description="Generate AI-powered campaign recommendations based on historical data and context",
-    tags=["Campaign Recommendations"]
-)
-async def recommend_campaigns(request: CampaignRecommendationRequest):
-    """
-    Generate campaign recommendations using machine learning.
-    
-    This endpoint analyzes historical order data, past campaign performance,
-    and current context to recommend optimal marketing campaigns.
-    """
-    
-    try:
-        # Validate input
-        if not request.orders:
-            raise HTTPException(
-                status_code=400,
-                detail="At least some historical orders are required for campaign recommendations"
-            )
-        
-        # Process historical data
-        logger.info(f"Processing {len(request.orders)} orders for campaign recommendations")
-        
-        # FIX: Handle orders as dicts (already deserialized from JSON)
-        orders_data = []
-        for i, order in enumerate(request.orders):
-            # Check if order is dict or OrderData object
-            if isinstance(order, dict):
-                orders_data.append({
-                    'id': f"order_{i}",
-                    'created': pd.to_datetime(order['time']).timestamp(),
-                    'place_id': request.place['place_id'],
-                    'total_amount': order['total_amount'],
-                    'item_count': order['items'],
-                    'status': order['status'],
-                    'discount_amount': order.get('discount_amount', 0)
-                })
-            else:
-                # Handle OrderData object (from Pydantic parsing)
-                orders_data.append({
-                    'id': f"order_{i}",
-                    'created': pd.to_datetime(order.time).timestamp(),
-                    'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
-                    'total_amount': order.total_amount,
-                    'item_count': order.items,
-                    'status': order.status,
-                    'discount_amount': order.discount_amount
-                })
-        
-        orders_df = pd.DataFrame(orders_data)
-        
-        # FIX: Convert campaigns - handle both dict and object
-        campaigns_data = []
-        for i, campaign in enumerate(request.campaigns):
-            if isinstance(campaign, dict):
-                campaigns_data.append({
-                    'id': f"campaign_{i}",
-                    'start_time': campaign['start_time'],
-                    'end_time': campaign['end_time'],
-                    'items_included': campaign['items_included'],
-                    'discount': campaign['discount']
-                })
-            else:
-                campaigns_data.append({
-                    'id': f"campaign_{i}",
-                    'start_time': campaign.start_time,
-                    'end_time': campaign.end_time,
-                    'items_included': campaign.items_included,
-                    'discount': campaign.discount
-                })
-        
-        # FIX: Convert order items if provided
-        order_items_data = []
-        if request.order_items:
-            for item in request.order_items:
-                if isinstance(item, dict):
-                    order_items_data.append({
-                        'order_id': item['order_id'],
-                        'item_id': item['item_id']
-                    })
-                else:
-                    order_items_data.append({
-                        'order_id': item.order_id,
-                        'item_id': item.item_id
-                    })
-            order_items_df = pd.DataFrame(order_items_data)
-        else:
-            # Generate synthetic order items from order data (simplified)
-            order_items_df = pd.DataFrame({
-                'order_id': [f"order_{i}" for i in range(len(orders_df))],
-                'item_id': ['item_generic'] * len(orders_df)
-            })
-        
-        # Initialize analyzer
-        analyzer = CampaignAnalyzer()
-        
-        # Analyze historical campaigns if available
-        if campaigns_data:
-            logger.info(f"Analyzing {len(campaigns_data)} historical campaigns")
-            analyzer.analyze_campaign_effectiveness(
-                orders_df,
-                campaigns_data,
-                order_items_df
-            )
-        
-        # Extract patterns
-        logger.info("Extracting temporal patterns and item affinity")
-        analyzer.extract_temporal_patterns(orders_df)
-        
-        if len(order_items_df) > 10:  # Need sufficient data for affinity
-            analyzer.extract_item_affinity(order_items_df, min_support=0.01)
-        
-        # Initialize recommender
-        logger.info("Initializing campaign recommender")
-        recommender = CampaignRecommender(
-            analyzer=analyzer,
-            exploration_rate=0.15,  # 15% exploration
-            min_samples_for_prediction=max(3, len(campaigns_data) // 2)
-        )
-        
-        # Train recommender if enough data
-        if len(campaigns_data) >= 3:
-            logger.info("Training recommendation model")
-            recommender.fit(use_xgboost=True)
-        else:
-            logger.warning("Insufficient campaign history. Using exploration-based recommendations.")
-        
-        # Build recommendation context
-        start_date = pd.to_datetime(request.recommendation_start_date)
-        
-        # Calculate recent performance
-        recent_orders = orders_df[
-            orders_df['created'] >= (start_date.timestamp() - 30*24*3600)  # Last 30 days
-        ]
-        
-        recent_avg_daily_revenue = recent_orders['total_amount'].sum() / 30 if len(recent_orders) > 0 else 1000
-        recent_avg_daily_orders = len(recent_orders) / 30 if len(recent_orders) > 0 else 10
-        
-        # Determine trend (simplified)
-        if len(recent_orders) >= 14:
-            first_week = recent_orders.iloc[:len(recent_orders)//2]['total_amount'].sum()
-            second_week = recent_orders.iloc[len(recent_orders)//2:]['total_amount'].sum()
-            
-            if second_week > first_week * 1.1:
-                trend = "increasing"
-            elif second_week < first_week * 0.9:
-                trend = "decreasing"
-            else:
-                trend = "stable"
-        else:
-            trend = "stable"
-        
-        # Get available items
-        if request.available_items:
-            available_items = request.available_items
-        else:
-            # Extract from order items
-            available_items = order_items_df['item_id'].unique().tolist()
-        
-        # Parse upcoming holidays
-        upcoming_holidays = []
-        if request.upcoming_holidays:
-            upcoming_holidays = [
-                pd.to_datetime(h).to_pydatetime()
-                for h in request.upcoming_holidays
-            ]
-        
-        context = RecommenderContext(
-            current_date=start_date.to_pydatetime(),
-            day_of_week=start_date.dayofweek,
-            hour=start_date.hour,
-            season=_get_season(start_date),
-            recent_avg_daily_revenue=recent_avg_daily_revenue,
-            recent_avg_daily_orders=recent_avg_daily_orders,
-            recent_trend=trend,
-            weather_forecast=request.weather_forecast,
-            upcoming_holidays=upcoming_holidays,
-            max_discount=request.max_discount,
-            min_campaign_duration_days=request.min_campaign_duration_days,
-            max_campaign_duration_days=request.max_campaign_duration_days,
-            available_items=available_items
-        )
-        
-        # Generate recommendations
-        logger.info(f"Generating {request.num_recommendations} campaign recommendations")
-        recommendations = recommender.recommend_campaigns(
-            context=context,
-            num_recommendations=request.num_recommendations,
-            optimize_for=request.optimize_for
-        )
-        
-        # Convert to response format
-        recommended_items = []
-        for rec in recommendations:
-            recommended_items.append(RecommendedCampaignItem(
-                campaign_id=rec.campaign_id,
-                items=rec.items,
-                discount_percentage=rec.discount_percentage,
-                start_date=rec.start_date,
-                end_date=rec.end_date,
-                duration_days=rec.duration_days,
-                expected_uplift=rec.expected_uplift,
-                expected_roi=rec.expected_roi,
-                expected_revenue=rec.expected_revenue,
-                confidence_score=rec.confidence_score,
-                reasoning=rec.reasoning,
-                priority_score=rec.priority_score,
-                recommended_for_context=rec.recommended_for_context
-            ))
-        
-        # Get analysis summary
-        analysis_summary = analyzer.get_summary_statistics() if campaigns_data else {
-            'total_campaigns_analyzed': 0,
-            'note': 'No historical campaigns to analyze'
-        }
-        
-        # Generate insights
-        insights = {}
-        
-        if analyzer.temporal_patterns:
-            # Find best days
-            best_day = max(
-                analyzer.temporal_patterns['by_day_of_week'].items(),
-                key=lambda x: x[1]['avg_revenue']
-            )
-            insights['best_day_of_week'] = {
-                'day': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][best_day[0]],
-                'avg_revenue': best_day[1]['avg_revenue']
-            }
-            
-            # Find best hours
-            best_hours = sorted(
-                analyzer.temporal_patterns['by_hour'].items(),
-                key=lambda x: x[1]['avg_revenue'],
-                reverse=True
-            )[:3]
-            insights['best_hours'] = [h[0] for h in best_hours]
-        
-        if analyzer.item_affinity:
-            # Top item pairs
-            top_pairs = sorted(
-                analyzer.item_affinity.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:5]
-            insights['top_item_pairs'] = [
-                {'items': list(pair), 'affinity_score': score}
-                for pair, score in top_pairs
-            ]
-        
-        # Determine model confidence
-        if len(campaigns_data) >= 10:
-            model_confidence = "high"
-        elif len(campaigns_data) >= 5:
-            model_confidence = "medium"
-        else:
-            model_confidence = "low"
-        
-        # FIX: Get restaurant name from place (handle dict)
-        restaurant_name = request.place['place_name'] if isinstance(request.place, dict) else request.place.place_name
-        
-        # Build response
-        response = CampaignRecommendationResponse(
-            restaurant_name=restaurant_name,
-            recommendation_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            recommendations=recommended_items,
-            analysis_summary=analysis_summary,
-            insights=insights,
-            confidence_level=model_confidence
-        )
-        
-        logger.info(f"Successfully generated {len(recommended_items)} campaign recommendations")
-        
-        return response
-    
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    
-    except Exception as e:
-        logger.error(f"Error generating campaign recommendations: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to generate campaign recommendations: {str(e)}"
-        )
-
-
-@app.post(
-    "/recommend/campaigns/feedback",
-    response_model=CampaignFeedbackResponse,
-    summary="Submit Campaign Feedback",
-    description="Submit feedback on executed campaigns for model improvement (online learning)",
-    tags=["Campaign Recommendations"]
-)
-async def submit_campaign_feedback(feedback: CampaignFeedback):
-    """
-    Submit feedback on a campaign that was executed.
-    
-    This enables online learning - the recommendation model updates
-    its parameters based on actual campaign performance.
-    
-    **Use Case:**
-    After running a recommended campaign, submit the actual results
-    to improve future recommendations.
-    """
-    
-    try:
-        # For now, store feedback for future model updates
-        # In production, you'd persist this and retrain periodically
-        
-        logger.info(f"Received feedback for campaign {feedback.campaign_id}: "
-                   f"ROI={feedback.actual_roi}%, Success={feedback.success}")
-        
-        # If we have a live recommender, update it
-        if campaign_recommender:
-            campaign_recommender.update_from_feedback(
-                campaign_id=feedback.campaign_id,
-                actual_roi=feedback.actual_roi,
-                success=feedback.success
-            )
-            
-            updated_params = {
-                'status': 'model_updated',
-                'campaign_id': feedback.campaign_id
-            }
-        else:
-            updated_params = {
-                'status': 'feedback_stored',
-                'note': 'Will be used in next model training'
-            }
-        
-        return CampaignFeedbackResponse(
-            status="success",
-            message=f"Feedback for campaign {feedback.campaign_id} received successfully",
-            updated_parameters=updated_params
-        )
-    
-    except Exception as e:
-        logger.error(f"Error processing campaign feedback: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process feedback: {str(e)}"
-        )
-
-
-# Helper function for season detection
-def _get_season(dt: pd.Timestamp) -> str:
-    """Determine season from date"""
-    month = dt.month
-    
-    if month in [12, 1, 2]:
-        return "winter"
-    elif month in [3, 4, 5]:
-        return "spring"
-    elif month in [6, 7, 8]:
-        return "summer"
-    else:
-        return "fall"
-
-
-    
 # ============================================================================
 # RUN SERVER
 # ============================================================================

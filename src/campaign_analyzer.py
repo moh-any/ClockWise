@@ -414,19 +414,32 @@ class CampaignAnalyzer:
         """Get summary statistics of all analyzed campaigns"""
         
         if not self.campaign_metrics:
-            return {}
+            return {
+                'total_campaigns_analyzed': 0,
+                'avg_uplift': 0.0,
+                'median_uplift': 0.0,
+                'avg_roi': 0.0,
+                'median_roi': 0.0,
+                'total_revenue_impact': 0.0,
+                'successful_campaigns': 0,
+                'success_rate': 0.0
+            }
         
         uplifts = [c.uplift_percentage for c in self.campaign_metrics]
         rois = [c.roi for c in self.campaign_metrics]
         revenues = [c.total_revenue_during for c in self.campaign_metrics]
         
+        # Filter out extreme outliers (cap at 1000% for display)
+        rois_capped = [min(roi, 1000) for roi in rois]
+        uplifts_capped = [min(uplift, 1000) for uplift in uplifts]
+        
         return {
             'total_campaigns_analyzed': len(self.campaign_metrics),
-            'avg_uplift': np.mean(uplifts),
-            'median_uplift': np.median(uplifts),
-            'avg_roi': np.mean(rois),
-            'median_roi': np.median(rois),
-            'total_revenue_impact': sum([c.revenue_impact for c in self.campaign_metrics]),
+            'avg_uplift': float(np.mean(uplifts_capped)),
+            'median_uplift': float(np.median(uplifts)),
+            'avg_roi': float(np.mean(rois_capped)),
+            'median_roi': float(np.median(rois)),
+            'total_revenue_impact': float(sum([c.revenue_impact for c in self.campaign_metrics])),
             'successful_campaigns': len([c for c in self.campaign_metrics if c.roi > 0]),
-            'success_rate': len([c for c in self.campaign_metrics if c.roi > 0]) / len(self.campaign_metrics) * 100
+            'success_rate': float(len([c for c in self.campaign_metrics if c.roi > 0]) / len(self.campaign_metrics) * 100)
         }

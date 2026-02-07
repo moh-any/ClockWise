@@ -1,0 +1,33 @@
+{
+  "trained_at": "2026-02-07T01:56:59.214279",
+  "training_data": {
+    "source": "combined_features.csv (real data)",
+    "num_records": 82011,
+    "num_orders": 82011,
+    "num_campaigns": 94,
+    "num_order_items": 128601,
+    "num_places": 359,
+    "date_range": {
+      "start": "2021-02-12 14:00:00",
+      "end": "2024-02-16 19:00:00"
+    },
+    "total_revenue": 178090176.50000003,
+    "total_orders": 399809
+  },
+  "model_config": {
+    "exploration_rate": 0.15,
+    "use_xgboost": true
+  },
+  "performance": {
+    "total_campaigns_analyzed": 94,
+    "avg_uplift": 214.61423488711583,
+    "median_uplift": 130.9523809523809,
+    "avg_roi": 61.775135586149396,
+    "median_roi": 123.33333333333336,
+    "total_revenue_impact": -67421872.74095169,
+    "successful_campaigns": 84,
+    "success_rate": 89.36170212765957
+  },
+  "templates": 5,
+  "item_affinities": 202
+}
