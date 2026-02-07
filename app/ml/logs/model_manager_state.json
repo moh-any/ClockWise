@@ -1,0 +1,8 @@
+{
+  "last_full_retrain": null,
+  "last_fine_tune": "2026-02-07T19:15:56.584288",
+  "fine_tune_count_since_retrain": 1,
+  "total_updates": 1,
+  "last_update_type": "fine_tune",
+  "last_update_time": "2026-02-07T19:15:56.584306"
+}

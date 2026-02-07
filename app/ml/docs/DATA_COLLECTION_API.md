@@ -57,9 +57,7 @@ Collects real-time metrics for a single venue.
   "social_signals": {
     "composite_score": 0.75,
     "twitter_mentions": 10,
-    "instagram_posts": 5,
-    "twitter_sentiment": 0.8,
-    "instagram_engagement": 0.7
+    "twitter_sentiment": 0.8
   }
 }
 ```
@@ -206,7 +204,6 @@ CREATE TABLE surge_metrics (
     excess_demand FLOAT NOT NULL,
     social_composite_score FLOAT,
     social_twitter_mentions INTEGER,
-    social_instagram_posts INTEGER,
     created_at TIMESTAMP DEFAULT NOW(),
     
     INDEX idx_place_timestamp (place_id, timestamp),
@@ -224,13 +221,12 @@ def store_metrics_in_db(metrics: dict):
     INSERT INTO surge_metrics (
         place_id, timestamp, actual_items, actual_orders,
         predicted_items, predicted_orders, ratio, excess_demand,
-        social_composite_score, social_twitter_mentions, 
-        social_instagram_posts
+        social_composite_score, social_twitter_mentions
     ) VALUES (
         %(place_id)s, %(timestamp)s, %(actual_items)s, %(actual_orders)s,
         %(predicted_items)s, %(predicted_orders)s, %(ratio)s, 
         %(excess_demand)s, %(social_composite_score)s,
-        %(social_twitter_mentions)s, %(social_instagram_posts)s
+        %(social_twitter_mentions)s
     )
     """
     
@@ -244,8 +240,7 @@ def store_metrics_in_db(metrics: dict):
         'ratio': metrics['ratio'],
         'excess_demand': metrics['excess_demand'],
         'social_composite_score': metrics['social_signals'].get('composite_score'),
-        'social_twitter_mentions': metrics['social_signals'].get('twitter_mentions'),
-        'social_instagram_posts': metrics['social_signals'].get('instagram_posts')
+        'social_twitter_mentions': metrics['social_signals'].get('twitter_mentions')
     }
     
     db.execute(query, params)

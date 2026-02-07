@@ -72,7 +72,7 @@ def complete_surge_flow_with_llm():
                 'google_trends': 88,
                 'twitter_mentions': 156,
                 'twitter_virality': 0.91,
-                'instagram_engagement': 0.15,
+                # Note: Instagram API not used in current implementation
                 'nearby_events': 0,
                 'composite_signal': 0.78
             },
@@ -257,7 +257,7 @@ if __name__ == "__main__":
 ✅ Emergency Schedule: Auto-generated staffing plan
 
 Total Monthly Cost:
-  • Surge Detection: $0 (Redis + social APIs free tier)
+  • Surge Detection: $0 (social APIs free tier)
   • LLM Analysis: $0 (Gemini free tier: 1,500/day)
   • Alerts: $2-5 (SMS/Twilio minimal usage)
   

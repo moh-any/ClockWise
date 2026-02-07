@@ -15,7 +15,6 @@ import (
 )
 
 // TODO: Add Caching
-// TODO: Add Nginx for rate limiting
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
@@ -24,7 +23,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://cw-app:3000", "http://localhost:3000"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Encoding"},
 		AllowCredentials: true,
