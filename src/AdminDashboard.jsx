@@ -55,8 +55,6 @@ function AdminDashboard() {
   const [revenue, setRevenue] = useState(0)
   const [currentlyClocked, setCurrentlyClocked] = useState(0)
   const [expectedClocked, setExpectedClocked] = useState(0)
-  const [selectedCoords, setSelectedCoords] = useState({ lat: null, lng: null })
-  const mapInstance = useRef(null)
   const configFileInput = useRef(null)
   const rosterFileInput = useRef(null)
 
@@ -425,25 +423,7 @@ function AdminDashboard() {
     }
   }
 
-  useEffect(() => {
-    if (activeTab === "info") {
-      const timer = setTimeout(() => {
-        initializeMap()
-      }, 100)
-      return () => {
-        clearTimeout(timer)
-        if (mapInstance.current) {
-          mapInstance.current.remove()
-          mapInstance.current = null
-        }
-      }
-    } else {
-      if (mapInstance.current) {
-        mapInstance.current.remove()
-        mapInstance.current = null
-      }
-    }
-  }, [activeTab])
+
 
   // Load roles when info tab is active
   useEffect(() => {
@@ -553,41 +533,6 @@ function AdminDashboard() {
       fetchCampaignsData()
     }
   }, [activeTab, campaignsFilter])
-
-  const initializeMap = () => {
-    if (typeof window.mapboxgl === "undefined") {
-      console.log("Mapbox GL not loaded yet")
-      return
-    }
-
-    const mapContainer = document.getElementById("location-map")
-    if (!mapContainer) return
-
-    if (mapInstance.current) {
-      mapInstance.current.remove()
-      mapInstance.current = null
-    }
-
-    window.mapboxgl.accessToken =
-      "pk.eyJ1IjoibW9zdGFmYTE5MjYiLCJhIjoiY21sOW1xZWNiMDRobTNlczczNDc0cGM0aCJ9.z2un235WCxTP0RswBTewPg"
-
-    const map = new window.mapboxgl.Map({
-      container: "location-map",
-      style: "mapbox://styles/mapbox/satellite-streets-v12",
-      projection: "globe",
-      zoom: 2,
-      center: [0, 0],
-      attributionControl: true,
-    })
-
-    map.on("click", (e) => {
-      const lat = e.lngLat.lat.toFixed(6)
-      const lng = e.lngLat.lng.toFixed(6)
-      setSelectedCoords({ lat, lng })
-    })
-
-    mapInstance.current = map
-  }
 
   const handleConfigUpload = (event) => {
     const file = event.target.files[0]
@@ -3742,40 +3687,7 @@ function AdminDashboard() {
         </div>
       )}
 
-      {/* Location Section */}
-      <div className="section-wrapper">
-        <div className="section-header">
-          <h2 className="section-title">
-            <img src={LocationIcon} alt="Location" className="title-icon-svg" />
-            Organization Location
-          </h2>
-        </div>
-        <p className="section-description">
-          Click anywhere on the map to set your primary business location
-        </p>
 
-        {selectedCoords.lat && selectedCoords.lng && (
-          <div className="coords-display">
-            <div className="coords-item">
-              <span className="coords-label">Latitude:</span>
-              <span className="coords-value">{selectedCoords.lat}</span>
-            </div>
-            <div className="coords-item">
-              <span className="coords-label">Longitude:</span>
-              <span className="coords-value">{selectedCoords.lng}</span>
-            </div>
-            <button className="btn-primary btn-sm">Confirm Location</button>
-          </div>
-        )}
-
-        <div id="location-map" className="map-container"></div>
-
-        {!selectedCoords.lat && (
-          <div className="map-hint">
-            <p>👆 Click on the map to select your location</p>
-          </div>
-        )}
-      </div>
 
       {/* Shift Rules Section */}
       <div className="section-wrapper">

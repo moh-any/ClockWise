@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import "./Signup.css"
 import api from "./services/api"
 
 function Signup({ onClose, onSwitchToLogin, isClosing }) {
   const navigate = useNavigate()
+  const [showMap, setShowMap] = useState(false)
   const [organizationName, setOrganizationName] = useState("")
   const [address, setAddress] = useState("")
   const [orgType, setOrgType] = useState("restaurant")
@@ -18,8 +19,12 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
   const [hexInput1, setHexInput1] = useState("")
   const [hexInput2, setHexInput2] = useState("")
   const [hexInput3, setHexInput3] = useState("")
+  const [latitude, setLatitude] = useState(null)
+  const [longitude, setLongitude] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const mapInstance = useRef(null)
+  const markerInstance = useRef(null)
 
   const handleHexChange = (colorSetter, hexSetter, value) => {
     const hex = value.replace("#", "")
@@ -34,14 +39,127 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
     hexSetter(value.replace("#", ""))
   }
 
-  const handleSubmit = async (e) => {
+  // Load Mapbox library
+  useEffect(() => {
+    if (!document.getElementById("mapbox-gl-js")) {
+      const script = document.createElement("script")
+      script.id = "mapbox-gl-js"
+      script.src = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"
+      document.head.appendChild(script)
+
+      const link = document.createElement("link")
+      link.id = "mapbox-gl-css"
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+      link.rel = "stylesheet"
+      document.head.appendChild(link)
+    }
+  }, [])
+
+  // Initialize map when showMap becomes true
+  useEffect(() => {
+    if (!showMap) return
+
+    const initializeMap = () => {
+      if (typeof window.mapboxgl === "undefined") {
+        console.log("Mapbox GL not loaded yet, retrying...")
+        return false
+      }
+
+      const mapContainer = document.getElementById("signup-map")
+      if (!mapContainer || mapInstance.current) return true
+
+      try {
+        window.mapboxgl.accessToken =
+          "pk.eyJ1IjoibW9zdGFmYTE5MjYiLCJhIjoiY21sOW1xZWNiMDRobTNlczczNDc0cGM0aCJ9.z2un235WCxTP0RswBTewPg"
+
+        const map = new window.mapboxgl.Map({
+          container: "signup-map",
+          style: "mapbox://styles/mapbox/satellite-streets-v12",
+          projection: "globe",
+          zoom: 2,
+          center: [0, 0],
+          attributionControl: true,
+        })
+
+        map.on("click", (e) => {
+          const lat = e.lngLat.lat.toFixed(6)
+          const lng = e.lngLat.lng.toFixed(6)
+          setLatitude(lat)
+          setLongitude(lng)
+
+          // Remove old marker if exists
+          if (markerInstance.current) {
+            markerInstance.current.remove()
+          }
+
+          // Add new marker
+          markerInstance.current = new window.mapboxgl.Marker({
+            color: color1 || "#4A90E2",
+          })
+            .setLngLat([lng, lat])
+            .addTo(map)
+        })
+
+        mapInstance.current = map
+        return true
+      } catch (error) {
+        console.error("Error initializing map:", error)
+        return false
+      }
+    }
+
+    // Try to initialize immediately, then retry if needed
+    let attempts = 0
+    const maxAttempts = 20
+    const intervalId = setInterval(() => {
+      attempts++
+      if (initializeMap() || attempts >= maxAttempts) {
+        clearInterval(intervalId)
+        if (attempts >= maxAttempts && !mapInstance.current) {
+          console.error("Failed to initialize map after", maxAttempts, "attempts")
+        }
+      }
+    }, 200)
+
+    return () => {
+      clearInterval(intervalId)
+      if (mapInstance.current) {
+        mapInstance.current.remove()
+        mapInstance.current = null
+      }
+      if (markerInstance.current) {
+        markerInstance.current.remove()
+        markerInstance.current = null
+      }
+    }
+  }, [showMap, color1])
+
+  const handleInitialSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
 
-    // Save colors to localStorage first
+    // Validate colors
+    if (!color1 || !color2 || !color3) {
+      setError("Please select all three organization colors")
+      return
+    }
+
+    // Save colors to localStorage
     const colors = [color1, color2, color3]
     localStorage.setItem("orgColors", JSON.stringify(colors))
+
+    // Show map for location selection
+    setShowMap(true)
+  }
+
+  const handleFinalSubmit = async () => {
+    if (!latitude || !longitude) {
+      setError("Please select your location on the map")
+      return
+    }
+
+    setLoading(true)
+    setError(null)
 
     try {
       // Register organization with backend
@@ -50,6 +168,8 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
         org_address: address || undefined,
         org_type: orgType,
         org_phone: orgPhone,
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
         admin_email: email,
         admin_full_name: fullName,
         admin_password: password,
@@ -85,14 +205,17 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
         <button className="signup-close-btn" onClick={onClose}>
           ×
         </button>
-        <div className="signup-header">
-          <h2 className="signup-title">Create Account</h2>
-          <p className="signup-subtitle">Join Clockwise today</p>
-        </div>
 
-        {error && <div className="signup-error-message">{error}</div>}
+        {!showMap ? (
+          <>
+            <div className="signup-header">
+              <h2 className="signup-title">Create Account</h2>
+              <p className="signup-subtitle">Join Clockwise today</p>
+            </div>
 
-        <form className="signup-form" onSubmit={handleSubmit}>
+            {error && <div className="signup-error-message">{error}</div>}
+
+            <form className="signup-form" onSubmit={handleInitialSubmit}>
           <div className="signup-form-group">
             <label className="signup-label" htmlFor="organizationName">
               Organization Name
@@ -323,7 +446,7 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
             className="signup-submit-btn"
             disabled={loading}
           >
-            {loading ? "Creating Account..." : "Sign Up"}
+            Continue to Location
           </button>
         </form>
         <div className="signup-footer">
@@ -341,6 +464,85 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
             </a>
           </p>
         </div>
+          </>
+        ) : (
+          <>
+            <div className="signup-header">
+              <h2 className="signup-title">Select Your Location</h2>
+              <p className="signup-subtitle">
+                Click anywhere on the globe to set your organization's location
+              </p>
+            </div>
+
+            {error && <div className="signup-error-message">{error}</div>}
+
+            {latitude && longitude && (
+              <div 
+                style={{
+                  background: 'var(--gray-50)',
+                  border: '1px solid var(--gray-200)',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-around',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--gray-600)' }}>Latitude: </span>
+                  <span style={{ fontWeight: 600, color: 'var(--gray-900)' }}>{latitude}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--gray-600)' }}>Longitude: </span>
+                  <span style={{ fontWeight: 600, color: 'var(--gray-900)' }}>{longitude}</span>
+                </div>
+              </div>
+            )}
+
+            <div
+              id="signup-map"
+              style={{
+                width: '100%',
+                height: '500px',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                marginBottom: '20px',
+              }}
+            ></div>
+
+            {!latitude && (
+              <p
+                style={{
+                  textAlign: 'center',
+                  color: 'var(--gray-600)',
+                  fontSize: '14px',
+                  marginBottom: '16px',
+                }}
+              >
+                👆 Click on the map to select your location
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="signup-submit-btn"
+                style={{ flex: 1, background: 'var(--gray-400)' }}
+                onClick={() => setShowMap(false)}
+                disabled={loading}
+              >
+                Back
+              </button>
+              <button
+                className="signup-submit-btn"
+                style={{ flex: 2 }}
+                onClick={handleFinalSubmit}
+                disabled={loading || !latitude || !longitude}
+              >
+                {loading ? "Creating Account..." : "Complete Signup"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
