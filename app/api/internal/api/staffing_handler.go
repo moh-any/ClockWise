@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/clockwise/clockwise/backend/internal/database"
 	"github.com/clockwise/clockwise/backend/internal/middleware"
@@ -14,26 +16,32 @@ import (
 )
 
 type StaffingHandler struct {
-	userStore     database.UserStore
-	orgStore      database.OrgStore
-	uploadService service.UploadService
-	emailService  service.EmailService
-	Logger        *slog.Logger
+	userStore      database.UserStore
+	orgStore       database.OrgStore
+	userRolesStore database.UserRolesStore
+	rolesStore     database.RolesStore
+	uploadService  service.UploadService
+	emailService   service.EmailService
+	Logger         *slog.Logger
 }
 
 func NewStaffingHandler(
 	userStore database.UserStore,
 	orgStore database.OrgStore,
+	userRolesStore database.UserRolesStore,
+	rolesStore database.RolesStore,
 	uploadService service.UploadService,
 	emailService service.EmailService,
 	logger *slog.Logger,
 ) *StaffingHandler {
 	return &StaffingHandler{
-		userStore:     userStore,
-		orgStore:      orgStore,
-		uploadService: uploadService,
-		emailService:  emailService,
-		Logger:        logger,
+		userStore:      userStore,
+		orgStore:       orgStore,
+		userRolesStore: userRolesStore,
+		rolesStore:     rolesStore,
+		uploadService:  uploadService,
+		emailService:   emailService,
+		Logger:         logger,
 	}
 }
 
@@ -110,7 +118,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 	}
 
 	// Validate required headers
-	requiredHeaders := map[string]bool{"full_name": false, "email": false, "role": false, "salary": false}
+	requiredHeaders := map[string]bool{"full_name": false, "email": false, "role": false, "hourly_salary": false, "roles": false}
 	for _, header := range csvData.Headers {
 		if _, ok := requiredHeaders[header]; ok {
 			requiredHeaders[header] = true
@@ -138,10 +146,11 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		fullName := row["full_name"]
 		email := row["email"]
 		role := row["role"]
-		salary, ok := row["salary"]
+		salary, ok := row["hourly_salary"]
+		rolesStr := row["roles"]
 
 		// Validate role
-		if role != "manager" && role != "staff" && role != "employee" {
+		if role != "admin" && role != "manager" && role != "staff" && role != "employee" {
 			failed = append(failed, map[string]string{
 				"email": email,
 				"error": "Invalid role: " + role,
@@ -150,18 +159,31 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		}
 
 		var empSalary float64
-		if ok {
-			empSalary, err = strconv.ParseFloat(salary, 32)
+		if ok && salary != "" {
+			empSalary, err = strconv.ParseFloat(salary, 64)
 			if err != nil {
 				failed = append(failed, map[string]string{
 					"email": email,
 					"error": "invalid salary format. Please use only numbers in this format (123.12)",
 				})
 				h.Logger.Error("error parsing float", "error", err.Error(), "for user", email)
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "you have error in salaries column use the specified format int the specs"})
+				continue
 			}
-			h.Logger.Info("empolyee salary retrieved", email, empSalary)
+			h.Logger.Info("employee salary retrieved", "email", email, "salary", empSalary)
 		}
+
+		// Parse roles JSON array
+		var userRoles []string
+		if rolesStr != "" {
+			// Clean up the roles string (handle escaped quotes)
+			rolesStr = strings.ReplaceAll(rolesStr, `""`, `"`)
+			if err := json.Unmarshal([]byte(rolesStr), &userRoles); err != nil {
+				h.Logger.Warn("failed to parse roles JSON", "error", err, "roles", rolesStr, "email", email)
+				// Try alternative parsing if JSON fails
+				userRoles = []string{}
+			}
+		}
+
 		// Generate temporary password
 		tempPassword, err := utils.GenerateRandomPassword(8)
 		if err != nil {
@@ -194,6 +216,42 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 				"error": err.Error(),
 			})
 			continue
+		}
+
+		// Process user roles - check if roles exist, create if not, then assign to user
+		if len(userRoles) > 0 {
+			for _, roleName := range userRoles {
+				// Check if role exists in organization
+				existingRole, err := h.rolesStore.GetRoleByName(user.OrganizationID, roleName)
+				if err != nil {
+					h.Logger.Error("failed to check role existence", "error", err, "role", roleName)
+					continue
+				}
+
+				// If role doesn't exist, create it with default values
+				if existingRole == nil {
+					newRole := &database.OrganizationRole{
+						OrganizationID:      user.OrganizationID,
+						Role:                roleName,
+						MinNeededPerShift:   1,              // Default value
+						ItemsPerRolePerHour: nil,            // Default nil
+						NeedForDemand:       false,          // Default value
+						Independent:         nil,            // Default nil
+					}
+					if err := h.rolesStore.CreateRole(newRole); err != nil {
+						h.Logger.Error("failed to create role", "error", err, "role", roleName)
+					} else {
+						h.Logger.Info("created new role for organization", "role", roleName, "org_id", user.OrganizationID)
+					}
+				}
+			}
+
+			// Assign roles to user
+			if err := h.userRolesStore.SetUserRoles(newUser.ID, user.OrganizationID, userRoles); err != nil {
+				h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID, "roles", userRoles)
+			} else {
+				h.Logger.Info("user roles assigned", "user_id", newUser.ID, "roles", userRoles)
+			}
 		}
 
 		// Send welcome email asynchronously

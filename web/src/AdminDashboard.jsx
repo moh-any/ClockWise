@@ -177,6 +177,13 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   // Remove hardcoded alerts - will be replaced with real data in future
   const [aiAlerts, setAiAlerts] = useState([])
 
+  // Schedule state
+  const [scheduleView, setScheduleView] = useState("none") // none, week, month
+  const [selectedWeek, setSelectedWeek] = useState(null) // 0-3 for month view
+  const [selectedSlot, setSelectedSlot] = useState(null) // {hour, day}
+  const [showSchedulePopup, setShowSchedulePopup] = useState(false)
+  const [cameFromMonth, setCameFromMonth] = useState(false) // Track navigation path
+
   // Initialize heatmap with base data (24 hours x 7 days, all zeros)
   const [heatMapData, setHeatMapData] = useState(() => {
     const data = []
@@ -191,6 +198,81 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   })
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+  // Hardcoded schedule data - 24 hours x 7 days
+  // Structure: { hour: 0-23, day: 0-6, roles: { roleName: { count, employees: [] } } }
+  const hardcodedScheduleData = (() => {
+    const data = []
+    const roleNames = ["Chef", "Waiter", "Manager", "Cashier", "Cleaner", "Driver"]
+    const employeeNames = [
+      ["John Doe", "Jane Smith", "Bob Wilson", "Tom Harris", "Sarah Connor"],
+      ["Alice Brown", "Charlie Davis", "Eva Martinez", "David Lee", "Sophie Turner", "Mike Ross"],
+      ["Frank Johnson", "Grace Lee", "Henry Taylor"],
+      ["Ivy Anderson", "Jack White", "Kate Green", "Lucas Moore"],
+      ["Leo Black", "Mia Gray", "Noah Blue"],
+      ["Olivia Red", "Paul Yellow", "Quinn Orange", "Rachel Green", "Ross Geller"]
+    ]
+
+    for (let hour = 0; hour < 24; hour++) {
+      for (let day = 0; day < 7; day++) {
+        const roles = {}
+        
+        // Different staffing levels based on time of day and day of week
+        let staffingMultiplier = 1
+        const isWeekend = day === 5 || day === 6
+        
+        if (hour >= 11 && hour <= 14) {
+          staffingMultiplier = isWeekend ? 2.5 : 2 // Lunch rush
+        } else if (hour >= 18 && hour <= 21) {
+          staffingMultiplier = isWeekend ? 3 : 2.5 // Dinner rush
+        } else if (hour >= 6 && hour <= 10) {
+          staffingMultiplier = 1.5 // Breakfast
+        } else if (hour >= 22 || hour <= 5) {
+          staffingMultiplier = 0.3 // Late night/early morning
+        } else if (hour >= 15 && hour <= 17) {
+          staffingMultiplier = 0.8 // Afternoon lull
+        }
+
+        roleNames.forEach((roleName, roleIndex) => {
+          let baseCount = 1
+          if (roleName === "Waiter") baseCount = 3
+          else if (roleName === "Chef") baseCount = 2
+          else if (roleName === "Cleaner") baseCount = 1
+          else if (roleName === "Driver") {
+            baseCount = isWeekend ? 2 : 1
+          }
+          
+          let count = Math.max(0, Math.round(baseCount * staffingMultiplier))
+          
+          // Vary the count more - some roles might not be needed at all times
+          if ((roleName === "Manager" && (hour < 8 || hour > 22)) ||
+              (roleName === "Cleaner" && hour >= 22 && hour <= 5)) {
+            count = Math.max(0, count - 1)
+          }
+          
+          if (count === 0) return // Skip roles with 0 count
+          
+          const employees = []
+          const availableEmployees = employeeNames[roleIndex]
+          
+          for (let i = 0; i < count; i++) {
+            // Add some variation - different employees on different days
+            const employeeIndex = (i + day + Math.floor(hour / 8)) % availableEmployees.length
+            employees.push(availableEmployees[employeeIndex])
+          }
+          
+          roles[roleName] = { count, employees }
+        })
+
+        data.push({ hour, day, roles })
+      }
+    }
+    return data
+  })()
+
+  const getScheduleSlot = (hour, day) => {
+    return hardcodedScheduleData.find(s => s.hour === hour && s.day === day)
+  }
 
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
@@ -1096,40 +1178,289 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
     </div>
   )
 
-  const renderMasterSchedule = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Master Schedule</h1>
-          <p className="page-subtitle">Comprehensive workforce calendar</p>
+  const renderMasterSchedule = () => {
+    const handleSlotClick = (hour, day) => {
+      setSelectedSlot({ hour, day })
+      setShowSchedulePopup(true)
+    }
+
+    const renderWeekView = (weekOffset = 0) => {
+      const headerGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
+      
+      return (
+        <div className="schedule-week-view">
+          <div className="schedule-week-header">
+            <h3>Week {weekOffset + 1} Schedule</h3>
+            <p>Click any time slot to view employee details</p>
+          </div>
+          <div className="schedule-grid">
+            {/* Header row with days */}
+            <div 
+              className="schedule-header-cell schedule-corner-cell"
+              style={{ background: cornerGradient }}
+            >
+              <div className="corner-label">Time / Day</div>
+            </div>
+            {days.map((day, dayIndex) => (
+              <div 
+                key={dayIndex} 
+                className="schedule-header-cell"
+                style={{ background: headerGradient }}
+              >
+                <span className="day-name">{day}</span>
+              </div>
+            ))}
+            
+            {/* Hour rows */}
+            {Array.from({ length: 24 }).map((_, hour) => (
+              <>
+                <div key={`hour-${hour}`} className="schedule-hour-label">
+                  <span className="hour-time">{hour.toString().padStart(2, '0')}:00</span>
+                </div>
+                {days.map((_, day) => {
+                  const slotData = getScheduleSlot(hour, day)
+                  const totalStaff = slotData 
+                    ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
+                    : 0
+                  
+                  return (
+                    <div 
+                      key={`${hour}-${day}`} 
+                      className={`schedule-cell ${totalStaff === 0 ? 'empty-slot' : ''}`}
+                      onClick={() => totalStaff > 0 && handleSlotClick(hour, day)}
+                    >
+                      {totalStaff > 0 ? (
+                        <div className="schedule-cell-content">
+                          {Object.entries(slotData.roles).map(([roleName, roleData]) => (
+                            <div 
+                              key={roleName} 
+                              className="schedule-role-item"
+                              style={{ borderLeftColor: primaryColor }}
+                            >
+                              <span className="role-name">{roleName}</span>
+                              <span 
+                                className="role-count"
+                                style={{ backgroundColor: primaryColor }}
+                              >
+                                {roleData.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-indicator">—</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </>
+            ))}
+          </div>
         </div>
-        <button className="btn-primary">Add Shift</button>
-      </div>
+      )
+    }
 
-      <div className="filter-bar">
-        <select className="filter-select">
-          <option>All Departments</option>
-          <option>Sales</option>
-          <option>Operations</option>
-          <option>Customer Service</option>
-          <option>IT</option>
-        </select>
-        <select className="filter-select">
-          <option>All Segments</option>
-          <option>Morning Shift</option>
-          <option>Evening Shift</option>
-          <option>Night Shift</option>
-        </select>
-        <button className="btn-secondary">Export Schedule</button>
-      </div>
+    const renderMonthView = () => {
+      const weeks = [
+        { label: "Week 1", dates: "Feb 1-7" },
+        { label: "Week 2", dates: "Feb 8-14" },
+        { label: "Week 3", dates: "Feb 15-21" },
+        { label: "Week 4", dates: "Feb 22-28" }
+      ]
+      
+      return (
+        <div className="schedule-month-view">
+          <div className="schedule-hardcoded-alert">
+            <div className="alert-icon">ℹ️</div>
+            <div className="alert-content">
+              <strong>Demo Mode:</strong> This schedule is currently hardcoded to demonstrate the functionality we promise to deliver.
+            </div>
+          </div>
+          <div className="month-header">
+            <h3>February 2026 - Monthly Overview</h3>
+            <p>Click on any week to view detailed schedule</p>
+          </div>
+          <div className="month-grid">
+            {weeks.map((week, weekIndex) => (
+              <div 
+                key={weekIndex} 
+                className="month-week-card"
+                onClick={() => {
+                  setSelectedWeek(weekIndex)
+                  setCameFromMonth(true)
+                  setScheduleView("week")
+                }}
+              >
+                <div className="week-card-header">
+                  <h4>{week.label}</h4>
+                  <span className="week-dates">{week.dates}</span>
+                </div>
+                <div className="week-preview">
+                  {days.map((day, dayIndex) => {
+                    // Show total staff for peak hour (18:00)
+                    const peakSlot = getScheduleSlot(18, dayIndex)
+                    const peakStaff = peakSlot 
+                      ? Object.values(peakSlot.roles).reduce((sum, role) => sum + role.count, 0)
+                      : 0
+                    
+                    return (
+                      <div key={dayIndex} className="week-preview-day">
+                        <div className="day-label">{day}</div>
+                        <div className="day-staff-count">{peakStaff}</div>
+                        <div className="day-staff-label">staff</div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="week-card-footer">
+                  <span className="view-details">Click to view details →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
 
-      <div className="empty-state">
-        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-        <h3>Schedule View Coming Soon</h3>
-        <p>Full organization calendar with drag-and-drop scheduling</p>
+    const renderSchedulePopup = () => {
+      if (!showSchedulePopup || !selectedSlot) return null
+      
+      const slotData = getScheduleSlot(selectedSlot.hour, selectedSlot.day)
+      const totalEmployees = slotData 
+        ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
+        : 0
+      
+      const popupHeaderGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      const employeeNumberGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      
+      return (
+        <div className="schedule-popup-overlay" onClick={() => setShowSchedulePopup(false)}>
+          <div className="schedule-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header" style={{ background: popupHeaderGradient }}>
+              <div className="popup-title">
+                <h3>
+                  {days[selectedSlot.day]} - {selectedSlot.hour.toString().padStart(2, '0')}:00
+                </h3>
+                <p className="popup-subtitle">{totalEmployees} employees scheduled</p>
+              </div>
+              <button 
+                className="popup-close" 
+                onClick={() => setShowSchedulePopup(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="popup-content">
+              {slotData && Object.keys(slotData.roles).length > 0 ? (
+                Object.entries(slotData.roles).map(([roleName, roleData]) => (
+                  <div 
+                    key={roleName} 
+                    className="popup-role-section"
+                    style={{ borderLeftColor: primaryColor }}
+                  >
+                    <div className="role-header">
+                      <h4>{roleName}</h4>
+                      <span 
+                        className="role-badge"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {roleData.count} {roleData.count === 1 ? 'person' : 'people'}
+                      </span>
+                    </div>
+                    <ul className="employee-list">
+                      {roleData.employees.map((employeeName, idx) => (
+                        <li key={idx}>
+                          <span 
+                            className="employee-number"
+                            style={{ background: employeeNumberGradient }}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="employee-name">{employeeName}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              ) : (
+                <div className="no-staff-message">
+                  <p>No staff scheduled for this time slot</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    const handleBackClick = () => {
+      if (scheduleView === "week" && cameFromMonth) {
+        // Return to month view
+        setScheduleView("month")
+        setCameFromMonth(false)
+        setSelectedWeek(null)
+      } else {
+        // Return to root
+        setScheduleView("none")
+        setSelectedWeek(null)
+        setCameFromMonth(false)
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Master Schedule</h1>
+            <p className="page-subtitle">Comprehensive workforce calendar</p>
+          </div>
+          <div className="schedule-buttons">
+            {scheduleView !== "none" && (
+              <button 
+                className="btn-secondary"
+                onClick={handleBackClick}
+              >
+                <span className="btn-icon">←</span> Back to {cameFromMonth && scheduleView === "week" ? "Month" : "Schedule"}
+              </button>
+            )}
+            {scheduleView === "none" && (
+              <>
+                <button 
+                  className="btn-primary"
+                  onClick={() => {
+                    setScheduleView("week")
+                    setCameFromMonth(false)
+                  }}
+                >
+                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" /> Generate Week Schedule
+                </button>
+                <button 
+                  className="btn-primary"
+                  onClick={() => setScheduleView("month")}
+                >
+                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" /> Generate Month Schedule
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {scheduleView === "none" && (
+          <div className="empty-state">
+            <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
+            <h3>Generate Your Schedule</h3>
+            <p>Choose between weekly or monthly view to see the workforce schedule</p>
+          </div>
+        )}
+
+        {scheduleView === "week" && renderWeekView(selectedWeek || 0)}
+        {scheduleView === "month" && renderMonthView()}
+        {renderSchedulePopup()}
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderInsights = () => {
     // Group insights by category for better organization

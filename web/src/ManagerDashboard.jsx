@@ -607,53 +607,63 @@ function ManagerDashboard() {
           ))}
         </div>
 
-{/* Employees Table */}
-{mgrEmployees.length > 0 ? (
-  <div className="table-wrapper">
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th className="text-right">Salary/Hr</th>
-          <th className="text-center">Max Hrs/Week</th>
-          <th className="text-center">On Call</th>
-        </tr>
-      </thead>
-      <tbody>
-        {mgrEmployees.map((employee) => (
-          <tr key={employee.id}>
-            <td>{employee.full_name}</td>
-            <td style={{ color: 'var(--mgr-gray-600)' }}>{employee.email}</td>
-            <td>
-              <span className="badge badge-primary">
-                {employee.user_role}
-              </span>
-            </td>
-            <td className="text-right" style={{ fontWeight: 600 }}>
-              {employee.salary_per_hour ? `$${employee.salary_per_hour}` : "N/A"}
-            </td>
-            <td className="text-center">
-              {employee.max_hours_per_week || "N/A"}
-            </td>
-            <td className="text-center">
-              <span className={`badge ${employee.on_call ? 'badge-success' : 'badge-secondary'}`}>
-                {employee.on_call ? "Yes" : "No"}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-) : (
-  <div className="empty-state">
-    <img src={EmployeeIcon} alt="No Employees" className="empty-icon-svg" />
-    <h3>No Employees Found</h3>
-    <p>Start by delegating new team members</p>
-  </div>
-)}
+        {/* Employees Table */}
+        {mgrEmployees.length > 0 ? (
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th className="text-right">Salary/Hr</th>
+                  <th className="text-center">Max Hrs/Week</th>
+                  <th className="text-center">On Call</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mgrEmployees.map((employee) => (
+                  <tr key={employee.id}>
+                    <td>{employee.full_name}</td>
+                    <td style={{ color: "var(--mgr-gray-600)" }}>
+                      {employee.email}
+                    </td>
+                    <td>
+                      <span className="badge badge-primary">
+                        {employee.user_role}
+                      </span>
+                    </td>
+                    <td className="text-right" style={{ fontWeight: 600 }}>
+                      {employee.salary_per_hour
+                        ? `$${employee.salary_per_hour}`
+                        : "N/A"}
+                    </td>
+                    <td className="text-center">
+                      {employee.max_hours_per_week || "N/A"}
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`badge ${employee.on_call ? "badge-success" : "badge-secondary"}`}
+                      >
+                        {employee.on_call ? "Yes" : "No"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <img
+              src={EmployeeIcon}
+              alt="No Employees"
+              className="empty-icon-svg"
+            />
+            <h3>No Employees Found</h3>
+            <p>Start by delegating new team members</p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -912,22 +922,177 @@ function ManagerDashboard() {
     </div>
   )
 
-  const mgrRenderSchedule = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Schedule Management</h1>
-          <p className="page-subtitle">View and manage team schedules</p>
+  // Hardcoded personal schedule data - Manager's shifts for the week
+  const mgrPersonalScheduleData = [
+    { day: 0, startHour: 8, endHour: 16, role: "Manager" }, // Monday
+    { day: 1, startHour: 8, endHour: 16, role: "Manager" }, // Tuesday
+    { day: 2, startHour: 8, endHour: 16, role: "Manager" }, // Wednesday
+    { day: 3, startHour: 8, endHour: 16, role: "Manager" }, // Thursday
+    { day: 4, startHour: 8, endHour: 16, role: "Manager" }, // Friday
+  ]
+
+  const mgrDaysShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+  const mgrCalculateTotalHours = () => {
+    return mgrPersonalScheduleData.reduce((total, shift) => {
+      return total + (shift.endHour - shift.startHour)
+    }, 0)
+  }
+
+  const mgrFormatHour = (hour) => {
+    if (hour === 0) return "12 AM"
+    if (hour === 12) return "12 PM"
+    if (hour < 12) return `${hour} AM`
+    return `${hour - 12} PM`
+  }
+
+  const mgrRenderSchedule = () => {
+    const headerGradient = `linear-gradient(135deg, ${mgrPrimaryColor}, ${mgrSecondaryColor})`
+    const cornerGradient = `linear-gradient(135deg, ${mgrSecondaryColor}, ${mgrAccentColor})`
+    const totalHours = mgrCalculateTotalHours()
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Schedule</h1>
+            <p className="page-subtitle">Your weekly work schedule</p>
+          </div>
+          <div className="schedule-summary">
+            <div className="summary-card">
+              <span className="summary-label">Total Hours</span>
+              <span className="summary-value">{totalHours}h</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">Shifts</span>
+              <span className="summary-value">
+                {mgrPersonalScheduleData.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="personal-schedule-alert">
+          <div className="alert-icon">ℹ️</div>
+          <div className="alert-content">
+            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
+            demonstrate your personal work shifts.
+          </div>
+        </div>
+
+        <div className="personal-schedule-view">
+          <div className="schedule-grid">
+            <div
+              className="schedule-header-cell schedule-corner-cell"
+              style={{
+                background: cornerGradient,
+                gridRow: 1,
+                gridColumn: 1,
+              }}
+            >
+              <div className="corner-label">Time / Day</div>
+            </div>
+            {mgrDaysShort.map((day, dayIndex) => (
+              <div
+                key={dayIndex}
+                className="schedule-header-cell"
+                style={{
+                  background: headerGradient,
+                  gridRow: 1,
+                  gridColumn: dayIndex + 2,
+                }}
+              >
+                <span className="day-name">{day}</span>
+              </div>
+            ))}
+
+            {/* Hour Labels */}
+            {Array.from({ length: 24 }).map((_, hour) => (
+              <div
+                key={`hour-${hour}`}
+                className="schedule-hour-label"
+                style={{
+                  gridRow: hour + 2,
+                  gridColumn: 1,
+                }}
+              >
+                <span className="hour-time">{mgrFormatHour(hour)}</span>
+              </div>
+            ))}
+
+            {/* Shift Blocks - spanning multiple hours */}
+            {mgrPersonalScheduleData.map((shift, idx) => {
+              const dayIndex = mgrDaysShort.findIndex((d) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                return dayMap[d] === shift.day
+              })
+
+              return (
+                <div
+                  key={`shift-${idx}`}
+                  className="shift-block"
+                  style={{
+                    gridRow: `${shift.startHour + 2} / ${shift.endHour + 2}`,
+                    gridColumn: dayIndex + 2,
+                    backgroundColor: mgrPrimaryColor,
+                    borderColor: mgrPrimaryColor,
+                  }}
+                >
+                  <div className="shift-info">
+                    <div className="shift-role">{shift.role}</div>
+                    <div className="shift-hours">
+                      {mgrFormatHour(shift.startHour)} -{" "}
+                      {mgrFormatHour(shift.endHour)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Background cells for empty slots */}
+            {Array.from({ length: 24 }).map((_, hour) =>
+              mgrDaysShort.map((_, dayIndex) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                const actualDay = dayMap[mgrDaysShort[dayIndex]]
+                const hasShift = mgrPersonalScheduleData.some(
+                  (s) =>
+                    s.day === actualDay &&
+                    hour >= s.startHour &&
+                    hour < s.endHour,
+                )
+                return hasShift ? null : (
+                  <div
+                    key={`cell-${hour}-${dayIndex}`}
+                    className="schedule-cell empty-cell"
+                    style={{
+                      gridRow: hour + 2,
+                      gridColumn: dayIndex + 2,
+                    }}
+                  />
+                )
+              }),
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="empty-state">
-        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-        <h3>Schedule View Coming Soon</h3>
-        <p>Manage team shifts and work calendar</p>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const mgrRenderProfile = () => (
     <div className="premium-content fade-in">
