@@ -29,14 +29,18 @@ func TestCreateRules(t *testing.T) {
 		MinRestSlots:         2,
 		SlotLenHour:          1.0,
 		MinShiftLengthSlots:  4,
+		ReceivingPhone:       true,
+		Delivery:             false,
+		WaitingTime:          15,
+		AcceptingOrders:      true,
 		// ShiftTimes is empty, so CreateRules won't execute extra queries
 	}
 
-	query := regexp.QuoteMeta(`INSERT INTO organizations_rules (organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`)
+	query := regexp.QuoteMeta(`INSERT INTO organizations_rules (organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots, receiving_phone, delivery, waiting_time, accepting_orders) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`)
 
 	t.Run("Success", func(t *testing.T) {
 		mock.ExpectExec(query).
-			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots).
+			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots, rules.ReceivingPhone, rules.Delivery, rules.WaitingTime, rules.AcceptingOrders).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		err := store.CreateRules(rules)
@@ -60,13 +64,13 @@ func TestGetRulesByOrganizationID(t *testing.T) {
 	orgID := uuid.New()
 
 	// Queries
-	qRules := regexp.QuoteMeta(`SELECT organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots FROM organizations_rules WHERE organization_id = $1`)
+	qRules := regexp.QuoteMeta(`SELECT organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots, receiving_phone, delivery, waiting_time, accepting_orders FROM organizations_rules WHERE organization_id = $1`)
 	qShiftTimes := regexp.QuoteMeta(`SELECT start_time, end_time FROM organization_shift_times WHERE organization_id = $1 ORDER BY start_time`)
 
 	t.Run("Success", func(t *testing.T) {
 		// Mock Rules Query (FixedShifts = true)
-		rows := sqlmock.NewRows([]string{"organization_id", "shift_max_hours", "shift_min_hours", "max_weekly_hours", "min_weekly_hours", "fixed_shifts", "number_of_shifts_per_day", "meet_all_demand", "min_rest_slots", "slot_len_hour", "min_shift_length_slots"}).
-			AddRow(orgID, 8, 4, 40, 20, true, 3, true, 2, 1.0, 4)
+		rows := sqlmock.NewRows([]string{"organization_id", "shift_max_hours", "shift_min_hours", "max_weekly_hours", "min_weekly_hours", "fixed_shifts", "number_of_shifts_per_day", "meet_all_demand", "min_rest_slots", "slot_len_hour", "min_shift_length_slots", "receiving_phone", "delivery", "waiting_time", "accepting_orders"}).
+			AddRow(orgID, 8, 4, 40, 20, true, 3, true, 2, 1.0, 4, true, false, 15, true)
 		mock.ExpectQuery(qRules).WithArgs(orgID).WillReturnRows(rows)
 
 		// Mock Shift Times Query (Required because FixedShifts is true)
@@ -109,11 +113,11 @@ func TestUpdateRules(t *testing.T) {
 		MinShiftLengthSlots:  8,
 	}
 
-	query := regexp.QuoteMeta(`UPDATE organizations_rules SET shift_max_hours = $2, shift_min_hours = $3, max_weekly_hours = $4, min_weekly_hours = $5, fixed_shifts = $6, number_of_shifts_per_day = $7, meet_all_demand = $8, min_rest_slots = $9, slot_len_hour = $10, min_shift_length_slots = $11 WHERE organization_id = $1`)
+	query := regexp.QuoteMeta(`UPDATE organizations_rules SET shift_max_hours = $2, shift_min_hours = $3, max_weekly_hours = $4, min_weekly_hours = $5, fixed_shifts = $6, number_of_shifts_per_day = $7, meet_all_demand = $8, min_rest_slots = $9, slot_len_hour = $10, min_shift_length_slots = $11, receiving_phone = $12, delivery = $13, waiting_time = $14, accepting_orders = $15 WHERE organization_id = $1`)
 
 	t.Run("Success", func(t *testing.T) {
 		mock.ExpectExec(query).
-			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots).
+			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots, rules.ReceivingPhone, rules.Delivery, rules.WaitingTime, rules.AcceptingOrders).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		err := store.UpdateRules(rules)
@@ -147,10 +151,14 @@ func TestUpsertRules(t *testing.T) {
 		MinRestSlots:         3,
 		SlotLenHour:          1.0,
 		MinShiftLengthSlots:  6,
+		ReceivingPhone:       false,
+		Delivery:             true,
+		WaitingTime:          20,
+		AcceptingOrders:      true,
 		// Empty ShiftTimes
 	}
 
-	queryUpsert := regexp.QuoteMeta(`INSERT INTO organizations_rules (organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (organization_id) DO UPDATE SET shift_max_hours = EXCLUDED.shift_max_hours, shift_min_hours = EXCLUDED.shift_min_hours, max_weekly_hours = EXCLUDED.max_weekly_hours, min_weekly_hours = EXCLUDED.min_weekly_hours, fixed_shifts = EXCLUDED.fixed_shifts, number_of_shifts_per_day = EXCLUDED.number_of_shifts_per_day, meet_all_demand = EXCLUDED.meet_all_demand, min_rest_slots = EXCLUDED.min_rest_slots, slot_len_hour = EXCLUDED.slot_len_hour, min_shift_length_slots = EXCLUDED.min_shift_length_slots`)
+	queryUpsert := regexp.QuoteMeta(`INSERT INTO organizations_rules (organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots, receiving_phone, delivery, waiting_time, accepting_orders) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) ON CONFLICT (organization_id) DO UPDATE SET shift_max_hours = EXCLUDED.shift_max_hours, shift_min_hours = EXCLUDED.shift_min_hours, max_weekly_hours = EXCLUDED.max_weekly_hours, min_weekly_hours = EXCLUDED.min_weekly_hours, fixed_shifts = EXCLUDED.fixed_shifts, number_of_shifts_per_day = EXCLUDED.number_of_shifts_per_day, meet_all_demand = EXCLUDED.meet_all_demand, min_rest_slots = EXCLUDED.min_rest_slots, slot_len_hour = EXCLUDED.slot_len_hour, min_shift_length_slots = EXCLUDED.min_shift_length_slots, receiving_phone = EXCLUDED.receiving_phone, delivery = EXCLUDED.delivery, waiting_time = EXCLUDED.waiting_time, accepting_orders = EXCLUDED.accepting_orders`)
 
 	// Since FixedShifts is true, setShiftTimes calls deleteShiftTimes
 	queryDeleteShiftTimes := regexp.QuoteMeta(`DELETE FROM organization_shift_times WHERE organization_id = $1`)
@@ -158,7 +166,7 @@ func TestUpsertRules(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		// 1. Upsert Rules
 		mock.ExpectExec(queryUpsert).
-			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots).
+			WithArgs(rules.OrganizationID, rules.ShiftMaxHours, rules.ShiftMinHours, rules.MaxWeeklyHours, rules.MinWeeklyHours, rules.FixedShifts, rules.NumberOfShiftsPerDay, rules.MeetAllDemand, rules.MinRestSlots, rules.SlotLenHour, rules.MinShiftLengthSlots, rules.ReceivingPhone, rules.Delivery, rules.WaitingTime, rules.AcceptingOrders).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// 2. Delete existing shift times (triggered by setShiftTimes)

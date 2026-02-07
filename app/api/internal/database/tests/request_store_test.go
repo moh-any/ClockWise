@@ -102,7 +102,7 @@ func TestGetRequestsByOrganization(t *testing.T) {
 	store := database.NewPostgresRequestStore(db, logger)
 
 	orgID := uuid.New()
-	query := regexp.QuoteMeta(`SELECT r.request_id, r.employee_id, r.type, r.message, r.submitted_at, r.updated_at, r.status, u.full_name, u.email FROM requests r JOIN users u ON r.employee_id = u.id WHERE u.organization_id=$1' ORDER BY r.submitted_at DESC`)
+	query := regexp.QuoteMeta(`SELECT r.request_id, r.employee_id, r.type, r.message, r.submitted_at, r.updated_at, r.status, u.full_name, u.email FROM requests r JOIN users u ON r.employee_id = u.id WHERE u.organization_id=$1 ORDER BY r.submitted_at DESC`)
 
 	t.Run("Success", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"request_id", "employee_id", "type", "message", "submitted_at", "updated_at", "status", "full_name", "email"}).
