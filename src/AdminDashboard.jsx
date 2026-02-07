@@ -845,12 +845,129 @@ function AdminDashboard() {
     </div>
   )
 
-  const renderInsights = () => (
+const renderInsights = () => {
+  // Group insights by category for better organization
+  const categorizeInsights = (insights) => {
+    const categories = {
+      staffing: [],
+      financial: [],
+      operations: [],
+      performance: [],
+      tables: [],
+      orders: []
+    }
+
+    insights.forEach(insight => {
+      const title = insight.title.toLowerCase()
+      
+      if (title.includes('employee') || title.includes('staff') || title.includes('salary') || title.includes('manager') || title.includes('waiter') || title.includes('chef') || title.includes('driver') || title.includes('cashier')) {
+        categories.staffing.push(insight)
+      } else if (title.includes('revenue') || title.includes('salary') || title.includes('cost')) {
+        categories.financial.push(insight)
+      } else if (title.includes('table') || title.includes('capacity') || title.includes('people')) {
+        categories.tables.push(insight)
+      } else if (title.includes('order') || title.includes('delivery') || title.includes('dine') || title.includes('takeaway')) {
+        categories.orders.push(insight)
+      } else if (title.includes('selling') || title.includes('item') || title.includes('popular')) {
+        categories.performance.push(insight)
+      } else {
+        categories.operations.push(insight)
+      }
+    })
+
+    return categories
+  }
+
+  const categorizedInsights = insights.length > 0 ? categorizeInsights(insights) : null
+
+  const renderInsightCard = (insight, index, variant = 'primary') => {
+    const variantColors = {
+      primary: 'var(--color-primary)',
+      secondary: 'var(--color-secondary)',
+      accent: 'var(--color-accent)',
+      info: 'var(--primary-500)'
+    }
+
+    const color = variantColors[variant] || variantColors.primary
+
+    return (
+      <div
+        key={index}
+        className="kpi-card"
+        data-animation="slide-up"
+        style={{
+          animationDelay: `${index * 0.05}s`,
+          background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
+          border: `1px solid ${color}30`
+        }}
+      >
+        <div className="kpi-icon-wrapper" style={{ background: `${color}20` }}>
+          <svg
+            className="kpi-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={color}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+        </div>
+        <div className="kpi-content">
+          <h3 className="kpi-label" style={{ color: 'var(--gray-600)' }}>
+            {insight.title}
+          </h3>
+          <div className="kpi-value-wrapper">
+            <div className="kpi-value" style={{ color }}>
+              {insight.statistic}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderCategorySection = (title, insightsList, icon, variant = 'primary') => {
+    if (!insightsList || insightsList.length === 0) return null
+
+    return (
+      <div className="section-wrapper" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="section-header">
+          <h2 className="section-title">
+            {icon && <img src={icon} alt={title} className="title-icon-svg" />}
+            {title}
+          </h2>
+          <span className="badge badge-primary">{insightsList.length} Metrics</span>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "var(--space-4)",
+            marginTop: 'var(--space-4)'
+          }}
+        >
+          {insightsList.map((insight, index) => renderInsightCard(insight, index, variant))}
+        </div>
+      </div>
+    )
+  }
+
+  return (
     <div className="premium-content fade-in">
       <div className="content-header">
         <div>
           <h1 className="page-title">Organization Insights</h1>
-          <p className="page-subtitle">Real-time metrics and analytics</p>
+          <p className="page-subtitle">
+            {currentUser?.user_role === 'admin' 
+              ? 'Comprehensive analytics and metrics for your organization' 
+              : currentUser?.user_role === 'manager'
+              ? 'Management insights and team performance'
+              : 'Your personal performance and workplace metrics'}
+          </p>
         </div>
         <button className="btn-primary" onClick={() => fetchDashboardData()}>
           <svg
@@ -870,58 +987,165 @@ function AdminDashboard() {
         </button>
       </div>
 
-      {insights && insights.length > 0 ? (
-        <div
-          className="insights-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "var(--space-6)",
-          }}
-        >
-          {insights.map((insight, index) => (
-            <div
-              key={index}
-              className="kpi-card kpi-card-primary"
-              data-animation="slide-up"
-              style={{
-                animationDelay: `${index * 0.05}s`,
-              }}
-            >
-              <div className="kpi-icon-wrapper">
-                <svg
-                  className="kpi-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
+      {/* Role Indicator Badge */}
+      <div style={{ 
+        marginBottom: 'var(--space-6)', 
+        padding: 'var(--space-4)', 
+        background: 'var(--primary-50)', 
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--primary-200)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-3)'
+      }}>
+        <div className="user-avatar" style={{ width: 48, height: 48, fontSize: 'var(--text-lg)' }}>
+          {currentUser?.full_name
+            ? currentUser.full_name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2)
+            : "..."}
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--gray-800)' }}>
+            {currentUser?.full_name || "Loading..."}
+          </h3>
+          <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--gray-600)' }}>
+            <span className="badge badge-primary" style={{ marginRight: 'var(--space-2)' }}>
+              {currentUser?.user_role || "..."}
+            </span>
+            Viewing {currentUser?.user_role === 'admin' ? 'full organization' : currentUser?.user_role === 'manager' ? 'management' : 'personal'} insights
+          </p>
+        </div>
+      </div>
+
+      {insights && insights.length > 0 && categorizedInsights ? (
+        <>
+          {/* Staffing Insights */}
+          {renderCategorySection(
+            'Staffing & Team',
+            categorizedInsights.staffing,
+            EmployeeIcon,
+            'primary'
+          )}
+
+          {/* Financial Insights */}
+          {renderCategorySection(
+            'Financial Metrics',
+            categorizedInsights.financial,
+            null,
+            'secondary'
+          )}
+
+          {/* Tables & Capacity */}
+          {renderCategorySection(
+            'Tables & Capacity',
+            categorizedInsights.tables,
+            LocationIcon,
+            'accent'
+          )}
+
+          {/* Orders & Sales */}
+          {renderCategorySection(
+            'Orders & Sales',
+            categorizedInsights.orders,
+            OrdersIcon,
+            'primary'
+          )}
+
+          {/* Performance & Items */}
+          {renderCategorySection(
+            'Performance & Popular Items',
+            categorizedInsights.performance,
+            ChartUpIcon,
+            'secondary'
+          )}
+
+          {/* Other Operations */}
+          {renderCategorySection(
+            'Operations',
+            categorizedInsights.operations,
+            ConfigurationIcon,
+            'info'
+          )}
+
+          {/* Summary Statistics */}
+          <div className="section-wrapper" style={{ background: 'var(--gray-50)', border: '2px solid var(--gray-200)' }}>
+            <div className="section-header">
+              <h2 className="section-title">
+                <img src={AnalyticsIcon} alt="Summary" className="title-icon-svg" />
+                Insights Summary
+              </h2>
+            </div>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: 'var(--space-4)',
+              marginTop: 'var(--space-4)'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-primary)', margin: 0 }}>
+                  {insights.length}
+                </h4>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', margin: 0 }}>
+                  Total Metrics
+                </p>
               </div>
-              <div className="kpi-content">
-                <h3 className="kpi-label">{insight.title}</h3>
-                <div className="kpi-value-wrapper">
-                  <div className="kpi-value">{insight.statistic}</div>
-                </div>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-secondary)', margin: 0 }}>
+                  {categorizedInsights.staffing.length}
+                </h4>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', margin: 0 }}>
+                  Staffing Metrics
+                </p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-accent)', margin: 0 }}>
+                  {categorizedInsights.orders.length}
+                </h4>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', margin: 0 }}>
+                  Order Metrics
+                </p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--primary-600)', margin: 0 }}>
+                  {categorizedInsights.financial.length}
+                </h4>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', margin: 0 }}>
+                  Financial Metrics
+                </p>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        </>
       ) : (
         <div className="empty-state">
           <img src={AnalyticsIcon} alt="Insights" className="empty-icon-svg" />
           <h3>No Insights Available</h3>
           <p>Insights data will appear here once you have sufficient activity</p>
+          <button className="btn-primary" onClick={() => fetchDashboardData()}>
+            <svg
+              style={{ width: '18px', height: '18px', marginRight: '8px' }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Load Insights
+          </button>
         </div>
       )}
     </div>
   )
-
+}
   const renderCampaigns = () => {
     const fetchCampaigns = async (filter = 'all') => {
       try {
