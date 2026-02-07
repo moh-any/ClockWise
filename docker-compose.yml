@@ -1,0 +1,36 @@
+services:
+  cw-app: 
+    container_name: "ClockwiseBackend"
+    build: ./app/api/
+    ports:
+      - "${PORT}:8080"
+    env_file:
+      - .env
+    restart: always
+    depends_on: 
+      - db
+  db:
+    container_name: "ClockwiseDB"
+    image: postgres:12.4-alpine
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    restart: always
+  cw-ml-service: 
+    container_name: "MLService"
+    build: ./app/ml/
+    ports: 
+      - "${ML_PORT}:8000"
+    env_file: 
+      - .env
+    restart: always
+  #Add FrontendService
+  #Add Redis Service
+  #Add Nginx Service 
+volumes:
+  postgres-data:
