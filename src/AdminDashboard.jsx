@@ -15,6 +15,7 @@ import TargetHitIcon from "./Icons/Target-Hit-Icon.svg"
 import MissedTargetIcon from "./Icons/Missed-Target-Icon.svg"
 import LocationIcon from "./Icons/location-Icon.svg"
 import CloudUploadIcon from "./Icons/Cloud-Upload-Icon.svg"
+import ItemsIcon from "./Icons/Items-Icon.svg"
 import ConfigurationIcon from "./Icons/Configuration-Icon.svg"
 import EmployeeIcon from "./Icons/Employee-Icon.svg"
 import LightModeIcon from "./Icons/Light-Mode-Icon.svg"
@@ -61,21 +62,24 @@ function AdminDashboard() {
 
   // Orders state
   const [ordersData, setOrdersData] = useState([])
+  const [orderItemsData, setOrderItemsData] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
-  const [ordersFilter, setOrdersFilter] = useState('all')
-  const [ordersDataType, setOrdersDataType] = useState('orders') // orders, items, deliveries
+  const [ordersFilter, setOrdersFilter] = useState("all")
+  const [ordersDataType, setOrdersDataType] = useState("orders") // orders, items, deliveries
   const [ordersInsights, setOrdersInsights] = useState([])
   const [showUploadOrders, setShowUploadOrders] = useState(false)
   const [showUploadItems, setShowUploadItems] = useState(false)
+  const [showUploadOrderItems, setShowUploadOrderItems] = useState(false)
   const [showUploadDeliveries, setShowUploadDeliveries] = useState(false)
   const ordersFileInput = useRef(null)
   const itemsFileInput = useRef(null)
+  const orderItemsFileInput = useRef(null)
   const deliveriesFileInput = useRef(null)
 
   // Campaigns state
   const [campaignsData, setCampaignsData] = useState([])
   const [campaignsLoading, setCampaignsLoading] = useState(false)
-  const [campaignsFilter, setCampaignsFilter] = useState('all') // all, week
+  const [campaignsFilter, setCampaignsFilter] = useState("all") // all, week
   const [campaignsInsights, setCampaignsInsights] = useState([])
   const [showUploadCampaigns, setShowUploadCampaigns] = useState(false)
   const [showUploadCampaignItems, setShowUploadCampaignItems] = useState(false)
@@ -293,23 +297,23 @@ function AdminDashboard() {
       // Fetch fresh data from API - use profile endpoint for more detailed info
       const profileData = await api.profile.getProfile()
       console.log("Fetched profile data from API:", profileData)
-      
+
       // The profile data comes with a nested structure
       const userData = profileData.data || profileData
-      
+
       // Also get basic user info to ensure we have all fields
       const authData = await api.auth.getCurrentUser()
-      
+
       // Merge both sources for complete user info
       const completeUser = {
         ...authData,
         ...userData,
         organization_name: userData.organization,
       }
-      
+
       console.log("Complete user data:", completeUser)
       setCurrentUser(completeUser)
-      
+
       // Update cache
       localStorage.setItem("current_user", JSON.stringify(completeUser))
     } catch (err) {
@@ -468,52 +472,78 @@ function AdminDashboard() {
     }
   }, [activeTab])
 
+  // Consolidated fetch function for orders/items/deliveries
+  const fetchOrders = async (filter = "all", dataType = "orders") => {
+    try {
+      setOrdersLoading(true)
+      let data
+      let insights
+      if (dataType === "items") {
+        // Items don't have time filters
+        data = await api.items.getAllItems()
+        insights = await api.items.getItemInsights()
+      } else if (dataType === "deliveries") {
+        insights = await api.deliveries.getDeliveryInsights()
+        switch (filter) {
+          case "today":
+            data = await api.deliveries.getDeliveriesToday()
+            break
+          case "week":
+            data = await api.deliveries.getDeliveriesWeek()
+            break
+          default:
+            data = await api.deliveries.getAllDeliveries()
+        }
+      } else {
+        insights = await api.orders.getOrderInsights()
+        switch (filter) {
+          case "today":
+            data = await api.orders.getOrdersToday()
+            break
+          case "week":
+            data = await api.orders.getOrdersWeek()
+            break
+          default:
+            data = await api.orders.getAllOrders()
+        }
+      }
+      setOrdersData(data.data || [])
+      setOrdersInsights(insights.data || [])
+
+      // Extract order items from orders data
+      if (dataType === "orders" && data.data) {
+        const allOrderItems = []
+        data.data.forEach((order) => {
+          const items = order.order_items || order.items || []
+          items.forEach((item) => {
+            allOrderItems.push({
+              order_id: order.order_id,
+              item_id: item.item_id,
+              quantity: item.quantity,
+              total_price: item.total_price,
+            })
+          })
+        })
+        setOrderItemsData(allOrderItems)
+      } else {
+        setOrderItemsData([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch data:", err)
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to load data",
+      })
+      setTimeout(() => setActionMessage(null), 4000)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
+
   // Fetch orders when orders tab is active or filter/type changes
   useEffect(() => {
     if (activeTab === "orders") {
-      const fetchOrdersData = async () => {
-        try {
-          setOrdersLoading(true)
-          let data
-          let insights
-          if (ordersDataType === 'items') {
-            // Items don't have time filters, always get all
-            data = await api.items.getAllItems()
-            insights = await api.items.getItemInsights()
-          } else if (ordersDataType === 'deliveries') {
-            insights = await api.deliveries.getDeliveryInsights()
-            switch (ordersFilter) {
-              case 'today':
-                data = await api.deliveries.getDeliveriesToday()
-                break
-              case 'week':
-                data = await api.deliveries.getDeliveriesWeek()
-                break
-              default:
-                data = await api.deliveries.getAllDeliveries()
-            }
-          } else {
-            insights = await api.orders.getOrderInsights()
-            switch (ordersFilter) {
-              case 'today':
-                data = await api.orders.getOrdersToday()
-                break
-              case 'week':
-                data = await api.orders.getOrdersWeek()
-                break
-              default:
-                data = await api.orders.getAllOrders()
-            }
-          }
-          setOrdersData(data.data || [])
-          setOrdersInsights(insights.data || [])
-        } catch (err) {
-          console.error('Failed to fetch orders:', err)
-        } finally {
-          setOrdersLoading(false)
-        }
-      }
-      fetchOrdersData()
+      fetchOrders(ordersFilter, ordersDataType)
     }
   }, [activeTab, ordersFilter, ordersDataType])
   // Fetch campaigns when campaigns tab is active or filter changes
@@ -526,7 +556,7 @@ function AdminDashboard() {
           let insights
           insights = await api.campaigns.getCampaignInsights()
           switch (campaignsFilter) {
-            case 'week':
+            case "week":
               data = await api.campaigns.getCampaignsWeek()
               break
             default:
@@ -535,7 +565,7 @@ function AdminDashboard() {
           setCampaignsData(data.data || [])
           setCampaignsInsights(insights.data || [])
         } catch (err) {
-          console.error('Failed to fetch campaigns:', err)
+          console.error("Failed to fetch campaigns:", err)
         } finally {
           setCampaignsLoading(false)
         }
@@ -991,7 +1021,7 @@ const renderInsights = () => {
         </div>
         <button className="btn-primary" onClick={() => fetchDashboardData()}>
           <svg
-            style={{ width: '20px', height: '20px', marginRight: '8px' }}
+            style={{ width: "20px", height: "20px", marginRight: "8px" }}
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -1144,6 +1174,7 @@ const renderInsights = () => {
         <div className="empty-state">
           <img src={AnalyticsIcon} alt="Insights" className="empty-icon-svg" />
           <h3>No Insights Available</h3>
+<<<<<<< HEAD
           <p>Insights data will appear here once you have sufficient activity</p>
           <button className="btn-primary" onClick={() => fetchDashboardData()}>
             <svg
@@ -1161,20 +1192,25 @@ const renderInsights = () => {
             </svg>
             Load Insights
           </button>
+=======
+          <p>
+            Insights data will appear here once you have sufficient activity
+          </p>
+>>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
         </div>
       )}
     </div>
   )
 }
   const renderCampaigns = () => {
-    const fetchCampaigns = async (filter = 'all') => {
+    const fetchCampaigns = async (filter = "all") => {
       try {
         setCampaignsLoading(true)
         let data
         let insights
         insights = await api.campaigns.getCampaignInsights()
         switch (filter) {
-          case 'week':
+          case "week":
             data = await api.campaigns.getCampaignsWeek()
             break
           default:
@@ -1183,8 +1219,11 @@ const renderInsights = () => {
         setCampaignsData(data.data || [])
         setCampaignsInsights(insights.data || [])
       } catch (err) {
-        console.error('Failed to fetch campaigns:', err)
-        setActionMessage({ type: 'error', text: err.message || 'Failed to load campaigns' })
+        console.error("Failed to fetch campaigns:", err)
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to load campaigns",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setCampaignsLoading(false)
@@ -1199,18 +1238,21 @@ const renderInsights = () => {
         setCampaignsLoading(true)
         const response = await api.campaigns.uploadCampaignsCSV(file)
         setActionMessage({
-          type: 'success',
-          text: `Campaigns uploaded: ${response.success_count} successful, ${response.error_count} failed`
+          type: "success",
+          text: `Campaigns uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
         fetchCampaigns(campaignsFilter)
       } catch (err) {
-        setActionMessage({ type: 'error', text: err.message || 'Failed to upload campaigns' })
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload campaigns",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setCampaignsLoading(false)
         setShowUploadCampaigns(false)
-        if (campaignsFileInput.current) campaignsFileInput.current.value = ''
+        if (campaignsFileInput.current) campaignsFileInput.current.value = ""
       }
     }
 
@@ -1222,63 +1264,73 @@ const renderInsights = () => {
         setCampaignsLoading(true)
         const response = await api.campaigns.uploadCampaignItemsCSV(file)
         setActionMessage({
-          type: 'success',
-          text: `Campaign items uploaded: ${response.success_count} successful, ${response.error_count} failed`
+          type: "success",
+          text: `Campaign items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
         fetchCampaigns(campaignsFilter)
       } catch (err) {
-        setActionMessage({ type: 'error', text: err.message || 'Failed to upload campaign items' })
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload campaign items",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setCampaignsLoading(false)
         setShowUploadCampaignItems(false)
-        if (campaignItemsFileInput.current) campaignItemsFileInput.current.value = ''
+        if (campaignItemsFileInput.current)
+          campaignItemsFileInput.current.value = ""
       }
     }
 
     const handleGetRecommendations = () => {
       setActionMessage({
-        type: 'success',
-        text: 'Campaign recommendations feature coming soon! Our AI will analyze your data to suggest optimal campaigns.'
+        type: "success",
+        text: "Campaign recommendations feature coming soon! Our AI will analyze your data to suggest optimal campaigns.",
       })
       setTimeout(() => setActionMessage(null), 5000)
     }
 
     const downloadCSV = () => {
       if (!campaignsData || campaignsData.length === 0) {
-        setActionMessage({ type: 'error', text: 'No campaigns to download' })
+        setActionMessage({ type: "error", text: "No campaigns to download" })
         setTimeout(() => setActionMessage(null), 3000)
         return
       }
 
-      let csvContent = 'Campaign ID,Name,Status,Start Time,End Time,Discount (%),Items Count\n'
-      campaignsData.forEach(campaign => {
-        const itemsCount = campaign.items_included ? campaign.items_included.length : 0
-        csvContent += `${campaign.id},${campaign.name},${campaign.status},${campaign.start_time},${campaign.end_time},${campaign.discount || ''},${itemsCount}\n`
+      let csvContent =
+        "Campaign ID,Name,Status,Start Time,End Time,Discount (%),Items Count\n"
+      campaignsData.forEach((campaign) => {
+        const itemsCount = campaign.items_included
+          ? campaign.items_included.length
+          : 0
+        csvContent += `${campaign.id},${campaign.name},${campaign.status},${campaign.start_time},${campaign.end_time},${campaign.discount || ""},${itemsCount}\n`
       })
-      
-      const filename = `campaigns_${campaignsFilter}_${new Date().toISOString().split('T')[0]}.csv`
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
+      const filename = `campaigns_${campaignsFilter}_${new Date().toISOString().split("T")[0]}.csv`
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
       const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', filename)
-      link.style.visibility = 'hidden'
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      link.style.visibility = "hidden"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
 
-      setActionMessage({ type: 'success', text: 'CSV downloaded successfully' })
+      setActionMessage({ type: "success", text: "CSV downloaded successfully" })
       setTimeout(() => setActionMessage(null), 3000)
     }
 
     const getStatusColor = (status) => {
       switch (status) {
-        case 'active': return 'var(--color-primary)'
-        case 'inactive': return 'var(--gray-500)'
-        default: return 'var(--gray-500)'
+        case "active":
+          return "var(--color-primary)"
+        case "inactive":
+          return "var(--gray-500)"
+        default:
+          return "var(--gray-500)"
       }
     }
 
@@ -1287,46 +1339,108 @@ const renderInsights = () => {
         <div className="content-header">
           <div>
             <h1 className="page-title">Campaign Management</h1>
-            <p className="page-subtitle">Manage and analyze marketing campaigns</p>
+            <p className="page-subtitle">
+              Manage and analyze marketing campaigns
+            </p>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <button className="btn-secondary" onClick={() => setShowUploadCampaigns(true)}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setShowUploadCampaigns(true)}
+            >
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
               </svg>
               Upload Campaigns
             </button>
-            <button className="btn-secondary" onClick={handleGetRecommendations}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            <button
+              className="btn-secondary"
+              onClick={handleGetRecommendations}
+            >
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
               </svg>
               Get Recommendations
             </button>
-            <button className="btn-primary" onClick={() => fetchCampaigns(campaignsFilter)}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <button
+              className="btn-primary"
+              onClick={() => fetchCampaigns(campaignsFilter)}
+            >
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               Refresh
             </button>
             <button className="btn-secondary" onClick={downloadCSV}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Download CSV
             </button>
           </div>
         </div>
 
-        <div className="filter-bar" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-          <button 
-            className={campaignsFilter === 'all' ? 'btn-primary' : 'btn-secondary'}
-            onClick={() => setCampaignsFilter('all')}
+        <div
+          className="filter-bar"
+          style={{
+            display: "flex",
+            gap: "var(--space-3)",
+            alignItems: "center",
+          }}
+        >
+          <button
+            className={
+              campaignsFilter === "all" ? "btn-primary" : "btn-secondary"
+            }
+            onClick={() => setCampaignsFilter("all")}
           >
             All Campaigns
           </button>
-          <button 
-            className={campaignsFilter === 'week' ? 'btn-primary' : 'btn-secondary'}
-            onClick={() => setCampaignsFilter('week')}
+          <button
+            className={
+              campaignsFilter === "week" ? "btn-primary" : "btn-secondary"
+            }
+            onClick={() => setCampaignsFilter("week")}
           >
             This Week
           </button>
@@ -1334,11 +1448,43 @@ const renderInsights = () => {
 
         {/* Insights Boxes */}
         {campaignsInsights.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "var(--space-4)",
+              marginTop: "var(--space-4)",
+            }}
+          >
             {campaignsInsights.map((insight, index) => (
-              <div key={index} className="stat-card" style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginBottom: 'var(--space-2)' }}>{insight.title}</p>
-                <h3 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--primary-600)' }}>{insight.statistic}</h3>
+              <div
+                key={index}
+                className="stat-card"
+                style={{
+                  background: "var(--gray-50)",
+                  border: "1px solid var(--gray-200)",
+                  borderRadius: "var(--radius-lg)",
+                  padding: "var(--space-4)",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--gray-600)",
+                    marginBottom: "var(--space-2)",
+                  }}
+                >
+                  {insight.title}
+                </p>
+                <h3
+                  style={{
+                    fontSize: "var(--text-2xl)",
+                    fontWeight: 700,
+                    color: "var(--primary-600)",
+                  }}
+                >
+                  {insight.statistic}
+                </h3>
               </div>
             ))}
           </div>
@@ -1350,49 +1496,185 @@ const renderInsights = () => {
           </div>
         ) : campaignsData && campaignsData.length > 0 ? (
           <div className="section-wrapper">
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Campaign ID</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Name</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Start Date</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>End Date</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Discount</th>
-                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Items</th>
+                  <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Campaign ID
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Name
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Status
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Start Date
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      End Date
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Discount
+                    </th>
+                    <th
+                      style={{
+                        textAlign: "left",
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-sm)",
+                        fontWeight: 600,
+                        color: "var(--gray-600)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Items
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {campaignsData.map((campaign) => (
-                    <tr key={campaign.id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                        {campaign.id.slice(0, 8)}...
+                  {campaignsData.map((campaign, index) => (
+                    <tr
+                      key={campaign.id || `campaign-${index}`}
+                      style={{ borderBottom: "1px solid var(--gray-200)" }}
+                    >
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-sm)",
+                          color: "var(--gray-700)",
+                        }}
+                      >
+                        {campaign.id ? campaign.id.slice(0, 8) + "..." : "—"}
                       </td>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-base)",
+                          color: "var(--gray-700)",
+                          fontWeight: 600,
+                        }}
+                      >
                         {campaign.name}
                       </td>
-                      <td style={{ padding: 'var(--space-4)' }}>
-                        <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusColor(campaign.status) + '20', color: getStatusColor(campaign.status) }}>
+                      <td style={{ padding: "var(--space-4)" }}>
+                        <span
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: "var(--radius-full)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            backgroundColor:
+                              getStatusColor(campaign.status) + "20",
+                            color: getStatusColor(campaign.status),
+                          }}
+                        >
                           {campaign.status}
                         </span>
                       </td>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-sm)",
+                          color: "var(--gray-500)",
+                        }}
+                      >
                         {new Date(campaign.start_time).toLocaleDateString()}
                       </td>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-sm)",
+                          color: "var(--gray-500)",
+                        }}
+                      >
                         {new Date(campaign.end_time).toLocaleDateString()}
                       </td>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--secondary-600)', fontWeight: 600 }}>
-                        {campaign.discount ? `${campaign.discount}%` : '—'}
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-base)",
+                          color: "var(--secondary-600)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {campaign.discount ? `${campaign.discount}%` : "—"}
                       </td>
-                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)' }}>
-                        {campaign.items_included && campaign.items_included.length > 0 ? (
-                          <span title={campaign.items_included.map(item => item.name).join(', ')}>
-                            {campaign.items_included.length} item{campaign.items_included.length !== 1 ? 's' : ''}
+                      <td
+                        style={{
+                          padding: "var(--space-4)",
+                          fontSize: "var(--text-base)",
+                          color: "var(--gray-700)",
+                        }}
+                      >
+                        {campaign.items_included &&
+                        campaign.items_included.length > 0 ? (
+                          <span
+                            title={campaign.items_included
+                              .map((item) => item.name)
+                              .join(", ")}
+                          >
+                            {campaign.items_included.length} item
+                            {campaign.items_included.length !== 1 ? "s" : ""}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--gray-400)' }}>No items</span>
+                          <span style={{ color: "var(--gray-400)" }}>
+                            No items
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -1403,112 +1685,113 @@ const renderInsights = () => {
           </div>
         ) : (
           <div className="empty-state">
-            <img src={PlanningIcon} alt="Campaigns" className="empty-icon-svg" />
+            <img
+              src={PlanningIcon}
+              alt="Campaigns"
+              className="empty-icon-svg"
+            />
             <h3>No Campaigns Found</h3>
             <p>Upload campaigns data to get started</p>
           </div>
         )}
 
-{/* Upload Campaigns Modal */}
-{showUploadCampaigns && (
-  <div className="modal-overlay" onClick={() => setShowUploadCampaigns(false)}>
-    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-      <div className="modal-header">
-        <h2 className="section-title">Upload Campaigns CSV</h2>
-        <button className="collapse-btn" onClick={() => setShowUploadCampaigns(false)}>×</button>
-      </div>
-      <div className="upload-card" onClick={() => campaignsFileInput.current?.click()}>
-        <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
-        <h3 className="upload-title">Campaigns Data</h3>
-        <p className="upload-description">Upload marketing campaigns history</p>
-        <ul className="upload-specs">
-          <li><strong>Required:</strong> id (UUID), name, status, start_time, end_time</li>
-          <li><strong>Optional:</strong> discount_percent</li>
-          <li><strong>Status values:</strong> active, inactive</li>
-          <li><strong>Timestamp formats:</strong> RFC3339 (2024-06-01T00:00:00Z) or DateTime (2024-06-01 00:00:00)</li>
-          <li>Discount percentage is optional (e.g., 15.50)</li>
-        </ul>
-        <input
-          ref={campaignsFileInput}
-          type="file"
-          accept=".csv"
-          style={{ display: 'none' }}
-          onChange={handleCampaignsUpload}
-        />
-      </div>
-      <div style={{ marginTop: 'var(--space-4)' }}>
-        <div className="upload-card" onClick={() => campaignItemsFileInput.current?.click()}>
-          <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
-          <h3 className="upload-title">Campaign Items Data</h3>
-          <p className="upload-description">Link items to campaigns</p>
-          <ul className="upload-specs">
-            <li><strong>Required:</strong> campaign_id (UUID), item_id (UUID)</li>
-            <li><strong>Prerequisites:</strong> Campaigns and Items must already exist</li>
-            <li>Multiple items can be associated with the same campaign</li>
-            <li>Duplicate campaign-item pairs are ignored</li>
-          </ul>
-          <input
-            ref={campaignItemsFileInput}
-            type="file"
-            accept=".csv"
-            style={{ display: 'none' }}
-            onChange={handleCampaignItemsUpload}
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        {/* Upload Campaigns Modal */}
+        {showUploadCampaigns && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowUploadCampaigns(false)}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Campaigns CSV</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowUploadCampaigns(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div
+                className="upload-card"
+                onClick={() => campaignsFileInput.current?.click()}
+              >
+                <img
+                  src={CloudUploadIcon}
+                  alt="Upload"
+                  className="upload-icon-svg"
+                />
+                <h3 className="upload-title">Campaigns Data</h3>
+                <p className="upload-description">
+                  Upload marketing campaigns history
+                </p>
+                <ul className="upload-specs">
+                  <li>
+                    <strong>Required:</strong> id (UUID), name, status,
+                    start_time, end_time
+                  </li>
+                  <li>
+                    <strong>Optional:</strong> discount_percent
+                  </li>
+                  <li>
+                    <strong>Status values:</strong> active, inactive
+                  </li>
+                  <li>
+                    <strong>Timestamp formats:</strong> RFC3339
+                    (2024-06-01T00:00:00Z) or DateTime (2024-06-01 00:00:00)
+                  </li>
+                  <li>Discount percentage is optional (e.g., 15.50)</li>
+                </ul>
+                <input
+                  ref={campaignsFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: "none" }}
+                  onChange={handleCampaignsUpload}
+                />
+              </div>
+              <div style={{ marginTop: "var(--space-4)" }}>
+                <div
+                  className="upload-card"
+                  onClick={() => campaignItemsFileInput.current?.click()}
+                >
+                  <img
+                    src={CloudUploadIcon}
+                    alt="Upload"
+                    className="upload-icon-svg"
+                  />
+                  <h3 className="upload-title">Campaign Items Data</h3>
+                  <p className="upload-description">Link items to campaigns</p>
+                  <ul className="upload-specs">
+                    <li>
+                      <strong>Required:</strong> campaign_id (UUID), item_id
+                      (UUID)
+                    </li>
+                    <li>
+                      <strong>Prerequisites:</strong> Campaigns and Items must
+                      already exist
+                    </li>
+                    <li>
+                      Multiple items can be associated with the same campaign
+                    </li>
+                    <li>Duplicate campaign-item pairs are ignored</li>
+                  </ul>
+                  <input
+                    ref={campaignItemsFileInput}
+                    type="file"
+                    accept=".csv"
+                    style={{ display: "none" }}
+                    onChange={handleCampaignItemsUpload}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
   const renderOrders = () => {
-    const fetchOrders = async (filter = 'all', dataType = 'orders') => {
-      try {
-        setOrdersLoading(true)
-        let data
-        let insights
-        if (dataType === 'items') {
-          // Items don't have time filters
-          data = await api.items.getAllItems()
-          insights = await api.items.getItemInsights()
-        } else if (dataType === 'deliveries') {
-          insights = await api.deliveries.getDeliveryInsights()
-          switch (filter) {
-            case 'today':
-              data = await api.deliveries.getDeliveriesToday()
-              break
-            case 'week':
-              data = await api.deliveries.getDeliveriesWeek()
-              break
-            default:
-              data = await api.deliveries.getAllDeliveries()
-          }
-        } else {
-          insights = await api.orders.getOrderInsights()
-          switch (filter) {
-            case 'today':
-              data = await api.orders.getOrdersToday()
-              break
-            case 'week':
-              data = await api.orders.getOrdersWeek()
-              break
-            default:
-              data = await api.orders.getAllOrders()
-          }
-        }
-        setOrdersData(data.data || [])
-        setOrdersInsights(insights.data || [])
-      } catch (err) {
-        console.error('Failed to fetch data:', err)
-        setActionMessage({ type: 'error', text: err.message || 'Failed to load data' })
-        setTimeout(() => setActionMessage(null), 4000)
-      } finally {
-        setOrdersLoading(false)
-      }
-    }
-
     const handleOrdersUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
@@ -1517,18 +1800,21 @@ const renderInsights = () => {
         setOrdersLoading(true)
         const response = await api.orders.uploadOrdersCSV(file)
         setActionMessage({
-          type: 'success',
-          text: `Orders uploaded: ${response.success_count} successful, ${response.error_count} failed`
+          type: "success",
+          text: `Orders uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
         fetchOrders(ordersFilter)
       } catch (err) {
-        setActionMessage({ type: 'error', text: err.message || 'Failed to upload orders' })
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload orders",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
         setShowUploadOrders(false)
-        if (ordersFileInput.current) ordersFileInput.current.value = ''
+        if (ordersFileInput.current) ordersFileInput.current.value = ""
       }
     }
 
@@ -1540,18 +1826,47 @@ const renderInsights = () => {
         setOrdersLoading(true)
         const response = await api.items.uploadItemsCSV(file)
         setActionMessage({
-          type: 'success',
-          text: `Items uploaded: ${response.success_count} successful, ${response.error_count} failed`
+          type: "success",
+          text: `Items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
         fetchOrders(ordersFilter, ordersDataType)
       } catch (err) {
-        setActionMessage({ type: 'error', text: err.message || 'Failed to upload items' })
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload items",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
         setShowUploadItems(false)
-        if (itemsFileInput.current) itemsFileInput.current.value = ''
+        if (itemsFileInput.current) itemsFileInput.current.value = ""
+      }
+    }
+
+    const handleOrderItemsUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setOrdersLoading(true)
+        const response = await api.orders.uploadOrderItemsCSV(file)
+        setActionMessage({
+          type: "success",
+          text: `Order items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchOrders(ordersFilter, ordersDataType)
+      } catch (err) {
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload order items",
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+        setShowUploadOrderItems(false)
+        if (orderItemsFileInput.current) orderItemsFileInput.current.value = ""
       }
     }
 
@@ -1563,83 +1878,92 @@ const renderInsights = () => {
         setOrdersLoading(true)
         const response = await api.deliveries.uploadDeliveriesCSV(file)
         setActionMessage({
-          type: 'success',
-          text: `Deliveries uploaded: ${response.success_count} successful, ${response.error_count} failed`
+          type: "success",
+          text: `Deliveries uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
         fetchOrders(ordersFilter, ordersDataType)
       } catch (err) {
-        setActionMessage({ type: 'error', text: err.message || 'Failed to upload deliveries' })
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to upload deliveries",
+        })
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
         setShowUploadDeliveries(false)
-        if (deliveriesFileInput.current) deliveriesFileInput.current.value = ''
+        if (deliveriesFileInput.current) deliveriesFileInput.current.value = ""
       }
     }
 
     const getOrderTypeColor = (type) => {
       switch (type) {
-        case 'dine_in': return 'var(--color-primary)'
-        case 'delivery': return 'var(--color-secondary)'
-        case 'takeaway': return 'var(--color-accent)'
-        default: return 'var(--gray-500)'
+        case "dine_in":
+          return "var(--color-primary)"
+        case "delivery":
+          return "var(--color-secondary)"
+        case "takeaway":
+          return "var(--color-accent)"
+        default:
+          return "var(--gray-500)"
       }
     }
 
     const getStatusBadge = (status) => {
       const colors = {
-        completed: 'var(--color-primary)',
-        in_progress: 'var(--secondary-500)',
-        cancelled: 'var(--accent-500)',
-        pending: 'var(--gray-500)'
+        completed: "var(--color-primary)",
+        in_progress: "var(--secondary-500)",
+        cancelled: "var(--accent-500)",
+        pending: "var(--gray-500)",
       }
-      return colors[status] || 'var(--gray-500)'
+      return colors[status] || "var(--gray-500)"
     }
 
     const downloadCSV = () => {
       if (!ordersData || ordersData.length === 0) {
-        setActionMessage({ type: 'error', text: 'No data to download' })
+        setActionMessage({ type: "error", text: "No data to download" })
         setTimeout(() => setActionMessage(null), 3000)
         return
       }
 
-      let csvContent = ''
-      let filename = ''
+      let csvContent = ""
+      let filename = ""
 
-      if (ordersDataType === 'orders') {
-        csvContent = 'Order ID,Type,Status,Amount,Discount,Item Count,Rating,Date\n'
-        ordersData.forEach(order => {
-          csvContent += `${order.order_id},${order.order_type},${order.order_status},${order.total_amount || 0},${order.discount_amount || 0},${order.item_count || 0},${order.rating || ''},${new Date(order.create_time).toISOString()}\n`
+      if (ordersDataType === "orders") {
+        csvContent =
+          "Order ID,Type,Status,Amount,Discount,Item Count,Rating,Date\n"
+        ordersData.forEach((order) => {
+          csvContent += `${order.order_id},${order.order_type},${order.order_status},${order.total_amount || 0},${order.discount_amount || 0},${order.item_count || 0},${order.rating || ""},${new Date(order.create_time).toISOString()}\n`
         })
-        filename = `orders_${ordersFilter}_${new Date().toISOString().split('T')[0]}.csv`
-      } else if (ordersDataType === 'items') {
-        csvContent = 'Item ID,Name,Needed Employees,Price\n'
-        ordersData.forEach(item => {
+        filename = `orders_${ordersFilter}_${new Date().toISOString().split("T")[0]}.csv`
+      } else if (ordersDataType === "items") {
+        csvContent = "Item ID,Name,Needed Employees,Price\n"
+        ordersData.forEach((item) => {
           csvContent += `${item.item_id},${item.name},${item.needed_employees},${item.price}\n`
         })
-        filename = `items_${new Date().toISOString().split('T')[0]}.csv`
+        filename = `items_${new Date().toISOString().split("T")[0]}.csv`
       } else {
-        csvContent = 'Order ID,Driver ID,Status,Latitude,Longitude,Out for Delivery,Delivered\n'
-        ordersData.forEach(delivery => {
-          const lat = delivery.location?.latitude || ''
-          const lon = delivery.location?.longitude || ''
-          csvContent += `${delivery.order_id},${delivery.driver_id || ''},${delivery.status},${lat},${lon},${delivery.out_for_delivery_time || ''},${delivery.delivered_time || ''}\n`
+        csvContent =
+          "Order ID,Driver ID,Status,Latitude,Longitude,Out for Delivery,Delivered\n"
+        ordersData.forEach((delivery) => {
+          const lat = delivery.location?.latitude || ""
+          const lon = delivery.location?.longitude || ""
+          csvContent += `${delivery.order_id},${delivery.driver_id || ""},${delivery.status},${lat},${lon},${delivery.out_for_delivery_time || ""},${delivery.delivered_time || ""}\n`
         })
-        filename = `deliveries_${ordersFilter}_${new Date().toISOString().split('T')[0]}.csv`
+        filename = `deliveries_${ordersFilter}_${new Date().toISOString().split("T")[0]}.csv`
       }
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-      const link = document.createElement('a')
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+      const link = document.createElement("a")
       const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', filename)
-      link.style.visibility = 'hidden'
+      link.setAttribute("href", url)
+      link.setAttribute("download", filename)
+      link.style.visibility = "hidden"
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
 
-      setActionMessage({ type: 'success', text: 'CSV downloaded successfully' })
+      setActionMessage({ type: "success", text: "CSV downloaded successfully" })
       setTimeout(() => setActionMessage(null), 3000)
     }
 
@@ -1650,74 +1974,176 @@ const renderInsights = () => {
             <h1 className="page-title">Orders Management</h1>
             <p className="page-subtitle">View and manage organization orders</p>
           </div>
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            {ordersDataType === 'orders' ? (
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            {ordersDataType === "orders" ? (
               <>
-                <button className="btn-secondary" onClick={() => setShowUploadOrders(true)}>
-                  <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowUploadOrders(true)}
+                >
+                  <svg
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      marginRight: "8px",
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
                   </svg>
                   Upload Orders
                 </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowUploadOrderItems(true)}
+                >
+                  <svg
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      marginRight: "8px",
+                    }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  Upload Order Items
+                </button>
               </>
-            ) : ordersDataType === 'items' ? (
-              <button className="btn-secondary" onClick={() => setShowUploadItems(true)}>
-                <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            ) : ordersDataType === "items" ? (
+              <button
+                className="btn-secondary"
+                onClick={() => setShowUploadItems(true)}
+              >
+                <svg
+                  style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
-                Upload Items
+                Upload Items Catalog
               </button>
             ) : (
-              <button className="btn-secondary" onClick={() => setShowUploadDeliveries(true)}>
-                <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <button
+                className="btn-secondary"
+                onClick={() => setShowUploadDeliveries(true)}
+              >
+                <svg
+                  style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
                 Upload Deliveries
               </button>
             )}
-            <button className="btn-primary" onClick={() => fetchOrders(ordersFilter, ordersDataType)}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <button
+              className="btn-primary"
+              onClick={() => fetchOrders(ordersFilter, ordersDataType)}
+            >
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               Refresh
             </button>
             <button className="btn-secondary" onClick={downloadCSV}>
-              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg
+                style={{ width: "18px", height: "18px", marginRight: "8px" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Download CSV
             </button>
           </div>
         </div>
 
-        <div className="filter-bar" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
-          <select 
-            className="filter-select" 
+        <div
+          className="filter-bar"
+          style={{
+            display: "flex",
+            gap: "var(--space-3)",
+            alignItems: "center",
+          }}
+        >
+          <select
+            className="filter-select"
             value={ordersDataType}
             onChange={(e) => setOrdersDataType(e.target.value)}
-            style={{ padding: '8px 12px', minWidth: '150px' }}
+            style={{ padding: "8px 12px", minWidth: "150px" }}
           >
             <option value="orders">Orders</option>
             <option value="items">Items</option>
             <option value="deliveries">Deliveries</option>
           </select>
-          {ordersDataType !== 'items' && (
+          {ordersDataType !== "items" && (
             <>
-              <button 
-                className={ordersFilter === 'all' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setOrdersFilter('all')}
+              <button
+                className={
+                  ordersFilter === "all" ? "btn-primary" : "btn-secondary"
+                }
+                onClick={() => setOrdersFilter("all")}
               >
                 All Time
               </button>
-              <button 
-                className={ordersFilter === 'today' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setOrdersFilter('today')}
+              <button
+                className={
+                  ordersFilter === "today" ? "btn-primary" : "btn-secondary"
+                }
+                onClick={() => setOrdersFilter("today")}
               >
                 Today
               </button>
-              <button 
-                className={ordersFilter === 'week' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setOrdersFilter('week')}
+              <button
+                className={
+                  ordersFilter === "week" ? "btn-primary" : "btn-secondary"
+                }
+                onClick={() => setOrdersFilter("week")}
               >
                 This Week
               </button>
@@ -1727,11 +2153,43 @@ const renderInsights = () => {
 
         {/* Insights Boxes */}
         {ordersInsights.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "var(--space-4)",
+              marginTop: "var(--space-4)",
+            }}
+          >
             {ordersInsights.map((insight, index) => (
-              <div key={index} className="stat-card" style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginBottom: 'var(--space-2)' }}>{insight.title}</p>
-                <h3 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--primary-600)' }}>{insight.statistic}</h3>
+              <div
+                key={index}
+                className="stat-card"
+                style={{
+                  background: "var(--gray-50)",
+                  border: "1px solid var(--gray-200)",
+                  borderRadius: "var(--radius-lg)",
+                  padding: "var(--space-4)",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--gray-600)",
+                    marginBottom: "var(--space-2)",
+                  }}
+                >
+                  {insight.title}
+                </p>
+                <h3
+                  style={{
+                    fontSize: "var(--text-2xl)",
+                    fontWeight: 700,
+                    color: "var(--primary-600)",
+                  }}
+                >
+                  {insight.statistic}
+                </h3>
               </div>
             ))}
           </div>
@@ -1743,156 +2201,632 @@ const renderInsights = () => {
           </div>
         ) : ordersData && ordersData.length > 0 ? (
           <div className="section-wrapper">
-            <div style={{ overflowX: 'auto' }}>
-              {ordersDataType === 'orders' ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Type</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Amount</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Discount</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item Count</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Rating</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ordersData.map((order) => (
-                      <tr key={order.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {order.order_id.slice(0, 8)}...
-                        </td>
-                        <td style={{ padding: 'var(--space-4)' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getOrderTypeColor(order.order_type) + '20', color: getOrderTypeColor(order.order_type) }}>
-                            {order.order_type}
-                          </span>
-                        </td>
-                        <td style={{ padding: 'var(--space-4)' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(order.order_status) + '20', color: getStatusBadge(order.order_status) }}>
-                            {order.order_status}
-                          </span>
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
-                          ${order.total_amount?.toFixed(2) || '0.00'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--accent-500)' }}>
-                          ${order.discount_amount?.toFixed(2) || '0.00'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', textAlign: 'center' }}>
-                          {order.item_count || 0}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)' }}>
-                          {order.rating ? `⭐ ${order.rating}` : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
-                          {new Date(order.create_time).toLocaleDateString()}
-                        </td>
+            {ordersDataType === "orders" ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "var(--space-4)",
+                }}
+              >
+                {/* Orders Table */}
+                <div style={{ overflowX: "auto" }}>
+                  <h3
+                    style={{
+                      fontSize: "var(--text-lg)",
+                      fontWeight: 600,
+                      marginBottom: "var(--space-3)",
+                      color: "var(--gray-700)",
+                    }}
+                  >
+                    Orders
+                  </h3>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-3)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Order ID
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-3)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Type
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-3)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Status
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-3)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Amount
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-3)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Items
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : ordersDataType === 'items' ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item ID</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Name</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Needed Employees</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ordersData.map((item) => (
-                      <tr key={item.item_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {item.item_id ? item.item_id.slice(0, 8) + '...' : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
-                          {item.name}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', textAlign: 'center' }}>
-                          {item.needed_employees}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--primary-600)', fontWeight: 600 }}>
-                          ${item.price?.toFixed(2) || '0.00'}
-                        </td>
+                    </thead>
+                    <tbody>
+                      {ordersData.map((order, index) => (
+                        <tr
+                          key={order.order_id || `order-${index}`}
+                          style={{ borderBottom: "1px solid var(--gray-200)" }}
+                        >
+                          <td
+                            style={{
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                            }}
+                          >
+                            {order.order_id
+                              ? order.order_id.slice(0, 8) + "..."
+                              : "—"}
+                          </td>
+                          <td style={{ padding: "var(--space-3)" }}>
+                            <span
+                              style={{
+                                padding: "2px 8px",
+                                borderRadius: "var(--radius-full)",
+                                fontSize: "var(--text-xs)",
+                                fontWeight: 600,
+                                backgroundColor:
+                                  getOrderTypeColor(order.order_type) + "20",
+                                color: getOrderTypeColor(order.order_type),
+                              }}
+                            >
+                              {order.order_type}
+                            </span>
+                          </td>
+                          <td style={{ padding: "var(--space-3)" }}>
+                            <span
+                              style={{
+                                padding: "2px 8px",
+                                borderRadius: "var(--radius-full)",
+                                fontSize: "var(--text-xs)",
+                                fontWeight: 600,
+                                backgroundColor:
+                                  getStatusBadge(order.order_status) + "20",
+                                color: getStatusBadge(order.order_status),
+                              }}
+                            >
+                              {order.order_status}
+                            </span>
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            ${order.total_amount?.toFixed(2) || "0.00"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                              textAlign: "center",
+                            }}
+                          >
+                            {order.item_count || 0}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Order Items Table */}
+                <div style={{ overflowX: "auto" }}>
+                  <h3
+                    style={{
+                      fontSize: "var(--text-lg)",
+                      fontWeight: 600,
+                      marginBottom: "var(--space-3)",
+                      color: "var(--gray-700)",
+                    }}
+                  >
+                    Order Items
+                  </h3>
+                  {orderItemsData.length > 0 ? (
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
+                        <tr
+                          style={{ borderBottom: "2px solid var(--gray-200)" }}
+                        >
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-xs)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Order ID
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-xs)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Item ID
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-xs)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Qty
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-3)",
+                              fontSize: "var(--text-xs)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Price
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderItemsData.map((orderItem, index) => (
+                          <tr
+                            key={`${orderItem.order_id}-${orderItem.item_id}-${index}`}
+                            style={{
+                              borderBottom: "1px solid var(--gray-200)",
+                            }}
+                          >
+                            <td
+                              style={{
+                                padding: "var(--space-3)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                              }}
+                            >
+                              {orderItem.order_id
+                                ? orderItem.order_id.slice(0, 8) + "..."
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-3)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                              }}
+                            >
+                              {orderItem.item_id
+                                ? orderItem.item_id.slice(0, 8) + "..."
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-3)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                                textAlign: "center",
+                              }}
+                            >
+                              {orderItem.quantity}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-3)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--primary-600)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              ${orderItem.total_price?.toFixed(2) || "0.00"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "var(--space-8)",
+                        textAlign: "center",
+                        color: "var(--gray-500)",
+                      }}
+                    >
+                      <p>
+                        No order items found. Upload order items CSV to link
+                        items to orders.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                {ordersDataType === "items" ? (
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Item ID
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Name
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Needed Employees
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Price
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Driver ID</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Location</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Out for Delivery</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Delivered</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ordersData.map((delivery) => (
-                      <tr key={delivery.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {delivery.order_id.slice(0, 8)}...
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {delivery.driver_id ? delivery.driver_id.slice(0, 8) + '...' : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(delivery.status) + '20', color: getStatusBadge(delivery.status) }}>
-                            {delivery.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {delivery.location ? `${delivery.location.latitude.toFixed(4)}, ${delivery.location.longitude.toFixed(4)}` : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
-                          {delivery.out_for_delivery_time ? new Date(delivery.out_for_delivery_time).toLocaleString() : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
-                          {delivery.delivered_time ? new Date(delivery.delivered_time).toLocaleString() : '—'}
-                        </td>
+                    </thead>
+                    <tbody>
+                      {ordersData.map((item, index) => (
+                        <tr
+                          key={item.item_id || `item-${index}`}
+                          style={{ borderBottom: "1px solid var(--gray-200)" }}
+                        >
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                            }}
+                          >
+                            {item.item_id
+                              ? item.item_id.slice(0, 8) + "..."
+                              : "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-base)",
+                              color: "var(--gray-700)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {item.name}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-base)",
+                              color: "var(--gray-700)",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.needed_employees}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-base)",
+                              color: "var(--primary-600)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            ${item.price?.toFixed(2) || "0.00"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Order ID
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Driver ID
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Status
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Location
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Out for Delivery
+                        </th>
+                        <th
+                          style={{
+                            textAlign: "left",
+                            padding: "var(--space-4)",
+                            fontSize: "var(--text-sm)",
+                            fontWeight: 600,
+                            color: "var(--gray-600)",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Delivered
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                    </thead>
+                    <tbody>
+                      {ordersData.map((delivery, index) => (
+                        <tr
+                          key={delivery.order_id || `delivery-${index}`}
+                          style={{ borderBottom: "1px solid var(--gray-200)" }}
+                        >
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                            }}
+                          >
+                            {delivery.order_id
+                              ? delivery.order_id.slice(0, 8) + "..."
+                              : "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                            }}
+                          >
+                            {delivery.driver_id
+                              ? delivery.driver_id.slice(0, 8) + "..."
+                              : "—"}
+                          </td>
+                          <td style={{ padding: "var(--space-4)" }}>
+                            <span
+                              style={{
+                                padding: "4px 12px",
+                                borderRadius: "var(--radius-full)",
+                                fontSize: "var(--text-xs)",
+                                fontWeight: 600,
+                                backgroundColor:
+                                  getStatusBadge(delivery.status) + "20",
+                                color: getStatusBadge(delivery.status),
+                              }}
+                            >
+                              {delivery.status}
+                            </span>
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-700)",
+                            }}
+                          >
+                            {delivery.location
+                              ? `${delivery.location.latitude.toFixed(4)}, ${delivery.location.longitude.toFixed(4)}`
+                              : "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-500)",
+                            }}
+                          >
+                            {delivery.out_for_delivery_time
+                              ? new Date(
+                                  delivery.out_for_delivery_time,
+                                ).toLocaleString()
+                              : "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              color: "var(--gray-500)",
+                            }}
+                          >
+                            {delivery.delivered_time
+                              ? new Date(
+                                  delivery.delivered_time,
+                                ).toLocaleString()
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state">
             <img src={OrdersIcon} alt="Orders" className="empty-icon-svg" />
-            <h3>No {ordersDataType === 'orders' ? 'Orders' : ordersDataType === 'items' ? 'Items' : 'Deliveries'} Found</h3>
+            <h3>
+              No{" "}
+              {ordersDataType === "orders"
+                ? "Orders"
+                : ordersDataType === "items"
+                  ? "Items"
+                  : "Deliveries"}{" "}
+              Found
+            </h3>
             <p>Upload {ordersDataType} data to get started</p>
           </div>
         )}
 
         {/* Upload Orders Modal */}
         {showUploadOrders && (
-          <div className="modal-overlay" onClick={() => setShowUploadOrders(false)}>
+          <div
+            className="modal-overlay"
+            onClick={() => setShowUploadOrders(false)}
+          >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2 className="section-title">Upload Orders CSV</h2>
-                <button className="collapse-btn" onClick={() => setShowUploadOrders(false)}>×</button>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowUploadOrders(false)}
+                >
+                  ×
+                </button>
               </div>
-              <div className="upload-card" onClick={() => ordersFileInput.current?.click()}>
-                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+              <div
+                className="upload-card"
+                onClick={() => ordersFileInput.current?.click()}
+              >
+                <img
+                  src={CloudUploadIcon}
+                  alt="Upload"
+                  className="upload-icon-svg"
+                />
                 <h3 className="upload-title">Orders Data</h3>
                 <p className="upload-description">Upload past orders history</p>
                 <ul className="upload-specs">
-                  <li>Required: user_id, create_time, order_type, order_status, total_amount, discount_amount</li>
+                  <li>
+                    Required: user_id, create_time, order_type, order_status,
+                    total_amount, discount_amount
+                  </li>
                   <li>Optional: rating</li>
                 </ul>
                 <input
                   ref={ordersFileInput}
                   type="file"
                   accept=".csv"
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                   onChange={handleOrdersUpload}
                 />
               </div>
@@ -1900,18 +2834,31 @@ const renderInsights = () => {
           </div>
         )}
 
-        {/* Upload Items Modal */}
+        {/* Upload Items Catalog Modal */}
         {showUploadItems && (
-          <div className="modal-overlay" onClick={() => setShowUploadItems(false)}>
+          <div
+            className="modal-overlay"
+            onClick={() => setShowUploadItems(false)}
+          >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2 className="section-title">Upload Items CSV</h2>
-                <button className="collapse-btn" onClick={() => setShowUploadItems(false)}>×</button>
+                <h2 className="section-title">Upload Items Catalog CSV</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowUploadItems(false)}
+                >
+                  ×
+                </button>
               </div>
-              <div className="upload-card" onClick={() => itemsFileInput.current?.click()}>
-                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+              <div
+                className="upload-card"
+                onClick={() => itemsFileInput.current?.click()}
+              >
+                <img src={ItemsIcon} alt="Items" className="upload-icon-svg" />
                 <h3 className="upload-title">Items Catalog Data</h3>
-                <p className="upload-description">Upload menu items for your organization</p>
+                <p className="upload-description">
+                  Upload menu items for your organization
+                </p>
                 <ul className="upload-specs">
                   <li>Required: name, needed_employees, price</li>
                   <li>Each item name must be unique within the organization</li>
@@ -1920,8 +2867,55 @@ const renderInsights = () => {
                   ref={itemsFileInput}
                   type="file"
                   accept=".csv"
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                   onChange={handleItemsUpload}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Order Items Modal */}
+        {showUploadOrderItems && (
+          <div
+            className="modal-overlay"
+            onClick={() => setShowUploadOrderItems(false)}
+          >
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Order Items CSV</h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowUploadOrderItems(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div
+                className="upload-card"
+                onClick={() => orderItemsFileInput.current?.click()}
+              >
+                <img
+                  src={CloudUploadIcon}
+                  alt="Upload"
+                  className="upload-icon-svg"
+                />
+                <h3 className="upload-title">Order Items Relationship</h3>
+                <p className="upload-description">
+                  Link items to specific orders
+                </p>
+                <ul className="upload-specs">
+                  <li>Required: order_id, item_id, quantity, total_price</li>
+                  <li>
+                    Prerequisites: Both Orders and Items must already exist
+                  </li>
+                </ul>
+                <input
+                  ref={orderItemsFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: "none" }}
+                  onChange={handleOrderItemsUpload}
                 />
               </div>
             </div>
@@ -1930,26 +2924,48 @@ const renderInsights = () => {
 
         {/* Upload Deliveries Modal */}
         {showUploadDeliveries && (
-          <div className="modal-overlay" onClick={() => setShowUploadDeliveries(false)}>
+          <div
+            className="modal-overlay"
+            onClick={() => setShowUploadDeliveries(false)}
+          >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2 className="section-title">Upload Deliveries CSV</h2>
-                <button className="collapse-btn" onClick={() => setShowUploadDeliveries(false)}>×</button>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowUploadDeliveries(false)}
+                >
+                  ×
+                </button>
               </div>
-              <div className="upload-card" onClick={() => deliveriesFileInput.current?.click()}>
-                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+              <div
+                className="upload-card"
+                onClick={() => deliveriesFileInput.current?.click()}
+              >
+                <img
+                  src={CloudUploadIcon}
+                  alt="Upload"
+                  className="upload-icon-svg"
+                />
                 <h3 className="upload-title">Deliveries Data</h3>
-                <p className="upload-description">Upload delivery information</p>
+                <p className="upload-description">
+                  Upload delivery information
+                </p>
                 <ul className="upload-specs">
-                  <li>Required: order_id, driver_id, out_for_delivery_time, status</li>
-                  <li>Optional: delivered_time, delivery_latitude, delivery_longitude</li>
+                  <li>
+                    Required: order_id, driver_id, out_for_delivery_time, status
+                  </li>
+                  <li>
+                    Optional: delivered_time, delivery_latitude,
+                    delivery_longitude
+                  </li>
                   <li>Prerequisites: Orders must exist</li>
                 </ul>
                 <input
                   ref={deliveriesFileInput}
                   type="file"
                   accept=".csv"
-                  style={{ display: 'none' }}
+                  style={{ display: "none" }}
                   onChange={handleDeliveriesUpload}
                 />
               </div>
@@ -3013,14 +4029,18 @@ const renderInsights = () => {
       <div className="section-wrapper">
         <div className="section-header">
           <h2 className="section-title">
-            <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
+            <img
+              src={ScheduleIcon}
+              alt="Shift Rules"
+              className="title-icon-svg"
+            />
             Shift Rules
           </h2>
         </div>
         <p className="section-description">
           Configure shift scheduling parameters for your organization
         </p>
-        <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+        <div className="settings-grid" style={{ marginTop: "var(--space-4)" }}>
           <div className="setting-item">
             <label className="setting-label">Minimum Shift Length</label>
             <select className="setting-input">
@@ -3054,7 +4074,10 @@ const renderInsights = () => {
             </select>
           </div>
         </div>
-        <div className="settings-footer" style={{ marginTop: 'var(--space-6)' }}>
+        <div
+          className="settings-footer"
+          style={{ marginTop: "var(--space-6)" }}
+        >
           <button className="btn-secondary">Reset to Defaults</button>
           <button className="btn-primary">Save Shift Rules</button>
         </div>
@@ -3809,8 +4832,62 @@ const renderAdminProfile = () => {
               </div>
             </div>
 
+<<<<<<< HEAD
             {/* Work Statistics Card */}
             {currentUser?.user_role !== 'admin' && profileData && (
+=======
+            <div className="profile-content-grid">
+              {/* Personal Information Card */}
+              <div className="profile-card" data-animation="slide-up">
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Personal Information
+                  </h3>
+                </div>
+                <div className="profile-info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Full Name</span>
+                    <span className="info-value">{displayName}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Email</span>
+                    <span className="info-value">{displayEmail}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Role</span>
+                    <span
+                      className="info-value"
+                      style={{ textTransform: "capitalize" }}
+                    >
+                      {displayRole}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Organization</span>
+                    <span className="info-value">
+                      {currentUser?.organization_name ||
+                        currentUser?.organization ||
+                        "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Account Statistics Card */}
+>>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
               <div
                 className="profile-card"
                 data-animation="slide-up"
@@ -4131,6 +5208,7 @@ const renderAdminProfile = () => {
                       />
                     </svg>
                     <div>
+<<<<<<< HEAD
                       <div className="info-title">Last Updated</div>
                       <div className="info-subtitle">
                         {new Date(currentUser.updated_at).toLocaleDateString('en-US', {
@@ -4138,6 +5216,39 @@ const renderAdminProfile = () => {
                           month: 'long',
                           day: 'numeric'
                         })}
+=======
+                      <div className="info-title">Account Status</div>
+                      <div className="info-subtitle">Active</div>
+                    </div>
+                  </div>
+                  {currentUser?.created_at && (
+                    <div className="info-row">
+                      <svg
+                        className="info-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <div>
+                        <div className="info-title">Member Since</div>
+                        <div className="info-subtitle">
+                          {new Date(currentUser.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            },
+                          )}
+                        </div>
+>>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
                       </div>
                     </div>
                   </div>
@@ -4291,12 +5402,13 @@ const renderAdminProfile = () => {
             {activeTab === "home" && renderHomeDashboard()}
             {activeTab === "schedule" && renderMasterSchedule()}
             {activeTab === "insights" && renderInsights()}
-            {activeTab === "campaigns" && renderCampaigns()} {/* Changed from "planning" */}
+            {activeTab === "campaigns" && renderCampaigns()}{" "}
+            {/* Changed from "planning" */}
             {activeTab === "staffing" && renderStaffing()}
             {activeTab === "orders" && renderOrders()}
             {activeTab === "info" && renderInfo()}
           </>
-        )}      
+        )}
         {renderAdminProfile()}
       </main>
 
