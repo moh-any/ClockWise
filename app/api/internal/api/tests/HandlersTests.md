@@ -3,14 +3,56 @@
 This documentation provides an overview of the unit tests for the API layer of the **Clockwise** backend. These tests utilize `gin-gonic`'s test mode and `testify/mock` to simulate HTTP requests and verify controller logic, middleware authentication, and service interactions without requiring a live server or database.
 
 ## Table of Contents
+- [Alert Handler Tests](#alert-handler-tests)
+- [Campaign Handler Tests](#campaign-handler-tests)
+- [Dashboard Handler Tests](#dashboard-handler-tests)
 - [Employee Handler Tests](#employee-handler-tests)
 - [Insights Handler Tests](#insights-handler-tests)
+- [Orders Handler Tests](#orders-handler-tests)
 - [Organization Handler Tests](#organization-handler-tests)
 - [Preferences Handler Tests](#preferences-handler-tests)
 - [Profile Handler Tests](#profile-handler-tests)
 - [Roles Handler Tests](#roles-handler-tests)
 - [Rules Handler Tests](#rules-handler-tests)
+- [Schedule Handler Tests](#schedule-handler-tests)
 - [Staffing Handler Tests](#staffing-handler-tests)
+
+---
+
+## Alert Handler Tests
+**File:** `alert_handler_test.go`  
+**Focus:** Alert retrieval, weekly filtering, and alert analytics for admin and manager users.
+
+| Test Function | Description | Scenarios Covered |
+| :--- | :--- | :--- |
+| **`TestGetAllAlertsHandler`** | Verifies retrieval of all alerts for an organization. | • **Success (Admin):** Returns all alerts.<br>• **Success (Manager):** Manager can also access alerts.<br>• **Forbidden:** Employee role is denied access (403).<br>• **DBError:** Handles database failure gracefully (500).<br>• **Unauthorized:** Rejects requests without user context (401). |
+| **`TestGetAllAlertsForLastWeekHandler`** | Verifies filtered retrieval of alerts from the past 7 days. | • **Success:** Returns weekly alerts.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAlertInsightsHandler`** | Verifies aggregation of alert statistics. | • **Success:** Returns alert analytics (total, severity breakdown).<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+
+---
+
+## Campaign Handler Tests
+**File:** `campaign_handler_test.go`  
+**Focus:** Campaign CRUD, marketing insights, ML-powered recommendations, and feedback submission.
+
+| Test Function | Description | Scenarios Covered |
+| :--- | :--- | :--- |
+| **`TestGetAllCampaignsHandler`** | Verifies retrieval of all marketing campaigns. | • **Success:** Returns campaigns with discount info.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllCampaignsForLastWeekHandler`** | Verifies filtered campaign retrieval for the past 7 days. | • **Success:** Returns recent campaigns.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetCampaignsInsightsHandler`** | Verifies aggregation of campaign statistics. | • **Success:** Returns campaign analytics.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestRecommendCampaignsHandler`** | Verifies ML recommendation request validation. | • **Forbidden:** Employee role is denied access.<br>• **InvalidBody:** Rejects missing required fields (400). |
+| **`TestSubmitCampaignFeedbackHandler`** | Verifies ML feedback submission validation. | • **Forbidden:** Employee role is denied access.<br>• **InvalidBody:** Rejects missing required fields (400). |
+
+---
+
+## Dashboard Handler Tests
+**File:** `dashboard_handler_test.go`  
+**Focus:** Demand heatmap retrieval and ML-powered demand prediction workflows.
+
+| Test Function | Description | Scenarios Covered |
+| :--- | :--- | :--- |
+| **`TestGetDemandHeatMapHandler`** | Verifies retrieval of stored demand prediction data. | • **Success (Admin):** Returns demand heatmap data.<br>• **Success (Manager):** Manager can also access demand data.<br>• **Forbidden:** Employee role is denied access.<br>• **NotFound:** Returns 404 when no demand data exists.<br>• **DBError:** Handles database failure gracefully.<br>• **Unauthorized:** Rejects unauthenticated requests. |
+| **`TestPredictDemandHeatMapHandler`** | Verifies the multi-step data gathering before calling the ML service. | • **Forbidden:** Employee role is denied access.<br>• **OrgNotFound:** Returns 404 when organization doesn't exist.<br>• **OrgDBError:** Returns 500 on organization fetch failure.<br>• **RulesNotFound:** Returns 404 when rules are missing.<br>• **OperatingHoursNotFound:** Returns 404 when operating hours are missing.<br>• **NoOrders:** Returns 404 when no orders exist.<br>• **NoCampaigns:** Returns 404 when no campaigns exist. |
 
 ---
 
@@ -36,6 +78,25 @@ This documentation provides an overview of the unit tests for the API layer of t
 | Test Function | Description | Scenarios Covered |
 | :--- | :--- | :--- |
 | **`TestGetInsightsHandler`** | Verifies the main analytics endpoint logic. | • **Success (Admin):** Calls `GetInsightsForAdmin`.<br>• **Success (Manager):** Calls `GetInsightsForManager`.<br>• **Success (Employee):** Calls `GetInsightsForEmployee`.<br>• **Failure:** Handles database errors gracefully (500).<br>• **Unauthorized:** Rejects requests without user context. |
+
+---
+
+## Orders Handler Tests
+**File:** `orders_handler_test.go`  
+**Focus:** Order management, menu items, delivery tracking, and associated analytics.
+
+| Test Function | Description | Scenarios Covered |
+| :--- | :--- | :--- |
+| **`TestGetAllOrdersHandler`** | Verifies retrieval of all orders for an organization. | • **Success:** Returns orders with type and status.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllOrdersForLastWeekHandler`** | Verifies filtered order retrieval for the past 7 days. | • **Success:** Returns weekly orders.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllOrdersTodayHandler`** | Verifies retrieval of today's orders. | • **Success:** Returns today's orders.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetOrdersInsightsHandler`** | Verifies aggregation of order statistics. | • **Success:** Returns order analytics (total, average value).<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllItemsHandler`** | Verifies retrieval of all menu items. | • **Success:** Returns items with price and prep staff info.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetItemsInsightsHandler`** | Verifies aggregation of menu item statistics. | • **Success:** Returns item analytics (most popular, avg price).<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllDeliveriesHandler`** | Verifies retrieval of all deliveries. | • **Success:** Returns deliveries with status and driver info.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllDeliveriesForLastWeekHandler`** | Verifies filtered delivery retrieval for the past 7 days. | • **Success:** Returns weekly deliveries.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetAllDeliveriesTodayHandler`** | Verifies retrieval of today's deliveries. | • **Success:** Returns today's deliveries.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetDeliveryInsightsHandler`** | Verifies aggregation of delivery statistics. | • **Success:** Returns delivery analytics.<br>• **DBError:** Handles database failure gracefully. |
 
 ---
 
@@ -95,6 +156,19 @@ This documentation provides an overview of the unit tests for the API layer of t
 | :--- | :--- | :--- |
 | **`TestGetOrganizationRules`** | Verifies retrieval of rules and hours. | • **Success:** Returns rules and operating hours.<br>• **Success (No Rules):** Returns empty set gracefully.<br>• **Forbidden:** Employee cannot view admin rules.<br>• **DBError:** Handles storage failures. |
 | **`TestUpdateOrganizationRules`** | Verifies updating scheduling constraints. | • **Success:** Updates rules and operating hours.<br>• **Forbidden:** Managers cannot update organization rules.<br>• **Validation (Min/Max):** Fails if Min hours > Max hours.<br>• **Validation (Fixed):** Fails if `fixed_shifts` is true but `shifts_per_day` is missing.<br>• **Validation (Day):** Fails on invalid weekday names. |
+
+---
+
+## Schedule Handler Tests
+**File:** `schedule_handler_test.go`  
+**Focus:** Schedule retrieval, per-employee schedules, and demand-based schedule prediction.
+
+| Test Function | Description | Scenarios Covered |
+| :--- | :--- | :--- |
+| **`TestGetScheduleHandler`** | Verifies full schedule retrieval for the organization. | • **Admin Success:** Admin retrieves full schedule.<br>• **Manager Success:** Manager retrieves full schedule.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully.<br>• **Unauthorized:** Missing auth token is rejected. |
+| **`TestGetCurrentUserScheduleHandler`** | Verifies schedule retrieval for the currently authenticated user. | • **Employee Success:** Employee retrieves own schedule.<br>• **Manager Success:** Manager retrieves own schedule.<br>• **Forbidden:** Admin role is denied access.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestGetEmployeeScheduleHandler`** | Verifies schedule retrieval for a specific employee by ID. | • **Success:** Returns schedule for the specified employee.<br>• **Invalid ID:** Rejects non-UUID employee ID.<br>• **Not Found:** Returns error for non-existent employee.<br>• **Different Org:** Denies access to employees in other organizations.<br>• **DBError:** Handles database failure gracefully. |
+| **`TestPredictScheduleHandler`** | Verifies ML-based schedule prediction requiring multiple data sources. | • **Forbidden:** Employee role is denied access.<br>• **OrgError:** Handles org retrieval failure.<br>• **RulesError:** Handles rules retrieval failure.<br>• **HoursError:** Handles operating hours retrieval failure.<br>• **DemandError:** Handles demand data retrieval failure.<br>• **RolesError:** Handles roles retrieval failure.<br>• **EmployeesError:** Handles employee list retrieval failure. |
 
 ---
 

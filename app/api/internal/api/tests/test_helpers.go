@@ -408,3 +408,230 @@ func (m *MockUploadService) ParseCSV(file multipart.File) (*service.CSVData, err
 	}
 	return args.Get(0).(*service.CSVData), args.Error(1)
 }
+
+// MockAlertStore
+type MockAlertStore struct {
+	mock.Mock
+}
+
+func (m *MockAlertStore) StoreAlert(orgID uuid.UUID, alert *database.Alert) error {
+	args := m.Called(orgID, alert)
+	return args.Error(0)
+}
+
+func (m *MockAlertStore) GetAllAlerts(orgID uuid.UUID) ([]database.Alert, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Alert), args.Error(1)
+}
+
+func (m *MockAlertStore) GetAllAlertsForLastWeek(orgID uuid.UUID) ([]database.Alert, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Alert), args.Error(1)
+}
+
+func (m *MockAlertStore) GetAlertInsights(orgID uuid.UUID) ([]database.Insight, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Insight), args.Error(1)
+}
+
+// MockCampaignStore
+type MockCampaignStore struct {
+	mock.Mock
+}
+
+func (m *MockCampaignStore) StoreCampaign(orgID uuid.UUID, campaign database.Campaign) error {
+	args := m.Called(orgID, campaign)
+	return args.Error(0)
+}
+
+func (m *MockCampaignStore) StoreCampaignItems(orgID, campaignID uuid.UUID, items []database.Item) error {
+	args := m.Called(orgID, campaignID, items)
+	return args.Error(0)
+}
+
+func (m *MockCampaignStore) GetAllCampaigns(orgID uuid.UUID) ([]database.Campaign, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Campaign), args.Error(1)
+}
+
+func (m *MockCampaignStore) GetAllCampaignsFromLastWeek(orgID uuid.UUID) ([]database.Campaign, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Campaign), args.Error(1)
+}
+
+func (m *MockCampaignStore) GetCampaignInsights(orgID uuid.UUID) ([]database.Insight, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Insight), args.Error(1)
+}
+
+// MockOrderStore
+type MockOrderStore struct {
+	mock.Mock
+}
+
+func (m *MockOrderStore) GetAllOrders(orgID uuid.UUID) ([]database.Order, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Order), args.Error(1)
+}
+
+func (m *MockOrderStore) GetAllOrdersForLastWeek(orgID uuid.UUID) ([]database.Order, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Order), args.Error(1)
+}
+
+func (m *MockOrderStore) GetTodaysOrder(orgID uuid.UUID) ([]database.Order, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Order), args.Error(1)
+}
+
+func (m *MockOrderStore) GetOrdersInsights(orgID uuid.UUID) ([]database.Insight, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Insight), args.Error(1)
+}
+
+func (m *MockOrderStore) StoreOrder(orgID uuid.UUID, order *database.Order) error {
+	args := m.Called(orgID, order)
+	return args.Error(0)
+}
+
+func (m *MockOrderStore) StoreOrderItems(orgID uuid.UUID, orderID uuid.UUID, orderItem *database.OrderItem) error {
+	args := m.Called(orgID, orderID, orderItem)
+	return args.Error(0)
+}
+
+func (m *MockOrderStore) StoreItems(orgID uuid.UUID, item *database.Item) error {
+	args := m.Called(orgID, item)
+	return args.Error(0)
+}
+
+func (m *MockOrderStore) GetAllItems(orgID uuid.UUID) ([]database.Item, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Item), args.Error(1)
+}
+
+func (m *MockOrderStore) GetAllDeliveries(orgID uuid.UUID) ([]database.OrderDelivery, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.OrderDelivery), args.Error(1)
+}
+
+func (m *MockOrderStore) GetAllDeliveriesForLastWeek(orgID uuid.UUID) ([]database.OrderDelivery, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.OrderDelivery), args.Error(1)
+}
+
+func (m *MockOrderStore) GetTodaysDeliveries(orgID uuid.UUID) ([]database.OrderDelivery, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.OrderDelivery), args.Error(1)
+}
+
+func (m *MockOrderStore) StoreDelivery(orgID uuid.UUID, delivery *database.OrderDelivery) error {
+	args := m.Called(orgID, delivery)
+	return args.Error(0)
+}
+
+func (m *MockOrderStore) GetDeliveryInsights(orgID uuid.UUID) ([]database.Insight, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Insight), args.Error(1)
+}
+
+func (m *MockOrderStore) GetItemsInsights(orgID uuid.UUID) ([]database.Insight, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Insight), args.Error(1)
+}
+
+// MockScheduleStore
+type MockScheduleStore struct {
+	mock.Mock
+}
+
+func (m *MockScheduleStore) StoreScheduleForUser(orgID uuid.UUID, userID uuid.UUID, schedule *database.Schedule) error {
+	args := m.Called(orgID, userID, schedule)
+	return args.Error(0)
+}
+
+func (m *MockScheduleStore) GetFullScheduleForSevenDays(orgID uuid.UUID) ([]database.Schedule, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Schedule), args.Error(1)
+}
+
+func (m *MockScheduleStore) GetScheduleForEmployeeForSevenDays(orgID uuid.UUID, userID uuid.UUID) ([]database.Schedule, error) {
+	args := m.Called(orgID, userID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]database.Schedule), args.Error(1)
+}
+
+// MockDemandStore
+type MockDemandStore struct {
+	mock.Mock
+}
+
+func (m *MockDemandStore) StoreDemandHeatMap(orgID uuid.UUID, demand database.DemandPredictResponse) error {
+	args := m.Called(orgID, demand)
+	return args.Error(0)
+}
+
+func (m *MockDemandStore) GetLatestDemandHeatMap(orgID uuid.UUID) (*database.DemandPredictResponse, error) {
+	args := m.Called(orgID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*database.DemandPredictResponse), args.Error(1)
+}
+
+func (m *MockDemandStore) DeleteDemandByOrganization(orgID uuid.UUID) (int64, error) {
+	args := m.Called(orgID)
+	return args.Get(0).(int64), args.Error(1)
+}

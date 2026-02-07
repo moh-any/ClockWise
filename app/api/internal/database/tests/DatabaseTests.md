@@ -3,6 +3,9 @@
 This documentation provides an overview of the unit tests for the PostgreSQL storage layer in the **Clockwise** backend. These tests utilize `go-sqlmock` to simulate database interactions, ensuring that queries are constructed correctly, transactions are handled properly, and data scanning logic works as expected without requiring a live database connection.
 
 ## Table of Contents
+- [Alert Store Tests](#alert-store-tests)
+- [Campaign Store Tests](#campaign-store-tests)
+- [Demand Store Tests](#demand-store-tests)
 - [Insight Store Tests](#insight-store-tests)
 - [Operating Hours Store Tests](#operating-hours-store-tests)
 - [Order Store Tests](#order-store-tests)
@@ -11,8 +14,48 @@ This documentation provides an overview of the unit tests for the PostgreSQL sto
 - [Request Store Tests](#request-store-tests)
 - [Roles Store Tests](#roles-store-tests)
 - [Rules Store Tests](#rules-store-tests)
+- [Schedule Store Tests](#schedule-store-tests)
 - [User Roles Store Tests](#user-roles-store-tests)
 - [User Store Tests](#user-store-tests)
+
+---
+
+## Alert Store Tests
+**File:** `alert_store_test.go`  
+**Focus:** Alert storage and analytics for organization-level notifications.
+
+| Test Function | Description | Key Verifications |
+| :--- | :--- | :--- |
+| **`TestStoreAlert`** | Placeholder for alert creation. | Currently a no-op; reserved for future implementation. |
+| **`TestGetAllAlerts`** | Retrieves all alerts for an organization. | **Success:** Verifies correct mapping of severity, type, message, and timestamp.<br>**Empty:** Returns empty slice when no alerts exist.<br>**DBError:** Handles query failure gracefully. |
+| **`TestGetAllAlertsForLastWeek`** | Retrieves alerts from the past 7 days. | **Success:** Verifies time-filtered query returns correct alerts.<br>**DBError:** Handles query failure gracefully. |
+| **`TestGetAlertInsights`** | Aggregates alert statistics by severity. | **Success:** Verifies 4 insight values — Total Alerts, High Severity, Medium Severity, Low Severity counts.<br>**NoAlerts:** Returns all-zero insights when no alerts exist.<br>**DBError:** Handles query failure gracefully. |
+
+---
+
+## Campaign Store Tests
+**File:** `campaign_store_test.go`  
+**Focus:** Marketing campaign storage, item associations, and campaign analytics.
+
+| Test Function | Description | Key Verifications |
+| :--- | :--- | :--- |
+| **`TestStoreCampaign`** | Creates a new marketing campaign. | **Success:** Verifies insertion with name, description, discount, start/end dates, and `RETURNING id` capture.<br>**DBError:** Handles insert failure gracefully. |
+| **`TestStoreCampaignItems`** | Associates menu items with a campaign. | **Success:** Verifies campaign existence check followed by item insertions.<br>**CampaignNotFound:** Returns error when the campaign does not exist. |
+| **`TestGetAllCampaigns`** | Retrieves all campaigns with their associated items. | **Success:** Verifies campaign retrieval followed by per-campaign item population via secondary queries.<br>**Empty:** Returns empty slice when no campaigns exist.<br>**DBError:** Handles query failure gracefully. |
+| **`TestGetAllCampaignsFromLastWeek`** | Retrieves campaigns created in the past 7 days. | **Success:** Verifies time-filtered query returns recent campaigns. |
+| **`TestGetCampaignInsights`** | Aggregates campaign statistics. | **Success:** Verifies 5 insight values — Total Campaigns, Active Campaigns, Average Discount, Highest Discount Campaign, Most Items Campaign.<br>**DBError:** Handles query failure gracefully. |
+
+---
+
+## Demand Store Tests
+**File:** `demand_store_test.go`  
+**Focus:** Demand heatmap storage and retrieval for scheduling optimization.
+
+| Test Function | Description | Key Verifications |
+| :--- | :--- | :--- |
+| **`TestStoreDemandHeatMap`** | Saves a full demand heatmap for an organization. | **Success:** **Transactional:** Deletes existing demand data, then inserts new hourly demand entries within a single transaction.<br>**RollbackOnInsert:** Verifies rollback when an insert fails mid-transaction.<br>**RollbackOnDelete:** Verifies rollback when the initial delete fails. |
+| **`TestGetLatestDemandHeatMap`** | Retrieves the most recent demand heatmap grouped by day. | **Success:** Verifies rows are grouped by `day_of_week` using `MAX(created_at)` and ordered Sunday–Saturday.<br>**NoData:** Returns empty slice when no demand data exists.<br>**DBError:** Handles query failure gracefully. |
+| **`TestDeleteDemandByOrganization`** | Removes all demand data for an organization. | **Success:** Verifies deletion query executes correctly.<br>**NoData:** Succeeds silently when no rows match.<br>**DBError:** Handles query failure gracefully. |
 
 ---
 
@@ -127,6 +170,19 @@ This documentation provides an overview of the unit tests for the PostgreSQL sto
 | **`TestGetRulesByOrganizationID`** | Fetches rules. | **Conditional Logic:** If `FixedShifts` is true, verifies a secondary query is executed to fetch `organization_shift_times`. |
 | **`TestUpdateRules`** | Updates existing rules. | Verifies standard SQL update. |
 | **`TestUpsertRules`** | Creates or Updates rules. | **Transactional:** Verifies `ON CONFLICT` update for rules, and (if applicable) deletes old shift times to prepare for new ones. |
+
+---
+
+## Schedule Store Tests
+**File:** `schedule_store_test.go`  
+**Focus:** Employee schedule storage and retrieval.
+
+| Test Function | Description | Key Verifications |
+| :--- | :--- | :--- |
+| **`TestStoreScheduleForUser`** | Saves a weekly schedule for a specific employee. | **Success:** Verifies user existence in the organization before inserting schedule entries (day, start time, end time).<br>**UserNotInOrg:** Returns error when the user does not belong to the organization.<br>**VerifyError:** Handles user verification query failure.<br>**InsertError:** Handles schedule insertion failure. |
+| **`TestGetScheduleForEmployeeForSevenDays`** | Retrieves 7-day schedule for a single employee. | **Success:** Verifies user existence check followed by schedule retrieval ordered by day of week.<br>**UserNotInOrg:** Returns error when the user does not belong to the organization.<br>**EmptyResult:** Returns empty slice when the user has no scheduled shifts. |
+
+> **Note:** `GetFullScheduleForSevenDays` uses PostgreSQL `ARRAY_AGG` which cannot be tested with `go-sqlmock`. This function requires integration tests with a live database.
 
 ---
 

@@ -19,21 +19,29 @@ func TestGetOperatingHours(t *testing.T) {
 
 	orgID := uuid.New()
 
-	query := regexp.QuoteMeta(`SELECT organization_id, weekday, opening_time, closing_time FROM organizations_operating_hours WHERE organization_id = $1 ORDER BY CASE weekday WHEN 'Sunday' THEN 0 WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 END`)
+	query := regexp.QuoteMeta(`SELECT organization_id, weekday, opening_time, closing_time FROM organizations_operating_hours WHERE organization_id = $1 ORDER BY CASE weekday WHEN 'sunday' THEN 0 WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 WHEN 'friday' THEN 5 WHEN 'saturday' THEN 6 END`)
 
 	t.Run("Success", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"organization_id", "weekday", "opening_time", "closing_time"}).
-			AddRow(orgID, "Monday", "09:00:00", "17:00:00").
-			AddRow(orgID, "Tuesday", "09:00:00", "17:00:00")
+			AddRow(orgID, "monday", "09:00:00", "17:00:00").
+			AddRow(orgID, "tuesday", "09:00:00", "17:00:00")
 
 		mock.ExpectQuery(query).WithArgs(orgID).WillReturnRows(rows)
 
 		hours, err := store.GetOperatingHours(orgID)
 
 		assert.NoError(t, err)
-		assert.Len(t, hours, 2)
-		assert.Equal(t, "Monday", hours[0].Weekday)
-		assert.Equal(t, "Tuesday", hours[1].Weekday)
+		// Store returns all 7 days (filling in closed=true for missing ones)
+		assert.Len(t, hours, 7)
+		// Monday and Tuesday should have times, others should be closed
+		assert.Equal(t, "monday", hours[1].Weekday)
+		assert.Equal(t, "09:00:00", hours[1].OpeningTime)
+		assert.Equal(t, "tuesday", hours[2].Weekday)
+		assert.Equal(t, "09:00:00", hours[2].OpeningTime)
+		// Sunday (index 0) should be closed
+		assert.Equal(t, "sunday", hours[0].Weekday)
+		assert.NotNil(t, hours[0].Closed)
+		assert.True(t, *hours[0].Closed)
 		AssertExpectations(t, mock)
 	})
 
@@ -77,8 +85,12 @@ func TestGetOperatingHoursByDay(t *testing.T) {
 
 		hours, err := store.GetOperatingHoursByDay(orgID, weekday)
 
-		assert.NoError(t, err) // Expect nil, nil on ErrNoRows
-		assert.Nil(t, hours)
+		assert.NoError(t, err)
+		// Store returns a non-nil OperatingHours with Closed=true when not found
+		assert.NotNil(t, hours)
+		assert.Equal(t, weekday, hours.Weekday)
+		assert.NotNil(t, hours.Closed)
+		assert.True(t, *hours.Closed)
 		AssertExpectations(t, mock)
 	})
 }
