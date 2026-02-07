@@ -145,9 +145,18 @@ if SURGE_API_AVAILABLE:
 
 class OpeningHoursDay(BaseModel):
     """Opening hours for a specific day"""
-    from_time: Optional[str] = Field(None, alias="from", description="Opening time (HH:MM)")
-    to: Optional[str] = Field(None, description="Closing time (HH:MM)")
+    weekday: Optional[str] = None
+    opening_time: Optional[str] = None
+    closing_time: Optional[str] = None
     closed: Optional[bool] = Field(None, description="True if closed this day")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ShiftTimeData(BaseModel):
+    """Shift time with from/to fields"""
+    from_time: str = Field(..., alias="from", description="Shift start time (HH:MM)")
+    to: str = Field(..., description="Shift end time (HH:MM)")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -155,36 +164,114 @@ class OpeningHoursDay(BaseModel):
 class PlaceData(BaseModel):
     """Restaurant/Place information"""
     place_id: str
-    place_name: str
+    name: Optional[str] = None
+    place_name: Optional[str] = None
     type: str
     latitude: float
     longitude: float
     waiting_time: Optional[int] = None
     receiving_phone: bool
     delivery: bool
-    opening_hours: Dict[str, OpeningHoursDay]
+    opening_hours: Union[List[OpeningHoursDay], Dict[str, OpeningHoursDay]]
     fixed_shifts: bool = True
     number_of_shifts_per_day: int = 3
-    shift_times: List[str]
+    shift_times: Optional[List[ShiftTimeData]] = Field(None)
+    shift_time: Optional[List[ShiftTimeData]] = Field(None)
     rating: Optional[float] = None
     accepting_orders: Optional[bool] = True
 
+    @property
+    def resolved_name(self) -> str:
+        return self.place_name or self.name or "Unknown"
+
+    @property
+    def resolved_shift_times(self) -> List[ShiftTimeData]:
+        return self.shift_times or self.shift_time or []
+
+    @property
+    def resolved_opening_hours(self) -> Dict[str, OpeningHoursDay]:
+        """Normalize opening_hours to dict keyed by lowercase weekday name"""
+        if isinstance(self.opening_hours, dict):
+            return self.opening_hours
+        # Convert list of OpeningHoursDay to dict keyed by weekday
+        result = {}
+        for entry in self.opening_hours:
+            if entry.weekday:
+                result[entry.weekday.lower()] = entry
+        return result
+
+
+class OrderItemData_Inline(BaseModel):
+    """Inline order item from Go backend"""
+    item_id: Optional[str] = None
+    quantity: Optional[int] = None
+    total_price: Optional[float] = None
 
 class OrderData(BaseModel):
     """Historical order information"""
-    time: str
-    items: int
-    status: str
-    total_amount: float
+    order_id: Optional[str] = None
+    user_id: Optional[str] = None
+    time: Optional[str] = None
+    create_time: Optional[str] = None
+    order_type: Optional[str] = None
+    items: Optional[Union[int, List[OrderItemData_Inline], None]] = None
+    item_count: Optional[int] = None
+    status: Optional[str] = None
+    order_status: Optional[str] = None
+    total_amount: float = 0
     discount_amount: float = 0
+    rating: Optional[float] = None
+    delivery_status: Optional[Dict[str, Any]] = None
 
+    @property
+    def resolved_time(self) -> str:
+        return self.time or self.create_time or ""
+
+    @property
+    def resolved_status(self) -> str:
+        return self.status or self.order_status or ""
+
+    @property
+    def resolved_items(self) -> int:
+        if isinstance(self.items, int):
+            return self.items
+        if isinstance(self.items, list):
+            return len(self.items)
+        if self.item_count is not None:
+            return self.item_count
+        return 0
+
+
+class CampaignItemData(BaseModel):
+    """Campaign item from Go backend"""
+    item_id: Optional[str] = None
+    name: Optional[str] = None
+    needed_employees: Optional[int] = None
+    price: Optional[float] = None
 
 class CampaignData(BaseModel):
     """Marketing campaign information"""
-    start_time: str
-    end_time: str
-    items_included: List[str]
-    discount: float
+    id: Optional[str] = None
+    name: Optional[str] = None
+    status: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    items_included: Optional[Union[List[str], List[CampaignItemData]]] = []
+    discount: Optional[float] = 0
+
+    @property
+    def resolved_items(self) -> List[str]:
+        if not self.items_included:
+            return []
+        result = []
+        for item in self.items_included:
+            if isinstance(item, str):
+                result.append(item)
+            elif isinstance(item, CampaignItemData):
+                result.append(item.name or item.item_id or "")
+            elif isinstance(item, dict):
+                result.append(item.get("name", item.get("item_id", "")))
+        return result
 
 
 # ============================================================================
@@ -493,6 +580,25 @@ def time_to_slot(time_str: str, slot_duration_hours: float = 1.0) -> int:
 # HELPER FUNCTIONS - ORDER PROCESSING
 # ============================================================================
 
+def _ensure_tz_naive_utc(dt_series: pd.Series) -> pd.Series:
+    """Ensure a datetime series is tz-naive (UTC). Strips timezone info.
+    Handles mixed tz-naive/tz-aware and object dtype columns."""
+    try:
+        # Force everything to UTC-aware, then strip timezone
+        return pd.to_datetime(dt_series, utc=True).dt.tz_localize(None)
+    except Exception:
+        # Fallback: already tz-naive datetime
+        return pd.to_datetime(dt_series)
+
+
+def _parse_datetime_naive(value) -> pd.Timestamp:
+    """Parse any datetime value to a tz-naive UTC Timestamp."""
+    ts = pd.to_datetime(value)
+    if ts.tzinfo is not None:
+        ts = ts.tz_convert('UTC').tz_localize(None)
+    return ts
+
+
 def process_historical_orders(orders: List[OrderData], place_id: str = "pl_001") -> pd.DataFrame:
     """Convert order data to DataFrame with temporal features"""
     if not orders:
@@ -501,11 +607,11 @@ def process_historical_orders(orders: List[OrderData], place_id: str = "pl_001")
     order_dicts = []
     for order in orders:
         order_dicts.append({
-            'created': pd.to_datetime(order.time).timestamp(),
+            'created': _parse_datetime_naive(order.resolved_time).timestamp(),
             'place_id': place_id,
             'total_amount': order.total_amount,
-            'item_count': order.items,
-            'status': order.status
+            'item_count': order.resolved_items,
+            'status': order.resolved_status
         })
     
     df = pd.DataFrame(order_dicts)
@@ -526,6 +632,7 @@ def aggregate_to_hourly(orders_df: pd.DataFrame) -> pd.DataFrame:
     
     hourly['datetime'] = pd.to_datetime(hourly['date'].astype(str)) + \
                          pd.to_timedelta(hourly['hour'], unit='h')
+    hourly['datetime'] = _ensure_tz_naive_utc(hourly['datetime'])
     
     return hourly
 
@@ -539,7 +646,7 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df['day_of_week'] = df['datetime'].dt.dayofweek
     df['month'] = df['datetime'].dt.month
-    df['week_of_year'] = df['datetime'].dt.isocalendar().week
+    df['week_of_year'] = df['datetime'].dt.isocalendar().week.astype(int)
     return df
 
 
@@ -569,14 +676,14 @@ def calculate_campaign_features(campaigns: List[CampaignData]) -> dict:
         return {'total_campaigns': 0, 'avg_discount': 0}
     
     total = len(campaigns)
-    avg_discount = np.mean([c.discount for c in campaigns])
+    avg_discount = np.mean([c.discount or 0 for c in campaigns])
     
     return {'total_campaigns': total, 'avg_discount': avg_discount}
 
 
 def create_prediction_windows(start_date: str, num_days: int, place_id: str = "pl_001") -> pd.DataFrame:
     """Create future time windows for prediction"""
-    start = pd.to_datetime(start_date)
+    start = _parse_datetime_naive(start_date)
     
     date_hours = []
     for day_offset in range(num_days):
@@ -590,6 +697,7 @@ def create_prediction_windows(start_date: str, num_days: int, place_id: str = "p
             })
     
     df = pd.DataFrame(date_hours)
+    df['datetime'] = _ensure_tz_naive_utc(df['datetime'])
     return add_time_features(df)
 
 
@@ -649,10 +757,13 @@ def prepare_features_for_prediction(
     future_df = create_prediction_windows(prediction_start, prediction_days, place.place_id)
     
     combined = pd.concat([hourly_hist, future_df], ignore_index=True)
+    # Normalize all datetimes to tz-naive UTC to prevent comparison errors
+    combined['datetime'] = pd.to_datetime(combined['datetime'], utc=True).dt.tz_localize(None)
     combined = combined.sort_values(['place_id', 'datetime'])
     combined = add_lag_features(combined)
     
-    prediction_df = combined[combined['datetime'] >= pd.to_datetime(prediction_start)].copy()
+    prediction_start_ts = _parse_datetime_naive(prediction_start)
+    prediction_df = combined[combined['datetime'] >= prediction_start_ts].copy()
     
     type_mapping = {'bar': 1332, 'cafe': 1333, 'lounge': 1334, 'restaurant': 1335, 'pub': 1336}
     prediction_df['type_id'] = type_mapping.get(place.type, 1335)
@@ -706,7 +817,12 @@ def prepare_features_for_prediction(
     
     prediction_df = prediction_df.drop(['latitude', 'longitude'], axis=1, errors='ignore')
     
+    # Ensure date column is preserved for response formatting
+    if 'date' not in prediction_df.columns:
+        prediction_df['date'] = prediction_df['datetime'].dt.date
+    
     logger.info(f"✓ Feature preparation complete. Shape: {prediction_df.shape}")
+    logger.info(f"✓ Columns: {list(prediction_df.columns)}")
     return prediction_df
 
 
@@ -745,6 +861,13 @@ def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
     df['is_holiday'] = df['is_holiday'].astype('int')
     df.columns = df.columns.astype(str)
     
+    # Ensure all columns are plain numeric types (no UInt32, categorical, etc.)
+    for col in df.columns:
+        if pd.api.types.is_categorical_dtype(df[col]):
+            df[col] = df[col].astype(float)
+        elif hasattr(df[col].dtype, 'numpy_dtype'):
+            df[col] = df[col].astype(df[col].dtype.numpy_dtype)
+    
     if df.isnull().any().any():
         df = df.fillna(0)
     
@@ -771,19 +894,20 @@ def zero_out_closed_hours(
         hour = int(row['hour'])
         day_name = day_name_map[day_of_week]
         
-        if day_name not in place.opening_hours:
+        resolved_hours = place.resolved_opening_hours
+        if day_name not in resolved_hours:
             continue
         
-        opening_hours = place.opening_hours[day_name]
+        opening_hours = resolved_hours[day_name]
         
         if opening_hours.closed:
             predictions[idx, 0] = 0
             predictions[idx, 1] = 0
             continue
         
-        if opening_hours.from_time and opening_hours.to:
-            open_hour = parse_time_to_hour(opening_hours.from_time)
-            close_hour = parse_time_to_hour(opening_hours.to)
+        if opening_hours.opening_time and opening_hours.closing_time:
+            open_hour = parse_time_to_hour(opening_hours.opening_time)
+            close_hour = parse_time_to_hour(opening_hours.closing_time)
             
             if close_hour < open_hour:
                 is_open = (hour >= open_hour) or (hour < close_hour)
@@ -927,7 +1051,7 @@ def convert_api_data_to_scheduler_input(
     
     shifts = []
     if place.fixed_shifts:
-        shifts = parse_shift_times_fixed(place.shift_times, place, calendar_day_to_pred_days)
+        shifts = parse_shift_times_fixed(place.resolved_shift_times, place, calendar_day_to_pred_days)
     
     return SchedulerInput(
         employees=scheduler_employees,
@@ -951,21 +1075,16 @@ def convert_api_data_to_scheduler_input(
 
 
 def parse_shift_times_fixed(
-    shift_times: List[str], 
+    shift_times: List[ShiftTimeData], 
     place: PlaceData, 
     calendar_day_to_pred_days: Dict[str, List[int]]
 ) -> List[Shift]:
-    """Parse shift time strings into Shift objects"""
+    """Parse shift time objects into Shift objects"""
     shifts = []
     
     for shift_idx, shift_time in enumerate(shift_times):
-        parts = shift_time.split('-')
-        if len(parts) != 2:
-            continue
-        
-        start_str, end_str = parts
-        start_hour = parse_time_to_hour(start_str)
-        end_hour = parse_time_to_hour(end_str)
+        start_hour = parse_time_to_hour(shift_time.from_time)
+        end_hour = parse_time_to_hour(shift_time.to)
         
         if start_hour == -1 or end_hour == -1:
             continue
@@ -973,7 +1092,7 @@ def parse_shift_times_fixed(
         if end_hour <= start_hour:
             end_hour += 24
         
-        for calendar_day_name, hours in place.opening_hours.items():
+        for calendar_day_name, hours in place.resolved_opening_hours.items():
             if hours.closed:
                 continue
             
@@ -1116,7 +1235,7 @@ def model_info():
     return metadata
 
 
-@app.post("/predict/demand", response_model=DemandPredictionResponse, tags=["Demand Prediction"])
+@app.post("/predict/demand", response_model=DemandOutput, tags=["Demand Prediction"])
 def predict_demand_only(request: DemandPredictionRequest):
     """Predict demand only (no scheduling)"""
     
@@ -1124,7 +1243,7 @@ def predict_demand_only(request: DemandPredictionRequest):
         raise HTTPException(status_code=503, detail="Model not loaded")
     
     try:
-        logger.info(f"Processing demand prediction for {request.place.place_name}")
+        logger.info(f"Processing demand prediction for {request.place.resolved_name}")
         
         features_df = prepare_features_for_prediction(
             place=request.place,
@@ -1135,6 +1254,11 @@ def predict_demand_only(request: DemandPredictionRequest):
         )
         
         datetime_info = features_df[['datetime', 'date', 'hour']].copy()
+        
+        # Ensure date column exists and is properly formatted
+        if 'date' not in datetime_info.columns or datetime_info['date'].isnull().any():
+            datetime_info['date'] = datetime_info['datetime'].dt.date
+        
         X = align_features_with_model(features_df)
         
         predictions = model.predict(X)
@@ -1163,14 +1287,16 @@ def predict_demand_only(request: DemandPredictionRequest):
                 hours=hours
             ))
         
+        logger.info(f"Built {len(days)} days with predictions")
+        
         demand_output = DemandOutput(
-            restaurant_name=request.place.place_name,
-            prediction_period=f"{request.prediction_start_date} to {days[-1].date}",
+            restaurant_name=request.place.resolved_name,
+            prediction_period=f"{request.prediction_start_date} to {days[-1].date}" if days else "No predictions",
             days=days
         )
         
-        logger.info("✓ Demand prediction completed")
-        return DemandPredictionResponse(demand_output=demand_output)
+        logger.info(f"✓ Demand prediction completed: {len(days)} days")
+        return demand_output
         
     except Exception as e:
         logger.error(f"Demand prediction failed: {e}", exc_info=True)
@@ -1185,7 +1311,7 @@ def predict_schedule_only(request: SchedulingRequest):
         raise HTTPException(status_code=503, detail="Scheduler not available")
     
     try:
-        logger.info(f"Processing scheduling for {request.place.place_name}")
+        logger.info(f"Processing scheduling for {request.place.resolved_name}")
         
         demand_data = []
         for day in request.demand_predictions:
@@ -1268,7 +1394,7 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
             if isinstance(order, dict):
                 orders_data.append({
                     'id': f"order_{i}",
-                    'created': pd.to_datetime(order['time']).timestamp(),
+                    'created': _parse_datetime_naive(order['time']).timestamp(),
                     'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
                     'total_amount': order['total_amount'],
                     'item_count': order['items'],
@@ -1278,11 +1404,11 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
             else:
                 orders_data.append({
                     'id': f"order_{i}",
-                    'created': pd.to_datetime(order.time).timestamp(),
+                    'created': _parse_datetime_naive(order.resolved_time).timestamp(),
                     'place_id': request.place['place_id'] if isinstance(request.place, dict) else request.place.place_id,
                     'total_amount': order.total_amount,
-                    'item_count': order.items,
-                    'status': order.status,
+                    'item_count': order.resolved_items,
+                    'status': order.resolved_status,
                     'discount_amount': order.discount_amount
                 })
         
@@ -1303,8 +1429,8 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
                     'id': f"campaign_{i}",
                     'start_time': campaign.start_time,
                     'end_time': campaign.end_time,
-                    'items_included': campaign.items_included,
-                    'discount': campaign.discount
+                    'items_included': campaign.resolved_items,
+                    'discount': campaign.discount or 0
                 })
         
         order_items_data = []
@@ -1327,7 +1453,7 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
                 'item_id': ['item_generic'] * len(orders_df)
             })
         
-        start_date = pd.to_datetime(request.recommendation_start_date)
+        start_date = _parse_datetime_naive(request.recommendation_start_date)
         
         if isinstance(request.place, dict):
             place_lat = request.place.get('latitude', 55.6761)
@@ -1466,7 +1592,7 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
             ]
         
         model_confidence = "high" if len(campaigns_data) >= 10 else "medium" if len(campaigns_data) >= 5 else "low"
-        restaurant_name = request.place['place_name'] if isinstance(request.place, dict) else request.place.place_name
+        restaurant_name = request.place['place_name'] if isinstance(request.place, dict) else request.place.resolved_name
         
         response = CampaignRecommendationResponse(
             restaurant_name=restaurant_name,
@@ -1643,7 +1769,7 @@ def predict_demand_and_schedule(request: CombinedRequest):
             days.append(DayPrediction(day_name=day_name, date=str(date_val), hours=hours))
         
         demand_output = DemandOutput(
-            restaurant_name=request.demand_input.place.place_name,
+            restaurant_name=request.demand_input.place.resolved_name,
             prediction_period=f"{request.demand_input.prediction_start_date} to {days[-1].date}",
             days=days
         )
