@@ -30,6 +30,119 @@ print("="*80)
 print()
 
 # ============================================================================
+# SAMPLE WEIGHTING FUNCTION
+# ============================================================================
+def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5, 1.0)):
+    """
+    Calculate sample weights for training data
+    
+    Parameters:
+    -----------
+    y_data : pd.DataFrame
+        Target data with 'item_count' column
+    weight_type : str
+        'temporal': Weight by recency (recent data gets more weight)
+        'demand': Weight by demand level (high demand gets more weight)
+        'combined': Combine both temporal and demand weighting
+    temporal_range : tuple
+        (min_weight, max_weight) for temporal weighting
+        
+    Returns:
+    --------
+    np.ndarray : Sample weights
+    """
+    n = len(y_data)
+    
+    if weight_type == 'temporal':
+        # Linear weighting: older data gets less weight
+        weights = np.linspace(temporal_range[0], temporal_range[1], n)
+        
+    elif weight_type == 'demand':
+        # Weight by log of demand (high demand gets more weight)
+        weights = np.log1p(y_data['item_count']) + 1
+        
+    elif weight_type == 'combined':
+        # Combine temporal and demand weighting
+        temporal_weights = np.linspace(temporal_range[0], temporal_range[1], n)
+        demand_weights = np.log1p(y_data['item_count']) + 1
+        
+        # Normalize demand weights to have similar scale as temporal
+        demand_weights = (demand_weights - demand_weights.min()) / (demand_weights.max() - demand_weights.min())
+        demand_weights = demand_weights * (temporal_range[1] - temporal_range[0]) + temporal_range[0]
+        
+        # Multiply weights (both contribute)
+        weights = temporal_weights * demand_weights
+    
+    else:
+        # No weighting
+        weights = np.ones(n)
+    
+    return weights
+
+
+def fit_model_with_weights(model, x_train, y_train, sample_weights=None):
+    """
+    Fit a model with sample weights, handling sklearn parameter routing properly
+    
+    Parameters:
+    -----------
+    model : sklearn estimator
+        Model to fit (can be TransformedTargetRegressor with Pipeline)
+    x_train : array-like
+        Training features
+    y_train : array-like
+        Training targets
+    sample_weights : array-like, optional
+        Sample weights
+        
+    Returns:
+    --------
+    fitted model
+    """
+    if sample_weights is None:
+        return model.fit(x_train, y_train)
+    
+    # For TransformedTargetRegressor, we need a different approach
+    # to avoid sklearn's complex parameter routing with sample_weight
+    if isinstance(model, TransformedTargetRegressor):
+        # Transform targets manually
+        if model.func is not None:
+            y_transformed = model.func(y_train)
+        else:
+            y_transformed = y_train
+        
+        # Fit the underlying pipeline with transformed targets and weights
+        # The pipeline has steps: ('preprocessor', ...), ('model', MultiOutputRegressor(...))
+        # So we pass sample_weight with the step prefix 'model__'
+        pipeline = model.regressor
+        pipeline.fit(x_train, y_transformed, model__sample_weight=sample_weights)
+        
+        # Store the fitted pipeline
+        model.regressor_ = pipeline
+        
+        # Set up the transformer for inverse transformation
+        from sklearn.preprocessing import FunctionTransformer
+        if model.func is not None:
+            model.transformer_ = FunctionTransformer(
+                func=model.func,
+                inverse_func=model.inverse_func,
+                check_inverse=False
+            )
+            # Fit transformer on y to set internal attributes
+            model.transformer_.fit(y_train)
+        
+        # Set training dimension (needed for sklearn >= 1.0)
+        if hasattr(y_train, 'shape'):
+            model._training_dim = y_train.shape[1] if len(y_train.shape) > 1 else 1
+        else:
+            model._training_dim = 1
+            
+        return model
+    else:
+        # Simple model - pass weights directly
+        return model.fit(x_train, y_train, sample_weight=sample_weights)
+
+# ============================================================================
 # LOAD DATA
 # ============================================================================
 print("Loading data...")
@@ -66,6 +179,19 @@ y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
 
 print(f"\nTrain samples: {len(x_train)}")
 print(f"Test samples: {len(x_test)}")
+
+# Calculate sample weights for training data
+print("\n" + "="*80)
+print("CALCULATING SAMPLE WEIGHTS")
+print("="*80)
+sample_weights = calculate_sample_weights(y_train, weight_type='combined', temporal_range=(0.5, 1.0))
+print(f"Sample weights calculated: {len(sample_weights)} samples")
+print(f"  Weight range: [{sample_weights.min():.4f}, {sample_weights.max():.4f}]")
+print(f"  Weight mean: {sample_weights.mean():.4f}")
+print(f"  Weight std: {sample_weights.std():.4f}")
+print(f"  Strategy: Combined (temporal + demand-level)")
+print(f"  >> Recent data and high-demand scenarios get higher weights")
+print("="*80 + "\n")
 
 # Setup preprocessing
 scale_features = [
@@ -132,7 +258,7 @@ baseline_model = TransformedTargetRegressor(
 )
 
 print("Training baseline model...")
-baseline_model.fit(x_train, y_train)
+fit_model_with_weights(baseline_model, x_train, y_train, sample_weights)
 baseline_pred = baseline_model.predict(x_test)
 
 baseline_mae_items = mean_absolute_error(y_test['item_count'], baseline_pred[:, 0])
@@ -217,6 +343,9 @@ for context in contexts:
     
     print(f"    Samples: {len(x_train_ctx)}")
     
+    # Calculate sample weights for this context
+    ctx_sample_weights = calculate_sample_weights(y_train_ctx, weight_type='combined', temporal_range=(0.5, 1.0))
+    
     # Train model
     ctx_pipeline = Pipeline([
         ('preprocessor', preprocessor),
@@ -229,7 +358,7 @@ for context in contexts:
         inverse_func=np.expm1
     )
     
-    ctx_model.fit(x_train_ctx, y_train_ctx)
+    fit_model_with_weights(ctx_model, x_train_ctx, y_train_ctx, ctx_sample_weights)
     intuitive_models[context] = ctx_model
 
 # Make predictions using context-specific models
@@ -363,6 +492,9 @@ for cluster_id in range(optimal_k):
     
     print(f"    Samples: {len(x_train_cluster_subset)}")
     
+    # Calculate sample weights for this cluster
+    cluster_sample_weights = calculate_sample_weights(y_train_cluster_subset, weight_type='combined', temporal_range=(0.5, 1.0))
+    
     # Train model
     cluster_pipeline = Pipeline([
         ('preprocessor', preprocessor),
@@ -375,7 +507,7 @@ for cluster_id in range(optimal_k):
         inverse_func=np.expm1
     )
     
-    cluster_model.fit(x_train_cluster_subset, y_train_cluster_subset)
+    fit_model_with_weights(cluster_model, x_train_cluster_subset, y_train_cluster_subset, cluster_sample_weights)
     kmeans_models[cluster_id] = cluster_model
 
 # Make predictions using cluster-specific models

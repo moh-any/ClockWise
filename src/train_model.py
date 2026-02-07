@@ -52,6 +52,119 @@ print(f"Optuna available: {OPTUNA_AVAILABLE}")
 print(f"Phase 3: CatBoost + Hyperparameter Optimization")
 print("="*80 + "\n")
 
+# ============================================================================
+# SAMPLE WEIGHTING FUNCTION
+# ============================================================================
+def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5, 1.0)):
+    """
+    Calculate sample weights for training data
+    
+    Parameters:
+    -----------
+    y_data : pd.DataFrame
+        Target data with 'item_count' column
+    weight_type : str
+        'temporal': Weight by recency (recent data gets more weight)
+        'demand': Weight by demand level (high demand gets more weight)
+        'combined': Combine both temporal and demand weighting
+    temporal_range : tuple
+        (min_weight, max_weight) for temporal weighting
+        
+    Returns:
+    --------
+    np.ndarray : Sample weights
+    """
+    n = len(y_data)
+    
+    if weight_type == 'temporal':
+        # Linear weighting: older data gets less weight
+        weights = np.linspace(temporal_range[0], temporal_range[1], n)
+        
+    elif weight_type == 'demand':
+        # Weight by log of demand (high demand gets more weight)
+        weights = np.log1p(y_data['item_count']) + 1
+        
+    elif weight_type == 'combined':
+        # Combine temporal and demand weighting
+        temporal_weights = np.linspace(temporal_range[0], temporal_range[1], n)
+        demand_weights = np.log1p(y_data['item_count']) + 1
+        
+        # Normalize demand weights to have similar scale as temporal
+        demand_weights = (demand_weights - demand_weights.min()) / (demand_weights.max() - demand_weights.min())
+        demand_weights = demand_weights * (temporal_range[1] - temporal_range[0]) + temporal_range[0]
+        
+        # Multiply weights (both contribute)
+        weights = temporal_weights * demand_weights
+    
+    else:
+        # No weighting
+        weights = np.ones(n)
+    
+    return weights
+
+
+def fit_model_with_weights(model, x_train, y_train, sample_weights=None):
+    """
+    Fit a model with sample weights, handling sklearn parameter routing properly
+    
+    Parameters:
+    -----------
+    model : sklearn estimator
+        Model to fit (can be TransformedTargetRegressor with Pipeline)
+    x_train : array-like
+        Training features
+    y_train : array-like
+        Training targets
+    sample_weights : array-like, optional
+        Sample weights
+        
+    Returns:
+    --------
+    fitted model
+    """
+    if sample_weights is None:
+        return model.fit(x_train, y_train)
+    
+    # For TransformedTargetRegressor, we need a different approach
+    # to avoid sklearn's complex parameter routing with sample_weight
+    if isinstance(model, TransformedTargetRegressor):
+        # Transform targets manually
+        if model.func is not None:
+            y_transformed = model.func(y_train)
+        else:
+            y_transformed = y_train
+        
+        # Fit the underlying pipeline with transformed targets and weights
+        # The pipeline has steps: ('preprocessor', ...), ('model', MultiOutputRegressor(...))
+        # So we pass sample_weight with the step prefix 'model__'
+        pipeline = model.regressor
+        pipeline.fit(x_train, y_transformed, model__sample_weight=sample_weights)
+        
+        # Store the fitted pipeline
+        model.regressor_ = pipeline
+        
+        # Set up the transformer for inverse transformation
+        from sklearn.preprocessing import FunctionTransformer
+        if model.func is not None:
+            model.transformer_ = FunctionTransformer(
+                func=model.func,
+                inverse_func=model.inverse_func,
+                check_inverse=False
+            )
+            # Fit transformer on y to set internal attributes
+            model.transformer_.fit(y_train)
+        
+        # Set training dimension (needed for sklearn >= 1.0)
+        if hasattr(y_train, 'shape'):
+            model._training_dim = y_train.shape[1] if len(y_train.shape) > 1 else 1
+        else:
+            model._training_dim = 1
+            
+        return model
+    else:
+        # Simple model - pass weights directly
+        return model.fit(x_train, y_train, sample_weight=sample_weights)
+
 # Load data
 df = pd.read_csv('data/processed/combined_features.csv')
 
@@ -80,6 +193,19 @@ y.columns = y.columns.astype(str)
 train_size = int(len(x) * 0.8)
 x_train, x_test = x[:train_size], x[train_size:]
 y_train, y_test = y[:train_size], y[train_size:]
+
+# Calculate sample weights for training data
+print("\n" + "="*80)
+print("CALCULATING SAMPLE WEIGHTS")
+print("="*80)
+sample_weights = calculate_sample_weights(y_train, weight_type='combined', temporal_range=(0.5, 1.0))
+print(f"Sample weights calculated: {len(sample_weights)} samples")
+print(f"  Weight range: [{sample_weights.min():.4f}, {sample_weights.max():.4f}]")
+print(f"  Weight mean: {sample_weights.mean():.4f}")
+print(f"  Weight std: {sample_weights.std():.4f}")
+print(f"  Strategy: Combined (temporal + demand-level)")
+print(f"  >> Recent data and high-demand scenarios get higher weights")
+print("="*80 + "\n")
 
 # Define preprocessing
 scale_features = [
@@ -167,7 +293,7 @@ rf_model = TransformedTargetRegressor(
 )
 
 start_time = time.time()
-rf_model.fit(x_train, y_train)
+fit_model_with_weights(rf_model, x_train, y_train, sample_weights)
 rf_train_time = time.time() - start_time
 
 y_pred_rf = rf_model.predict(x_test)
@@ -205,7 +331,7 @@ if XGBOOST_AVAILABLE:
     )
     
     start_time = time.time()
-    xgb_model.fit(x_train, y_train)
+    fit_model_with_weights(xgb_model, x_train, y_train, sample_weights)
     xgb_train_time = time.time() - start_time
     
     y_pred_xgb = xgb_model.predict(x_test)
@@ -236,7 +362,7 @@ if LIGHTGBM_AVAILABLE:
     )
     
     start_time = time.time()
-    lgbm_model.fit(x_train, y_train)
+    fit_model_with_weights(lgbm_model, x_train, y_train, sample_weights)
     lgbm_train_time = time.time() - start_time
     
     y_pred_lgbm = lgbm_model.predict(x_test)
@@ -277,7 +403,8 @@ if CATBOOST_AVAILABLE:
             thread_count=-1
         )
         
-        catboost_model.fit(x_train_preprocessed, y_train_target)
+        catboost_model.fit(x_train_preprocessed, y_train_target,
+                          sample_weight=sample_weights)
         catboost_models.append(catboost_model)
         
         # Predict and inverse transform
@@ -363,6 +490,9 @@ for fold, (train_idx, val_idx) in enumerate(tscv.split(x_train), 1):
     fold_x_train, fold_x_val = x_train.iloc[train_idx], x_train.iloc[val_idx]
     fold_y_train, fold_y_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
     
+    # Calculate sample weights for this fold
+    fold_sample_weights = calculate_sample_weights(fold_y_train, weight_type='combined', temporal_range=(0.5, 1.0))
+    
     for model_name in models_to_compare.keys():
         # Get a fresh model instance (same hyperparameters)
         if model_name == 'CatBoost' and CATBOOST_AVAILABLE:
@@ -382,7 +512,8 @@ for fold, (train_idx, val_idx) in enumerate(tscv.split(x_train), 1):
                     l2_leaf_reg=3.0, random_seed=42,
                     verbose=False, thread_count=-1
                 )
-                cb_model.fit(fold_x_train_prep, y_train_target)
+                cb_model.fit(fold_x_train_prep, y_train_target,
+                            sample_weight=fold_sample_weights)
                 
                 y_pred_target = np.expm1(cb_model.predict(fold_x_val_prep))
                 y_pred_cv_list.append(y_pred_target)
@@ -431,7 +562,7 @@ for fold, (train_idx, val_idx) in enumerate(tscv.split(x_train), 1):
                 )
             
             # Train and predict
-            model.fit(fold_x_train, fold_y_train)
+            fit_model_with_weights(model, fold_x_train, fold_y_train, fold_sample_weights)
             y_pred_cv = model.predict(fold_x_val)
         
         # Calculate average MAE across both targets
