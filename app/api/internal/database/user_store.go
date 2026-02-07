@@ -22,6 +22,7 @@ func Hash(plaintextPassword string) ([]byte, error) {
 	}
 	return hash, nil
 }
+
 func (p *Password) Set(plaintextPassword string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(plaintextPassword), 12)
 	if err != nil {
@@ -45,6 +46,20 @@ func (p *Password) Matches(plaintextPassword string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// GetHash returns the bcrypt hash for caching purposes
+func (p *Password) GetHash() []byte {
+	return p.hash
+}
+
+// NewPasswordFromHash creates a Password from an existing bcrypt hash
+// Used when reconstructing from cache
+func NewPasswordFromHash(hash []byte) Password {
+	return Password{
+		plainText: nil,
+		hash:      hash,
+	}
 }
 
 type User struct {
