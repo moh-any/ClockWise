@@ -1,7 +1,12 @@
 import numpy as np
 import pandas as pd
 import os
+import sys
 from pathlib import Path
+
+# Add parent directory to path for imports when running as script
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src.weather_api import get_weather_for_demand_data
 from src.holiday_api import add_holiday_feature
 
@@ -169,20 +174,39 @@ def add_time_context_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     
-    # Rush hour periods
+    # Rush hour periods (refined for better temporal targeting)
     df['is_breakfast_rush'] = ((df['hour'] >= 7) & (df['hour'] <= 9)).astype(int)
     df['is_lunch_rush'] = ((df['hour'] >= 11) & (df['hour'] <= 13)).astype(int)
+    df['is_peak_lunch'] = ((df['hour'] >= 12) & (df['hour'] <= 14)).astype(int)
     df['is_dinner_rush'] = ((df['hour'] >= 18) & (df['hour'] <= 20)).astype(int)
+    df['is_peak_dinner'] = ((df['hour'] >= 17) & (df['hour'] <= 19)).astype(int)  # Critical hours 16-17
     df['is_late_night'] = ((df['hour'] >= 22) | (df['hour'] <= 2)).astype(int)
+    df['is_midnight_zone'] = ((df['hour'] >= 23) | (df['hour'] <= 1)).astype(int)  # Hour 0, 23
+    
+    # Fine-grained hour categories
+    df['is_early_morning'] = ((df['hour'] >= 6) & (df['hour'] <= 8)).astype(int)  # Best performing hours
+    df['is_afternoon'] = ((df['hour'] >= 14) & (df['hour'] <= 17)).astype(int)
+    df['is_evening'] = ((df['hour'] >= 17) & (df['hour'] <= 21)).astype(int)
     
     # Weekend indicator
     df['is_weekend'] = (df['day_of_week'] >= 5).astype(int)
+    df['is_friday'] = (df['day_of_week'] == 4).astype(int)
+    df['is_saturday'] = (df['day_of_week'] == 5).astype(int)
+    df['is_sunday'] = (df['day_of_week'] == 6).astype(int)
+    
+    # Hour-Day interaction features (addresses temporal variance)
+    df['friday_evening'] = ((df['day_of_week'] == 4) & (df['hour'] >= 17)).astype(int)
+    df['saturday_evening'] = ((df['day_of_week'] == 5) & (df['hour'] >= 17)).astype(int)
+    df['weekend_lunch'] = ((df['day_of_week'] >= 5) & (df['hour'] >= 11) & (df['hour'] <= 14)).astype(int)
+    df['weekend_dinner'] = ((df['day_of_week'] >= 5) & (df['hour'] >= 17) & (df['hour'] <= 20)).astype(int)
+    df['weekday_lunch'] = ((df['day_of_week'] < 5) & (df['hour'] >= 11) & (df['hour'] <= 14)).astype(int)
+    df['weekday_dinner'] = ((df['day_of_week'] < 5) & (df['hour'] >= 17) & (df['hour'] <= 20)).astype(int)
     
     # Month start/end indicators
     df['is_month_start'] = (df['datetime'].dt.day <= 5).astype(int)
     df['is_month_end'] = (df['datetime'].dt.day >= 25).astype(int)
     
-    print(f"-> Added time context indicators (breakfast/lunch/dinner rush, late night, weekend, month start/end)")
+    print(f"-> Added enhanced time context indicators (peak lunch/dinner, hour-day interactions, weekend specifics)")
     return df
 
 
@@ -227,6 +251,61 @@ def add_venue_specific_features(df: pd.DataFrame) -> pd.DataFrame:
     df['is_venue_peak_hour'] = (df['hour'] == df['venue_peak_hour']).astype(int)
     
     print(f"-> Added venue-specific features (hour/dow averages, volatility, growth, peak hour)")
+    return df
+
+
+def add_weekend_specific_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add weekend-specific features to address weekend vs weekday performance gap.
+    
+    Parameters:
+    df: DataFrame with 'place_id', 'day_of_week', 'hour', 'item_count', 'datetime' columns
+    
+    Returns:
+    DataFrame with weekend-specific features
+    """
+    df = df.copy()
+    
+    # Weekend indicator for calculations
+    df['is_weekend_temp'] = (df['day_of_week'] >= 5).astype(int)
+    
+    # Historical weekend vs weekday average
+    weekend_avg = df[df['is_weekend_temp'] == 1].groupby('place_id')['item_count'].transform('mean')
+    weekday_avg = df[df['is_weekend_temp'] == 0].groupby('place_id')['item_count'].transform('mean')
+    
+    df['venue_weekend_avg'] = df.groupby('place_id')['is_weekend_temp'].transform(
+        lambda x: df.loc[x.index[df.loc[x.index, 'is_weekend_temp'] == 1], 'item_count'].mean()
+    )
+    df['venue_weekday_avg'] = df.groupby('place_id')['is_weekend_temp'].transform(
+        lambda x: df.loc[x.index[df.loc[x.index, 'is_weekend_temp'] == 0], 'item_count'].mean()
+    )
+    
+    # Fill NaN for venues without weekend/weekday data
+    df['venue_weekend_avg'] = df['venue_weekend_avg'].fillna(df.groupby('place_id')['item_count'].transform('mean'))
+    df['venue_weekday_avg'] = df['venue_weekday_avg'].fillna(df.groupby('place_id')['item_count'].transform('mean'))
+    
+    # Weekend lift ratio (how much busier on weekends)
+    df['venue_weekend_lift'] = (df['venue_weekend_avg'] / df['venue_weekday_avg'].replace(0, 1)).fillna(1)
+    
+    # Last weekend's demand (for weekend predictions)
+    df['last_weekend_same_hour'] = df.groupby(['place_id', 'hour'])['item_count'].shift(168)  # 7 days
+    
+    # Weekend volatility (how variable demand is on weekends)
+    weekend_std = df[df['is_weekend_temp'] == 1].groupby('place_id')['item_count'].transform('std')
+    df['venue_weekend_volatility'] = weekend_std.fillna(0)
+    
+    # Day position in weekend (Fri=0, Sat=1, Sun=2 for Friday-Sunday)
+    df['weekend_day_position'] = df['day_of_week'].apply(lambda x: x - 4 if x >= 4 else -1)
+    df['weekend_day_position'] = df['weekend_day_position'].clip(lower=-1)
+    
+    # Drop temporary column
+    df = df.drop(columns=['is_weekend_temp'])
+    
+    # Fill NaN in new features
+    weekend_cols = ['last_weekend_same_hour', 'venue_weekend_volatility']
+    df[weekend_cols] = df[weekend_cols].fillna(0)
+    
+    print(f"-> Added weekend-specific features (weekend avg/lift, last weekend, weekend volatility)")
     return df
 
 
@@ -458,6 +537,10 @@ def combine_features(raw_features: dict) -> pd.DataFrame:
     # Step 6b: Add venue-specific historical features (Phase 2)
     print("\nStep 6b: Adding venue-specific historical features...")
     combined = add_venue_specific_features(combined)
+    
+    # Step 6c: Add weekend-specific features (Phase 4 - addresses weekend gap)
+    print("\nStep 6c: Adding weekend-specific features...")
+    combined = add_weekend_specific_features(combined)
     
     # Step 7: Add weather features
     print("\nStep 7: Adding weather features...")

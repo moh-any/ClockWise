@@ -55,9 +55,9 @@ print("="*80 + "\n")
 # ============================================================================
 # SAMPLE WEIGHTING FUNCTION
 # ============================================================================
-def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5, 1.0)):
+def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5, 1.0), x_data=None):
     """
-    Calculate sample weights for training data
+    Calculate sample weights for training data with enhanced temporal and demand-based weighting
     
     Parameters:
     -----------
@@ -67,8 +67,11 @@ def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5
         'temporal': Weight by recency (recent data gets more weight)
         'demand': Weight by demand level (high demand gets more weight)
         'combined': Combine both temporal and demand weighting
+        'enhanced': Combine temporal, demand, and problematic hour/day weighting
     temporal_range : tuple
         (min_weight, max_weight) for temporal weighting
+    x_data : pd.DataFrame, optional
+        Feature data for enhanced weighting (must include 'hour', 'day_of_week')
         
     Returns:
     --------
@@ -96,6 +99,32 @@ def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5
         # Multiply weights (both contribute)
         weights = temporal_weights * demand_weights
     
+    elif weight_type == 'enhanced' and x_data is not None:
+        # Enhanced weighting: temporal + demand + problematic hours/days
+        temporal_weights = np.linspace(temporal_range[0], temporal_range[1], n)
+        demand_weights = np.log1p(y_data['item_count']) + 1
+        
+        # Normalize demand weights
+        demand_weights = (demand_weights - demand_weights.min()) / (demand_weights.max() - demand_weights.min())
+        demand_weights = demand_weights * (temporal_range[1] - temporal_range[0]) + temporal_range[0]
+        
+        # Temporal-specific weights (boost problematic hours from error analysis)
+        hour_weights = np.ones(n)
+        if 'hour' in x_data.columns:
+            problematic_hours = [0, 16, 17, 23]  # Midnight, 4-5pm, 11pm
+            for hour in problematic_hours:
+                hour_weights[x_data['hour'] == hour] *= 1.3
+        
+        # Day-specific weights (boost weekends, especially Fri-Sat)
+        day_weights = np.ones(n)
+        if 'day_of_week' in x_data.columns:
+            day_weights[x_data['day_of_week'] == 4] *= 1.2  # Friday
+            day_weights[x_data['day_of_week'] == 5] *= 1.25  # Saturday
+            day_weights[x_data['day_of_week'] == 6] *= 1.15  # Sunday
+        
+        # Combine all weights
+        weights = temporal_weights * demand_weights * hour_weights * day_weights
+    
     else:
         # No weighting
         weights = np.ones(n)
@@ -103,6 +132,35 @@ def calculate_sample_weights(y_data, weight_type='combined', temporal_range=(0.5
     return weights
 
 
+# ============================================================================
+# ASYMMETRIC LOSS FUNCTIONS (addresses under-prediction bias)
+# ============================================================================
+def asymmetric_mse_lgbm(y_true, y_pred):
+    """
+    Custom asymmetric MSE for LightGBM - penalizes under-prediction more heavily
+    
+    Under-prediction penalty: 2.0x (restaurants understaffed - BAD)
+    Over-prediction penalty: 1.0x (restaurants overstaffed - less bad)
+    """
+    residual = y_true - y_pred
+    grad = np.where(residual > 0, -2.0 * residual, -1.0 * residual)
+    hess = np.where(residual > 0, 2.0, 1.0)
+    return grad, hess
+
+
+def asymmetric_mae_catboost(y_true, y_pred):
+    """
+    Custom asymmetric MAE for CatBoost - penalizes under-prediction more heavily
+    """
+    residual = y_true - y_pred
+    # Penalize under-prediction 2x more than over-prediction
+    loss = np.where(residual > 0, 2.0 * np.abs(residual), 1.0 * np.abs(residual))
+    return loss.mean()
+
+
+# ============================================================================
+# MODEL FITTING WITH WEIGHTS
+# ============================================================================
 def fit_model_with_weights(model, x_train, y_train, sample_weights=None):
     """
     Fit a model with sample weights, handling sklearn parameter routing properly
@@ -196,15 +254,20 @@ y_train, y_test = y[:train_size], y[train_size:]
 
 # Calculate sample weights for training data
 print("\n" + "="*80)
-print("CALCULATING SAMPLE WEIGHTS")
+print("CALCULATING ENHANCED SAMPLE WEIGHTS")
 print("="*80)
-sample_weights = calculate_sample_weights(y_train, weight_type='combined', temporal_range=(0.5, 1.0))
+sample_weights = calculate_sample_weights(
+    y_train, 
+    weight_type='enhanced',  # Enhanced weighting targets problematic hours/days
+    temporal_range=(0.5, 1.0),
+    x_data=x_train
+)
 print(f"Sample weights calculated: {len(sample_weights)} samples")
 print(f"  Weight range: [{sample_weights.min():.4f}, {sample_weights.max():.4f}]")
 print(f"  Weight mean: {sample_weights.mean():.4f}")
 print(f"  Weight std: {sample_weights.std():.4f}")
-print(f"  Strategy: Combined (temporal + demand-level)")
-print(f"  >> Recent data and high-demand scenarios get higher weights")
+print(f"  Strategy: Enhanced (temporal + demand + problematic hours/weekends)")
+print(f"  >> Boosted: High demand, hours 0/16/17/23, Fri/Sat/Sun")
 print("="*80 + "\n")
 
 # Define preprocessing
@@ -224,7 +287,11 @@ scale_features = [
     'venue_total_items', 'venue_growth_recent_vs_historical',
     # Phase 2 features - weather interactions
     'feels_like_temp', 'bad_weather_score', 'temp_change_1h', 
-    'temp_change_3h'
+    'temp_change_3h',
+    # Phase 4 features - weekend specific (addresses weekend gap)
+    'venue_weekend_avg', 'venue_weekday_avg', 'venue_weekend_lift',
+    'last_weekend_same_hour', 'venue_weekend_volatility',
+    'weekend_day_position'
 ]
 
 # Filter to only include features that exist in the dataset
@@ -341,13 +408,16 @@ if XGBOOST_AVAILABLE:
         'train_time': xgb_train_time
     }
 
-# 3. LightGBM (with optimized hyperparameters)
+# 3. LightGBM (with optimized hyperparameters + asymmetric loss)
 if LIGHTGBM_AVAILABLE:
-    print("\n3. LightGBM (Optimized)...")
+    print("\n3. LightGBM (Optimized + Asymmetric Loss)...")
+    print("  Using quantile regression (α=0.65) to reduce under-prediction bias")
     lgbm_pipeline = Pipeline([
         ('preprocessor', preprocessor),
         ('model', MultiOutputRegressor(LGBMRegressor(
             **best_lgbm_params,
+            objective='quantile',  # Use quantile regression to penalize under-prediction
+            alpha=0.65,  # Target 65th percentile (reduces under-prediction)
             random_state=42,
             n_jobs=-1,
             verbose=-1,
@@ -372,9 +442,10 @@ if LIGHTGBM_AVAILABLE:
         'train_time': lgbm_train_time
     }
 
-# 4. CatBoost (without sklearn wrappers due to compatibility)
+# 4. CatBoost (without sklearn wrappers due to compatibility + asymmetric loss)
 if CATBOOST_AVAILABLE:
-    print("\n4. CatBoost...")
+    print("\n4. CatBoost (with Asymmetric Loss)...")
+    print("  Using Quantile loss (α=0.65) to reduce under-prediction bias")
     
     start_time = time.time()
     
@@ -398,6 +469,7 @@ if CATBOOST_AVAILABLE:
             depth=8,
             learning_rate=0.05,
             l2_leaf_reg=3.0,
+            loss_function='Quantile:alpha=0.65',  # Asymmetric loss - targets 65th percentile
             random_seed=42,
             verbose=False,
             thread_count=-1
