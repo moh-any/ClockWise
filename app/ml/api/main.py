@@ -440,7 +440,8 @@ class SchedulerConfig(BaseModel):
     @field_validator('slot_len_hour', mode='before')
     @classmethod
     def slot_len_not_none(cls, v):
-        return v if v is not None else 1.0
+        v = v if v is not None else 1.0
+        return v if v > 0 else 1.0
 
     @field_validator('min_rest_slots', mode='before')
     @classmethod
