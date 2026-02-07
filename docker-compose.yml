@@ -35,8 +35,6 @@ services:
   cw-web: 
     container_name: "ClockwiseFrontend"
     build: ./web
-    env_file:
-      - .env
     ports: 
       - "${WEB_PORT}:3000"
     depends_on:

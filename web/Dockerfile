@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:25.6-slim
 
 RUN mkdir /app
 
