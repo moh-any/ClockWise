@@ -885,10 +885,6 @@ function AdminDashboard() {
             <h3 className="kpi-label">Total Headcount</h3>
             <div className="kpi-value-wrapper">
               <div className="kpi-value">{totalHeadcount}</div>
-              <div className="kpi-trend trend-up">
-                <span className="trend-icon">↑</span>
-                <span className="trend-value">12%</span>
-              </div>
             </div>
             <p className="kpi-subtitle">Active employees this week</p>
           </div>
@@ -919,10 +915,6 @@ function AdminDashboard() {
             <h3 className="kpi-label">Labor Cost</h3>
             <div className="kpi-value-wrapper">
               <div className="kpi-value">${(laborCost / 1000).toFixed(1)}K</div>
-              <div className="kpi-trend trend-down">
-                <span className="trend-icon">↓</span>
-                <span className="trend-value">3%</span>
-              </div>
             </div>
             <p className="kpi-subtitle">Weekly expenditure</p>
           </div>
@@ -953,10 +945,6 @@ function AdminDashboard() {
             <h3 className="kpi-label">Revenue Impact</h3>
             <div className="kpi-value-wrapper">
               <div className="kpi-value">${(revenue / 1000).toFixed(1)}K</div>
-              <div className="kpi-trend trend-up">
-                <span className="trend-icon">↑</span>
-                <span className="trend-value">8%</span>
-              </div>
             </div>
             <p className="kpi-subtitle">Generated this week</p>
           </div>
@@ -4333,7 +4321,7 @@ function AdminDashboard() {
     setShowEditRoleModal(true)
   }
 
-const renderInfo = () => (
+  const renderInfo = () => (
     <div className="premium-content fade-in">
       <div className="content-header">
         <div>
@@ -4356,1261 +4344,1571 @@ const renderInfo = () => (
         </div>
       )}
 
-    {/* Shift Rules Section */}
-    <div className="section-wrapper">
-      <div className="section-header">
-        <h2 className="section-title">
-          <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
-          Shift Rules & Operating Hours
-        </h2>
-      </div>
-      <p className="section-description">
-        Configure shift scheduling parameters and operating hours for your organization
-      </p>
-
-      <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
-        {/* Basic Shift Parameters */}
-        <div className="setting-item">
-          <label className="setting-label">Minimum Shift Length (hours)</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="1" 
-            max="24"
-            value={shiftRulesForm.shift_min_hours}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_min_hours: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Maximum Shift Length (hours)</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="1" 
-            max="24"
-            value={shiftRulesForm.shift_max_hours}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_max_hours: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Minimum Weekly Hours</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="0" 
-            max="168"
-            value={shiftRulesForm.min_weekly_hours}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_weekly_hours: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Maximum Weekly Hours</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="0" 
-            max="168"
-            value={shiftRulesForm.max_weekly_hours}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, max_weekly_hours: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Minimum Rest Slots Between Shifts</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="0" 
-            max="24"
-            value={shiftRulesForm.min_rest_slots}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_rest_slots: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Slot Length (hours)</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            step="0.25"
-            min="0.25" 
-            max="4"
-            value={shiftRulesForm.slot_len_hour}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, slot_len_hour: e.target.value})}
-          />
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)', marginTop: 'var(--space-1)' }}>
-            Time unit for scheduling (e.g., 0.5 = 30 minutes)
-          </p>
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Minimum Shift Length (slots)</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="1" 
-            max="48"
-            value={shiftRulesForm.min_shift_length_slots}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_shift_length_slots: e.target.value})}
-          />
-        </div>
-        <div className="setting-item">
-          <label className="setting-label">Waiting Time (minutes)</label>
-          <input 
-            className="setting-input" 
-            type="number" 
-            min="0" 
-            max="120"
-            value={shiftRulesForm.waiting_time}
-            onChange={(e) => setShiftRulesForm({...shiftRulesForm, waiting_time: e.target.value})}
-          />
-        </div>
-      </div>
-
-      {/* Toggle Switches - with spacing */}
-      <div style={{ marginTop: 'var(--space-8)' }}>
-        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="toggle-content">
-            <h4 className="toggle-title">Fixed Shifts</h4>
-            <p className="toggle-description">
-              Enable if you have predefined shift times each day
-            </p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shiftRulesForm.fixed_shifts}
-              onChange={(e) => setShiftRulesForm({...shiftRulesForm, fixed_shifts: e.target.checked})}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-
-        {shiftRulesForm.fixed_shifts && (
-          <div style={{ 
-            marginTop: 'var(--space-4)', 
-            marginBottom: 'var(--space-6)',
-            padding: 'var(--space-5)', 
-            background: 'var(--gray-50)', 
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--gray-200)'
-          }}>
-            <h4 style={{ 
-              marginBottom: 'var(--space-4)', 
-              fontSize: 'var(--text-base)', 
-              fontWeight: 600,
-              color: 'var(--text-primary)'
-            }}>
-              Fixed Shift Configuration
-            </h4>
-            
-            <div className="setting-item" style={{ marginBottom: 'var(--space-5)' }}>
-              <label className="setting-label">Number of Shifts per Day</label>
-              <input 
-                className="setting-input" 
-                type="number" 
-                min="1" 
-                max="10"
-                value={shiftRulesForm.number_of_shifts_per_day}
-                onChange={(e) => {
-                  const num = parseInt(e.target.value)
-                  setShiftRulesForm({...shiftRulesForm, number_of_shifts_per_day: num})
-                  
-                  // Adjust shift times array
-                  const newShifts = [...shiftTimes]
-                  while (newShifts.length < num) {
-                    const lastShift = newShifts[newShifts.length - 1] || { to: "09:00" }
-                    newShifts.push({ from: lastShift.to, to: "17:00" })
-                  }
-                  while (newShifts.length > num) {
-                    newShifts.pop()
-                  }
-                  setShiftTimes(newShifts)
-                }}
-              />
-            </div>
-
-            <h5 style={{ 
-              marginBottom: 'var(--space-3)', 
-              fontSize: 'var(--text-sm)', 
-              fontWeight: 600,
-              color: 'var(--text-primary)'
-            }}>
-              Default Shift Times
-            </h5>
-            {shiftTimes.map((shift, index) => (
-              <div key={index} style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', alignItems: 'center' }}>
-                <span style={{ 
-                  minWidth: '80px', 
-                  fontSize: 'var(--text-sm)', 
-                  fontWeight: 500,
-                  color: 'var(--text-primary)'
-                }}>
-                  Shift {index + 1}:
-                </span>
-                <input
-                  type="time"
-                  className="setting-input"
-                  style={{ flex: 1 }}
-                  value={shift.from}
-                  onChange={(e) => {
-                    const newShifts = [...shiftTimes]
-                    newShifts[index].from = e.target.value
-                    setShiftTimes(newShifts)
-                  }}
-                />
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>to</span>
-                <input
-                  type="time"
-                  className="setting-input"
-                  style={{ flex: 1 }}
-                  value={shift.to}
-                  onChange={(e) => {
-                    const newShifts = [...shiftTimes]
-                    newShifts[index].to = e.target.value
-                    setShiftTimes(newShifts)
-                  }}
-                />
-              </div>
-            ))}
-
-            <div style={{ marginTop: 'var(--space-6)' }}>
-              <h5 style={{ 
-                marginBottom: 'var(--space-3)', 
-                fontSize: 'var(--text-sm)', 
-                fontWeight: 600,
-                color: 'var(--text-primary)'
-              }}>
-                Custom Day Shifts 
-              </h5>
-              
-              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                <div key={day} style={{ marginBottom: 'var(--space-4)' }}>
-                  <div className="toggle-item" style={{ 
-                    padding: 'var(--space-3)', 
-                    background: 'var(--bg-primary)', 
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--gray-300)'
-                  }}>
-                    <div className="toggle-content">
-                      <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
-                        {day}
-                      </h4>
-                      <p className="toggle-description" style={{ fontSize: 'var(--text-xs)' }}>
-                        Use custom shifts for this day
-                      </p>
-                    </div>
-                    <label className="toggle-switch">
-                      <input
-                        type="checkbox"
-                        checked={!!customDayShifts[day]}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setCustomDayShifts({
-                              ...customDayShifts,
-                              [day]: [...shiftTimes]
-                            })
-                          } else {
-                            const newCustom = {...customDayShifts}
-                            delete newCustom[day]
-                            setCustomDayShifts(newCustom)
-                          }
-                        }}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                  
-                  {customDayShifts[day] && (
-                    <div style={{ 
-                      marginTop: 'var(--space-3)', 
-                      marginLeft: 'var(--space-4)', 
-                      padding: 'var(--space-4)', 
-                      background: 'var(--bg-primary)', 
-                      borderRadius: 'var(--radius-md)', 
-                      border: '1px solid var(--gray-300)'
-                    }}>
-                      {customDayShifts[day].map((shift, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'center' }}>
-                          <span style={{ 
-                            minWidth: '60px', 
-                            fontSize: 'var(--text-xs)',
-                            color: 'var(--text-primary)'
-                          }}>
-                            Shift {idx + 1}:
-                          </span>
-                          <input
-                            type="time"
-                            className="setting-input"
-                            style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
-                            value={shift.from}
-                            onChange={(e) => {
-                              const newCustom = {...customDayShifts}
-                              newCustom[day][idx].from = e.target.value
-                              setCustomDayShifts(newCustom)
-                            }}
-                          />
-                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)' }}>to</span>
-                          <input
-                            type="time"
-                            className="setting-input"
-                            style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
-                            value={shift.to}
-                            onChange={(e) => {
-                              const newCustom = {...customDayShifts}
-                              newCustom[day][idx].to = e.target.value
-                              setCustomDayShifts(newCustom)
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="toggle-content">
-            <h4 className="toggle-title">Meet All Demand</h4>
-            <p className="toggle-description">
-              Schedule enough staff to meet all predicted demand
-            </p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shiftRulesForm.meet_all_demand}
-              onChange={(e) => setShiftRulesForm({...shiftRulesForm, meet_all_demand: e.target.checked})}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="toggle-content">
-            <h4 className="toggle-title">Receiving Phone Orders</h4>
-            <p className="toggle-description">
-              Organization accepts phone orders
-            </p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shiftRulesForm.receiving_phone}
-              onChange={(e) => setShiftRulesForm({...shiftRulesForm, receiving_phone: e.target.checked})}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="toggle-content">
-            <h4 className="toggle-title">Delivery Service</h4>
-            <p className="toggle-description">
-              Organization offers delivery service
-            </p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shiftRulesForm.delivery}
-              onChange={(e) => setShiftRulesForm({...shiftRulesForm, delivery: e.target.checked})}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="toggle-content">
-            <h4 className="toggle-title">Accepting Orders</h4>
-            <p className="toggle-description">
-              Organization is currently accepting new orders
-            </p>
-          </div>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={shiftRulesForm.accepting_orders}
-              onChange={(e) => setShiftRulesForm({...shiftRulesForm, accepting_orders: e.target.checked})}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      {/* Operating Hours */}
-      <div style={{ marginTop: 'var(--space-8)' }}>
-        <h4 style={{ 
-          marginBottom: 'var(--space-4)', 
-          fontSize: 'var(--text-lg)', 
-          fontWeight: 600,
-          color: 'var(--text-primary)'
-        }}>
-          Operating Hours
-        </h4>
-        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-          {operatingHours.map((day, index) => (
-            <div key={day.weekday} style={{ 
-              display: 'flex', 
-              gap: 'var(--space-3)', 
-              alignItems: 'center',
-              padding: 'var(--space-4)',
-              background: 'var(--gray-50)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--gray-200)'
-            }}>
-              <span style={{ 
-                minWidth: '100px', 
-                fontWeight: 500,
-                color: 'var(--text-primary)'
-              }}>
-                {day.weekday}
-              </span>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                <input
-                  type="checkbox"
-                  checked={day.closed || false}
-                  onChange={(e) => {
-                    const newHours = [...operatingHours]
-                    newHours[index].closed = e.target.checked
-                    if (e.target.checked) {
-                      newHours[index].opening_time = ""
-                      newHours[index].closing_time = ""
-                    }
-                    setOperatingHours(newHours)
-                  }}
-                />
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>Closed</span>
-              </label>
-              {!day.closed && (
-                <>
-                  <input
-                    type="time"
-                    className="setting-input"
-                    style={{ flex: 1 }}
-                    value={day.opening_time}
-                    onChange={(e) => {
-                      const newHours = [...operatingHours]
-                      newHours[index].opening_time = e.target.value
-                      setOperatingHours(newHours)
-                    }}
-                  />
-                  <span style={{ color: 'var(--gray-500)' }}>to</span>
-                  <input
-                    type="time"
-                    className="setting-input"
-                    style={{ flex: 1 }}
-                    value={day.closing_time}
-                    onChange={(e) => {
-                      const newHours = [...operatingHours]
-                      newHours[index].closing_time = e.target.value
-                      setOperatingHours(newHours)
-                    }}
-                  />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="settings-footer" style={{ marginTop: 'var(--space-8)' }}>
-        <button 
-          className="btn-secondary"
-          onClick={() => {
-            fetchShiftRules()
-            setActionMessage({ type: 'success', text: 'Reset to saved values' })
-            setTimeout(() => setActionMessage(null), 3000)
-          }}
-        >
-          Reset to Defaults
-        </button>
-        <button 
-          className="btn-primary"
-          onClick={handleSaveShiftRules}
-          disabled={shiftRulesLoading}
-        >
-          {shiftRulesLoading ? 'Saving...' : 'Save Shift Rules'}
-        </button>
-      </div>
-    </div>
-
-    {/* Roles Management Section */}
-    <div className="section-wrapper">
-      <div className="section-header">
-        <div>
+      {/* Shift Rules Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
           <h2 className="section-title">
-            <img src={EmployeeIcon} alt="Roles" className="title-icon-svg" />
-            Organization Roles
+            <img
+              src={ScheduleIcon}
+              alt="Shift Rules"
+              className="title-icon-svg"
+            />
+            Shift Rules & Operating Hours
           </h2>
-          <p className="section-description">
-            Define roles for your organization and their requirements
-          </p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => {
-            setRoleForm({
-              role: "",
-              min_needed_per_shift: 1,
-              items_per_role_per_hour: "",
-              need_for_demand: false,
-              independent: true,
-            })
-            setRoleError("")
-            setShowAddRoleModal(true)
-          }}
-        >
-          + Add Role
-        </button>
-      </div>
+        <p className="section-description">
+          Configure shift scheduling parameters and operating hours for your
+          organization
+        </p>
 
-      {roles && roles.length > 0 ? (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Role Name
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Min per Shift
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Demand Based
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Items/Hour
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Independent
-                </th>
-                <th
-                  style={{
-                    textAlign: "left",
-                    padding: "var(--space-4)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                    color: "var(--gray-600)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => (
-                <tr
-                  key={role.role}
-                  style={{
-                    borderBottom: "1px solid var(--gray-200)",
-                  }}
-                >
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    <span className="badge badge-primary">{role.role}</span>
-                  </td>
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {role.min_needed_per_shift}
-                  </td>
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {role.need_for_demand ? (
-                      <span style={{ color: "var(--color-primary)" }}>
-                        ✓ Yes
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--gray-400)" }}>✗ No</span>
-                    )}
-                  </td>
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {role.items_per_role_per_hour != null
-                      ? role.items_per_role_per_hour
-                      : "—"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {role.independent ? (
-                      <span style={{ color: "var(--color-primary)" }}>
-                        ✓ Yes
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--gray-400)" }}>✗ No</span>
-                    )}
-                  </td>
-                  <td
-                    style={{
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-base)",
-                      color: "var(--gray-700)",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {role.role !== "admin" && role.role !== "manager" && (
-                      <>
-                        <button
-                          className="btn-link"
-                          style={{ marginRight: "var(--space-2)" }}
-                          onClick={() => openEditRole(role)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="btn-link"
-                          style={{ color: "var(--color-accent)" }}
-                          onClick={() => setConfirmDeleteRole(role)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                    {(role.role === "admin" || role.role === "manager") && (
-                      <span
-                        style={{
-                          color: "var(--gray-400)",
-                          fontSize: "var(--text-sm)",
-                        }}
-                      >
-                        Default Role
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="empty-state">
-          <h3>No Roles Defined</h3>
-          <p>Add your first role to get started</p>
-        </div>
-      )}
-    </div>
-
-    {/* Add Role Modal */}
-    {showAddRoleModal && (
-      <div
-        className="modal-overlay"
-        onClick={() => setShowAddRoleModal(false)}
-      >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2 className="section-title">Add New Role</h2>
-            <button
-              className="collapse-btn"
-              onClick={() => setShowAddRoleModal(false)}
-            >
-              ×
-            </button>
+        <div className="settings-grid" style={{ marginTop: "var(--space-4)" }}>
+          {/* Basic Shift Parameters */}
+          <div className="setting-item">
+            <label className="setting-label">
+              Minimum Shift Length (hours)
+            </label>
+            <input
+              className="setting-input"
+              type="number"
+              min="1"
+              max="24"
+              value={shiftRulesForm.shift_min_hours}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  shift_min_hours: e.target.value,
+                })
+              }
+            />
           </div>
-          {roleError && (
-            <div
-              className="login-error-message"
-              style={{ marginBottom: "var(--space-4)" }}
-            >
-              {roleError}
-            </div>
-          )}
-          <form onSubmit={handleAddRole}>
-            <div
+          <div className="setting-item">
+            <label className="setting-label">
+              Maximum Shift Length (hours)
+            </label>
+            <input
+              className="setting-input"
+              type="number"
+              min="1"
+              max="24"
+              value={shiftRulesForm.shift_max_hours}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  shift_max_hours: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Minimum Weekly Hours</label>
+            <input
+              className="setting-input"
+              type="number"
+              min="0"
+              max="168"
+              value={shiftRulesForm.min_weekly_hours}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  min_weekly_hours: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Maximum Weekly Hours</label>
+            <input
+              className="setting-input"
+              type="number"
+              min="0"
+              max="168"
+              value={shiftRulesForm.max_weekly_hours}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  max_weekly_hours: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">
+              Minimum Rest Slots Between Shifts
+            </label>
+            <input
+              className="setting-input"
+              type="number"
+              min="0"
+              max="24"
+              value={shiftRulesForm.min_rest_slots}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  min_rest_slots: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Slot Length (hours)</label>
+            <input
+              className="setting-input"
+              type="number"
+              step="0.25"
+              min="0.25"
+              max="4"
+              value={shiftRulesForm.slot_len_hour}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  slot_len_hour: e.target.value,
+                })
+              }
+            />
+            <p
               style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-4)",
+                fontSize: "var(--text-xs)",
+                color: "var(--gray-500)",
+                marginTop: "var(--space-1)",
               }}
             >
-              <div className="setting-item">
-                <label className="setting-label">Role Name</label>
-                <input
-                  className="setting-input"
-                  type="text"
-                  value={roleForm.role}
-                  onChange={(e) =>
-                    setRoleForm({ ...roleForm, role: e.target.value })
-                  }
-                  placeholder="e.g., waiter, cashier, cook"
-                  required
-                />
-              </div>
-              <div className="setting-item">
+              Time unit for scheduling (e.g., 0.5 = 30 minutes)
+            </p>
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">
+              Minimum Shift Length (slots)
+            </label>
+            <input
+              className="setting-input"
+              type="number"
+              min="1"
+              max="48"
+              value={shiftRulesForm.min_shift_length_slots}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  min_shift_length_slots: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Waiting Time (minutes)</label>
+            <input
+              className="setting-input"
+              type="number"
+              min="0"
+              max="120"
+              value={shiftRulesForm.waiting_time}
+              onChange={(e) =>
+                setShiftRulesForm({
+                  ...shiftRulesForm,
+                  waiting_time: e.target.value,
+                })
+              }
+            />
+          </div>
+        </div>
+
+        {/* Toggle Switches - with spacing */}
+        <div style={{ marginTop: "var(--space-8)" }}>
+          <div
+            className="toggle-item"
+            style={{ marginBottom: "var(--space-4)" }}
+          >
+            <div className="toggle-content">
+              <h4 className="toggle-title">Fixed Shifts</h4>
+              <p className="toggle-description">
+                Enable if you have predefined shift times each day
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={shiftRulesForm.fixed_shifts}
+                onChange={(e) =>
+                  setShiftRulesForm({
+                    ...shiftRulesForm,
+                    fixed_shifts: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          {shiftRulesForm.fixed_shifts && (
+            <div
+              style={{
+                marginTop: "var(--space-4)",
+                marginBottom: "var(--space-6)",
+                padding: "var(--space-5)",
+                background: "var(--gray-50)",
+                borderRadius: "var(--radius-lg)",
+                border: "1px solid var(--gray-200)",
+              }}
+            >
+              <h4
+                style={{
+                  marginBottom: "var(--space-4)",
+                  fontSize: "var(--text-base)",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Fixed Shift Configuration
+              </h4>
+
+              <div
+                className="setting-item"
+                style={{ marginBottom: "var(--space-5)" }}
+              >
                 <label className="setting-label">
-                  Minimum Needed per Shift
+                  Number of Shifts per Day
                 </label>
                 <input
                   className="setting-input"
                   type="number"
-                  min="0"
-                  value={roleForm.min_needed_per_shift}
-                  onChange={(e) =>
-                    setRoleForm({
-                      ...roleForm,
-                      min_needed_per_shift: e.target.value,
+                  min="1"
+                  max="10"
+                  value={shiftRulesForm.number_of_shifts_per_day}
+                  onChange={(e) => {
+                    const num = parseInt(e.target.value)
+                    setShiftRulesForm({
+                      ...shiftRulesForm,
+                      number_of_shifts_per_day: num,
                     })
-                  }
-                  required
+
+                    // Adjust shift times array
+                    const newShifts = [...shiftTimes]
+                    while (newShifts.length < num) {
+                      const lastShift = newShifts[newShifts.length - 1] || {
+                        to: "09:00",
+                      }
+                      newShifts.push({ from: lastShift.to, to: "17:00" })
+                    }
+                    while (newShifts.length > num) {
+                      newShifts.pop()
+                    }
+                    setShiftTimes(newShifts)
+                  }}
                 />
               </div>
-              <div className="toggle-item">
-                <div className="toggle-content">
-                  <h4 className="toggle-title">Need for Demand</h4>
-                  <p className="toggle-description">
-                    Is this role required based on demand/capacity?
-                  </p>
-                </div>
-                <label className="toggle-switch">
+
+              <h5
+                style={{
+                  marginBottom: "var(--space-3)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                }}
+              >
+                Default Shift Times
+              </h5>
+              {shiftTimes.map((shift, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    gap: "var(--space-3)",
+                    marginBottom: "var(--space-3)",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      minWidth: "80px",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 500,
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Shift {index + 1}:
+                  </span>
                   <input
-                    type="checkbox"
-                    checked={roleForm.need_for_demand}
-                    onChange={(e) =>
-                      setRoleForm({
-                        ...roleForm,
-                        need_for_demand: e.target.checked,
-                      })
-                    }
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-              {roleForm.need_for_demand && (
-                <div className="setting-item">
-                  <label className="setting-label">
-                    Items per Role per Hour
-                  </label>
-                  <input
+                    type="time"
                     className="setting-input"
-                    type="number"
-                    min="0"
-                    value={roleForm.items_per_role_per_hour}
-                    onChange={(e) =>
-                      setRoleForm({
-                        ...roleForm,
-                        items_per_role_per_hour: e.target.value,
-                      })
-                    }
-                    placeholder="e.g., 10"
-                    required={roleForm.need_for_demand}
+                    style={{ flex: 1 }}
+                    value={shift.from}
+                    onChange={(e) => {
+                      const newShifts = [...shiftTimes]
+                      newShifts[index].from = e.target.value
+                      setShiftTimes(newShifts)
+                    }}
                   />
-                  <p
+                  <span
                     style={{
                       fontSize: "var(--text-sm)",
                       color: "var(--gray-500)",
-                      marginTop: "var(--space-2)",
                     }}
                   >
-                    How many items/customers this role can handle per hour
-                  </p>
-                </div>
-              )}
-              <div className="toggle-item">
-                <div className="toggle-content">
-                  <h4 className="toggle-title">Independent Role</h4>
-                  <p className="toggle-description">
-                    Can this role work independently?
-                  </p>
-                </div>
-                <label className="toggle-switch">
+                    to
+                  </span>
                   <input
-                    type="checkbox"
-                    checked={roleForm.independent}
-                    onChange={(e) =>
-                      setRoleForm({
-                        ...roleForm,
-                        independent: e.target.checked,
-                      })
-                    }
+                    type="time"
+                    className="setting-input"
+                    style={{ flex: 1 }}
+                    value={shift.to}
+                    onChange={(e) => {
+                      const newShifts = [...shiftTimes]
+                      newShifts[index].to = e.target.value
+                      setShiftTimes(newShifts)
+                    }}
                   />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-            </div>
-            <div
-              className="settings-footer"
-              style={{ marginTop: "var(--space-6)" }}
-            >
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setShowAddRoleModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={roleLoading}
-              >
-                {roleLoading ? "Creating..." : "Create Role"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )}
+                </div>
+              ))}
 
-    {/* Edit Role Modal */}
-    {showEditRoleModal && selectedRole && (
-      <div
-        className="modal-overlay"
-        onClick={() => setShowEditRoleModal(false)}
-      >
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2 className="section-title">Edit Role: {selectedRole.role}</h2>
-            <button
-              className="collapse-btn"
-              onClick={() => setShowEditRoleModal(false)}
-            >
-              ×
-            </button>
-          </div>
-          {roleError && (
-            <div
-              className="login-error-message"
-              style={{ marginBottom: "var(--space-4)" }}
-            >
-              {roleError}
+              <div style={{ marginTop: "var(--space-6)" }}>
+                <h5
+                  style={{
+                    marginBottom: "var(--space-3)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  Custom Day Shifts
+                </h5>
+
+                {[
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday",
+                ].map((day) => (
+                  <div key={day} style={{ marginBottom: "var(--space-4)" }}>
+                    <div
+                      className="toggle-item"
+                      style={{
+                        padding: "var(--space-3)",
+                        background: "var(--bg-primary)",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid var(--gray-300)",
+                      }}
+                    >
+                      <div className="toggle-content">
+                        <h4
+                          className="toggle-title"
+                          style={{
+                            fontSize: "var(--text-sm)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {day}
+                        </h4>
+                        <p
+                          className="toggle-description"
+                          style={{ fontSize: "var(--text-xs)" }}
+                        >
+                          Use custom shifts for this day
+                        </p>
+                      </div>
+                      <label className="toggle-switch">
+                        <input
+                          type="checkbox"
+                          checked={!!customDayShifts[day]}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCustomDayShifts({
+                                ...customDayShifts,
+                                [day]: [...shiftTimes],
+                              })
+                            } else {
+                              const newCustom = { ...customDayShifts }
+                              delete newCustom[day]
+                              setCustomDayShifts(newCustom)
+                            }
+                          }}
+                        />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+
+                    {customDayShifts[day] && (
+                      <div
+                        style={{
+                          marginTop: "var(--space-3)",
+                          marginLeft: "var(--space-4)",
+                          padding: "var(--space-4)",
+                          background: "var(--bg-primary)",
+                          borderRadius: "var(--radius-md)",
+                          border: "1px solid var(--gray-300)",
+                        }}
+                      >
+                        {customDayShifts[day].map((shift, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              gap: "var(--space-2)",
+                              marginBottom: "var(--space-2)",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span
+                              style={{
+                                minWidth: "60px",
+                                fontSize: "var(--text-xs)",
+                                color: "var(--text-primary)",
+                              }}
+                            >
+                              Shift {idx + 1}:
+                            </span>
+                            <input
+                              type="time"
+                              className="setting-input"
+                              style={{
+                                flex: 1,
+                                fontSize: "var(--text-xs)",
+                                padding: "var(--space-2)",
+                              }}
+                              value={shift.from}
+                              onChange={(e) => {
+                                const newCustom = { ...customDayShifts }
+                                newCustom[day][idx].from = e.target.value
+                                setCustomDayShifts(newCustom)
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontSize: "var(--text-xs)",
+                                color: "var(--gray-500)",
+                              }}
+                            >
+                              to
+                            </span>
+                            <input
+                              type="time"
+                              className="setting-input"
+                              style={{
+                                flex: 1,
+                                fontSize: "var(--text-xs)",
+                                padding: "var(--space-2)",
+                              }}
+                              value={shift.to}
+                              onChange={(e) => {
+                                const newCustom = { ...customDayShifts }
+                                newCustom[day][idx].to = e.target.value
+                                setCustomDayShifts(newCustom)
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <form onSubmit={handleEditRole}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-4)",
-              }}
-            >
-              <div className="setting-item">
-                <label className="setting-label">
-                  Minimum Needed per Shift
-                </label>
-                <input
-                  className="setting-input"
-                  type="number"
-                  min="0"
-                  value={roleForm.min_needed_per_shift}
-                  onChange={(e) =>
-                    setRoleForm({
-                      ...roleForm,
-                      min_needed_per_shift: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div className="toggle-item">
-                <div className="toggle-content">
-                  <h4 className="toggle-title">Need for Demand</h4>
-                  <p className="toggle-description">
-                    Is this role required based on demand/capacity?
-                  </p>
-                </div>
-                <label className="toggle-switch">
+
+          <div
+            className="toggle-item"
+            style={{ marginBottom: "var(--space-4)" }}
+          >
+            <div className="toggle-content">
+              <h4 className="toggle-title">Meet All Demand</h4>
+              <p className="toggle-description">
+                Schedule enough staff to meet all predicted demand
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={shiftRulesForm.meet_all_demand}
+                onChange={(e) =>
+                  setShiftRulesForm({
+                    ...shiftRulesForm,
+                    meet_all_demand: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div
+            className="toggle-item"
+            style={{ marginBottom: "var(--space-4)" }}
+          >
+            <div className="toggle-content">
+              <h4 className="toggle-title">Receiving Phone Orders</h4>
+              <p className="toggle-description">
+                Organization accepts phone orders
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={shiftRulesForm.receiving_phone}
+                onChange={(e) =>
+                  setShiftRulesForm({
+                    ...shiftRulesForm,
+                    receiving_phone: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div
+            className="toggle-item"
+            style={{ marginBottom: "var(--space-4)" }}
+          >
+            <div className="toggle-content">
+              <h4 className="toggle-title">Delivery Service</h4>
+              <p className="toggle-description">
+                Organization offers delivery service
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={shiftRulesForm.delivery}
+                onChange={(e) =>
+                  setShiftRulesForm({
+                    ...shiftRulesForm,
+                    delivery: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div
+            className="toggle-item"
+            style={{ marginBottom: "var(--space-4)" }}
+          >
+            <div className="toggle-content">
+              <h4 className="toggle-title">Accepting Orders</h4>
+              <p className="toggle-description">
+                Organization is currently accepting new orders
+              </p>
+            </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={shiftRulesForm.accepting_orders}
+                onChange={(e) =>
+                  setShiftRulesForm({
+                    ...shiftRulesForm,
+                    accepting_orders: e.target.checked,
+                  })
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        {/* Operating Hours */}
+        <div style={{ marginTop: "var(--space-8)" }}>
+          <h4
+            style={{
+              marginBottom: "var(--space-4)",
+              fontSize: "var(--text-lg)",
+              fontWeight: 600,
+              color: "var(--text-primary)",
+            }}
+          >
+            Operating Hours
+          </h4>
+          <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            {operatingHours.map((day, index) => (
+              <div
+                key={day.weekday}
+                style={{
+                  display: "flex",
+                  gap: "var(--space-3)",
+                  alignItems: "center",
+                  padding: "var(--space-4)",
+                  background: "var(--gray-50)",
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--gray-200)",
+                }}
+              >
+                <span
+                  style={{
+                    minWidth: "100px",
+                    fontWeight: 500,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {day.weekday}
+                </span>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-2)",
+                  }}
+                >
                   <input
                     type="checkbox"
-                    checked={roleForm.need_for_demand}
-                    onChange={(e) =>
-                      setRoleForm({
-                        ...roleForm,
-                        need_for_demand: e.target.checked,
-                      })
-                    }
+                    checked={day.closed || false}
+                    onChange={(e) => {
+                      const newHours = [...operatingHours]
+                      newHours[index].closed = e.target.checked
+                      if (e.target.checked) {
+                        newHours[index].opening_time = ""
+                        newHours[index].closing_time = ""
+                      }
+                      setOperatingHours(newHours)
+                    }}
                   />
-                  <span className="toggle-slider"></span>
+                  <span
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    Closed
+                  </span>
                 </label>
+                {!day.closed && (
+                  <>
+                    <input
+                      type="time"
+                      className="setting-input"
+                      style={{ flex: 1 }}
+                      value={day.opening_time}
+                      onChange={(e) => {
+                        const newHours = [...operatingHours]
+                        newHours[index].opening_time = e.target.value
+                        setOperatingHours(newHours)
+                      }}
+                    />
+                    <span style={{ color: "var(--gray-500)" }}>to</span>
+                    <input
+                      type="time"
+                      className="setting-input"
+                      style={{ flex: 1 }}
+                      value={day.closing_time}
+                      onChange={(e) => {
+                        const newHours = [...operatingHours]
+                        newHours[index].closing_time = e.target.value
+                        setOperatingHours(newHours)
+                      }}
+                    />
+                  </>
+                )}
               </div>
-              {roleForm.need_for_demand && (
+            ))}
+          </div>
+        </div>
+
+        <div
+          className="settings-footer"
+          style={{ marginTop: "var(--space-8)" }}
+        >
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              fetchShiftRules()
+              setActionMessage({
+                type: "success",
+                text: "Reset to saved values",
+              })
+              setTimeout(() => setActionMessage(null), 3000)
+            }}
+          >
+            Reset to Defaults
+          </button>
+          <button
+            className="btn-primary"
+            onClick={handleSaveShiftRules}
+            disabled={shiftRulesLoading}
+          >
+            {shiftRulesLoading ? "Saving..." : "Save Shift Rules"}
+          </button>
+        </div>
+      </div>
+
+      {/* Roles Management Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <div>
+            <h2 className="section-title">
+              <img src={EmployeeIcon} alt="Roles" className="title-icon-svg" />
+              Organization Roles
+            </h2>
+            <p className="section-description">
+              Define roles for your organization and their requirements
+            </p>
+          </div>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              setRoleForm({
+                role: "",
+                min_needed_per_shift: 1,
+                items_per_role_per_hour: "",
+                need_for_demand: false,
+                independent: true,
+              })
+              setRoleError("")
+              setShowAddRoleModal(true)
+            }}
+          >
+            + Add Role
+          </button>
+        </div>
+
+        {roles && roles.length > 0 ? (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Role Name
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Min per Shift
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Demand Based
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Items/Hour
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Independent
+                  </th>
+                  <th
+                    style={{
+                      textAlign: "left",
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 600,
+                      color: "var(--gray-600)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {roles.map((role) => (
+                  <tr
+                    key={role.role}
+                    style={{
+                      borderBottom: "1px solid var(--gray-200)",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      <span className="badge badge-primary">{role.role}</span>
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.min_needed_per_shift}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.need_for_demand ? (
+                        <span style={{ color: "var(--color-primary)" }}>
+                          ✓ Yes
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.items_per_role_per_hour != null
+                        ? role.items_per_role_per_hour
+                        : "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.independent ? (
+                        <span style={{ color: "var(--color-primary)" }}>
+                          ✓ Yes
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                      )}
+                    </td>
+                    <td
+                      style={{
+                        padding: "var(--space-4)",
+                        fontSize: "var(--text-base)",
+                        color: "var(--gray-700)",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {role.role !== "admin" && role.role !== "manager" && (
+                        <>
+                          <button
+                            className="btn-link"
+                            style={{ marginRight: "var(--space-2)" }}
+                            onClick={() => openEditRole(role)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-link"
+                            style={{ color: "var(--color-accent)" }}
+                            onClick={() => setConfirmDeleteRole(role)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      {(role.role === "admin" || role.role === "manager") && (
+                        <span
+                          style={{
+                            color: "var(--gray-400)",
+                            fontSize: "var(--text-sm)",
+                          }}
+                        >
+                          Default Role
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h3>No Roles Defined</h3>
+            <p>Add your first role to get started</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Role Modal */}
+      {showAddRoleModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAddRoleModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="section-title">Add New Role</h2>
+              <button
+                className="collapse-btn"
+                onClick={() => setShowAddRoleModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            {roleError && (
+              <div
+                className="login-error-message"
+                style={{ marginBottom: "var(--space-4)" }}
+              >
+                {roleError}
+              </div>
+            )}
+            <form onSubmit={handleAddRole}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-4)",
+                }}
+              >
+                <div className="setting-item">
+                  <label className="setting-label">Role Name</label>
+                  <input
+                    className="setting-input"
+                    type="text"
+                    value={roleForm.role}
+                    onChange={(e) =>
+                      setRoleForm({ ...roleForm, role: e.target.value })
+                    }
+                    placeholder="e.g., waiter, cashier, cook"
+                    required
+                  />
+                </div>
                 <div className="setting-item">
                   <label className="setting-label">
-                    Items per Role per Hour
+                    Minimum Needed per Shift
                   </label>
                   <input
                     className="setting-input"
                     type="number"
                     min="0"
-                    value={roleForm.items_per_role_per_hour}
+                    value={roleForm.min_needed_per_shift}
                     onChange={(e) =>
                       setRoleForm({
                         ...roleForm,
-                        items_per_role_per_hour: e.target.value,
+                        min_needed_per_shift: e.target.value,
                       })
                     }
-                    placeholder="e.g., 10"
-                    required={roleForm.need_for_demand}
+                    required
                   />
                 </div>
-              )}
-              <div className="toggle-item">
-                <div className="toggle-content">
-                  <h4 className="toggle-title">Independent Role</h4>
-                  <p className="toggle-description">
-                    Can this role work independently?
-                  </p>
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Need for Demand</h4>
+                    <p className="toggle-description">
+                      Is this role required based on demand/capacity?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.need_for_demand}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          need_for_demand: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
                 </div>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={roleForm.independent}
-                    onChange={(e) =>
-                      setRoleForm({
-                        ...roleForm,
-                        independent: e.target.checked,
-                      })
-                    }
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
+                {roleForm.need_for_demand && (
+                  <div className="setting-item">
+                    <label className="setting-label">
+                      Items per Role per Hour
+                    </label>
+                    <input
+                      className="setting-input"
+                      type="number"
+                      min="0"
+                      value={roleForm.items_per_role_per_hour}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          items_per_role_per_hour: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., 10"
+                      required={roleForm.need_for_demand}
+                    />
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--gray-500)",
+                        marginTop: "var(--space-2)",
+                      }}
+                    >
+                      How many items/customers this role can handle per hour
+                    </p>
+                  </div>
+                )}
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Independent Role</h4>
+                    <p className="toggle-description">
+                      Can this role work independently?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.independent}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          independent: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
               </div>
-            </div>
-            <div
-              className="settings-footer"
-              style={{ marginTop: "var(--space-6)" }}
-            >
+              <div
+                className="settings-footer"
+                style={{ marginTop: "var(--space-6)" }}
+              >
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowAddRoleModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={roleLoading}
+                >
+                  {roleLoading ? "Creating..." : "Create Role"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Role Modal */}
+      {showEditRoleModal && selectedRole && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowEditRoleModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="section-title">Edit Role: {selectedRole.role}</h2>
               <button
-                type="button"
-                className="btn-secondary"
+                className="collapse-btn"
                 onClick={() => setShowEditRoleModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            {roleError && (
+              <div
+                className="login-error-message"
+                style={{ marginBottom: "var(--space-4)" }}
+              >
+                {roleError}
+              </div>
+            )}
+            <form onSubmit={handleEditRole}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-4)",
+                }}
+              >
+                <div className="setting-item">
+                  <label className="setting-label">
+                    Minimum Needed per Shift
+                  </label>
+                  <input
+                    className="setting-input"
+                    type="number"
+                    min="0"
+                    value={roleForm.min_needed_per_shift}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        min_needed_per_shift: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Need for Demand</h4>
+                    <p className="toggle-description">
+                      Is this role required based on demand/capacity?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.need_for_demand}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          need_for_demand: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+                {roleForm.need_for_demand && (
+                  <div className="setting-item">
+                    <label className="setting-label">
+                      Items per Role per Hour
+                    </label>
+                    <input
+                      className="setting-input"
+                      type="number"
+                      min="0"
+                      value={roleForm.items_per_role_per_hour}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          items_per_role_per_hour: e.target.value,
+                        })
+                      }
+                      placeholder="e.g., 10"
+                      required={roleForm.need_for_demand}
+                    />
+                  </div>
+                )}
+                <div className="toggle-item">
+                  <div className="toggle-content">
+                    <h4 className="toggle-title">Independent Role</h4>
+                    <p className="toggle-description">
+                      Can this role work independently?
+                    </p>
+                  </div>
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={roleForm.independent}
+                      onChange={(e) =>
+                        setRoleForm({
+                          ...roleForm,
+                          independent: e.target.checked,
+                        })
+                      }
+                    />
+                    <span className="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+              <div
+                className="settings-footer"
+                style={{ marginTop: "var(--space-6)" }}
+              >
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowEditRoleModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={roleLoading}
+                >
+                  {roleLoading ? "Updating..." : "Update Role"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Role Confirmation */}
+      {confirmDeleteRole && (
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmDeleteRole(null)}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 440 }}
+          >
+            <div className="modal-header">
+              <h2
+                className="section-title"
+                style={{ color: "var(--color-accent)" }}
+              >
+                Confirm Delete
+              </h2>
+            </div>
+            <p
+              style={{
+                color: "var(--text-primary)",
+                marginBottom: "var(--space-6)",
+                lineHeight: 1.6,
+              }}
+            >
+              Are you sure you want to delete the role{" "}
+              <strong>{confirmDeleteRole.role}</strong>? This action cannot be
+              undone and may fail if employees are assigned to this role.
+            </p>
+            <div className="settings-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setConfirmDeleteRole(null)}
               >
                 Cancel
               </button>
               <button
-                type="submit"
                 className="btn-primary"
-                disabled={roleLoading}
+                style={{ background: "var(--color-accent)" }}
+                onClick={() => handleDeleteRole(confirmDeleteRole.role)}
+                disabled={actionLoading}
               >
-                {roleLoading ? "Updating..." : "Update Role"}
+                {actionLoading ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
-          </form>
-        </div>
-      </div>
-    )}
-
-    {/* Delete Role Confirmation */}
-    {confirmDeleteRole && (
-      <div
-        className="modal-overlay"
-        onClick={() => setConfirmDeleteRole(null)}
-      >
-        <div
-          className="modal-content"
-          onClick={(e) => e.stopPropagation()}
-          style={{ maxWidth: 440 }}
-        >
-          <div className="modal-header">
-            <h2
-              className="section-title"
-              style={{ color: "var(--color-accent)" }}
-            >
-              Confirm Delete
-            </h2>
-          </div>
-          <p
-            style={{
-              color: "var(--text-primary)",
-              marginBottom: "var(--space-6)",
-              lineHeight: 1.6,
-            }}
-          >
-            Are you sure you want to delete the role{" "}
-            <strong>{confirmDeleteRole.role}</strong>? This action cannot be
-            undone and may fail if employees are assigned to this role.
-          </p>
-          <div className="settings-footer">
-            <button
-              className="btn-secondary"
-              onClick={() => setConfirmDeleteRole(null)}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              style={{ background: "var(--color-accent)" }}
-              onClick={() => handleDeleteRole(confirmDeleteRole.role)}
-              disabled={actionLoading}
-            >
-              {actionLoading ? "Deleting..." : "Confirm Delete"}
-            </button>
           </div>
         </div>
-      </div>
-    )}
-  </div>
-)
-const renderAdminProfile = () => {
-  console.log("Rendering profile with currentUser:", currentUser)
-  console.log("Profile data:", profileData)
+      )}
+    </div>
+  )
+  const renderAdminProfile = () => {
+    console.log("Rendering profile with currentUser:", currentUser)
 
-  const userInitials = currentUser?.full_name
-    ? currentUser.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "AD"
+    const userInitials = currentUser?.full_name
+      ? currentUser.full_name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
+      : "AD"
 
-  // Get data from currentUser (from /api/auth/me)
-  const displayName = currentUser?.full_name || "Admin User"
-  const displayEmail = currentUser?.email || "user@example.com"
-  const displayRole = currentUser?.user_role || "employee"
-  
-  // Get organization from either source
-  const displayOrganization = profileData?.organization || 
-                              currentUser?.organization_name || 
-                              currentUser?.organization || 
-                              "Organization"
-  
-  // Employee-specific fields from currentUser
-  const displaySalary = currentUser?.salary_per_hour != null ? `$${currentUser.salary_per_hour}/hr` : null
-  const displayMaxHours = currentUser?.max_hours_per_week || null
-  const displayPrefHours = currentUser?.preferred_hours_per_week || null
-  const displayMaxConsecSlots = currentUser?.max_consec_slots || null
-  const displayOnCall = currentUser?.on_call !== undefined ? (currentUser.on_call ? "Yes" : "No") : null
+    // Get data from currentUser
+    const displayName = currentUser?.full_name || "Loading..."
+    const displayEmail = currentUser?.email || "Loading..."
+    const displayRole = currentUser?.user_role || "Loading..."
+    const displayOrganization =
+      currentUser?.organization_name || currentUser?.organization || "N/A"
+    const displaySalary =
+      currentUser?.salary_per_hour != null
+        ? `$${currentUser.salary_per_hour}/hr`
+        : "N/A"
+    const displayMaxHours = currentUser?.max_hours_per_week || "N/A"
+    const displayPrefHours = currentUser?.preferred_hours_per_week || "N/A"
+    const displayMaxConsecSlots = currentUser?.max_consec_slots || "N/A"
+    const displayOnCall =
+      currentUser?.on_call !== undefined
+        ? currentUser.on_call
+          ? "Yes"
+          : "No"
+        : "N/A"
 
-  // Extract insights data for statistics
-  const getInsightValue = (titleMatch) => {
-    const insight = insights.find(i => i.title.toLowerCase().includes(titleMatch.toLowerCase()))
-    return insight ? insight.statistic : "N/A"
-  }
+    // Extract insights data for statistics
+    const getInsightValue = (titleMatch) => {
+      const insight = insights.find((i) =>
+        i.title.toLowerCase().includes(titleMatch.toLowerCase()),
+      )
+      return insight ? insight.statistic : "N/A"
+    }
 
-  // Get role-specific statistics
-  const getRoleStats = () => {
-    if (currentUser?.user_role === 'admin') {
-      return {
-        stat1: { label: "Total Employees", value: getInsightValue("Number of Employees") },
-        stat2: { label: "Active Roles", value: roles.length },
-        stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
-        stat4: { label: "Orders Today", value: getInsightValue("Orders Served Today") }
-      }
-    } else if (currentUser?.user_role === 'manager') {
-      return {
-        stat1: { label: "Team Size", value: getInsightValue("Number of Employees") },
-        stat2: { label: "Deliveries Today", value: getInsightValue("deliveries today") },
-        stat3: { label: "Orders Today", value: getInsightValue("Orders Served Today") },
-        stat4: { label: "My Salary", value: displaySalary || "N/A" }
-      }
-    } else {
-      // Employee
-      return {
-        stat1: { label: "My Salary", value: displaySalary || "N/A" },
-        stat2: { label: "My Role", value: displayRole },
-        stat3: { label: "Hours This Week", value: profileData?.hours_worked_this_week || "0" },
-        stat4: { label: "Total Hours", value: profileData?.hours_worked || "0" }
+    // Get role-specific statistics
+    const getRoleStats = () => {
+      if (currentUser?.user_role === "admin") {
+        return {
+          stat1: {
+            label: "Total Employees",
+            value: getInsightValue("Number of Employees"),
+          },
+          stat2: { label: "Active Roles", value: roles.length },
+          stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
+          stat4: {
+            label: "Orders Today",
+            value: getInsightValue("Orders Served Today"),
+          },
+        }
+      } else if (currentUser?.user_role === "manager") {
+        return {
+          stat1: {
+            label: "Team Size",
+            value: getInsightValue("Number of Employees"),
+          },
+          stat2: {
+            label: "Deliveries Today",
+            value: getInsightValue("deliveries today"),
+          },
+          stat3: {
+            label: "Orders Today",
+            value: getInsightValue("Orders Served Today"),
+          },
+          stat4: { label: "My Salary", value: displaySalary },
+        }
+      } else {
+        // Employee
+        return {
+          stat1: { label: "My Salary", value: displaySalary },
+          stat2: { label: "My Role", value: displayRole },
+          stat3: {
+            label: "Hours This Week",
+            value: profileData?.hours_worked_this_week || "N/A",
+          },
+          stat4: {
+            label: "Total Hours",
+            value: profileData?.hours_worked || "N/A",
+          },
+        }
       }
     }
-  }
 
-  const roleStats = getRoleStats()
+    const roleStats = getRoleStats()
 
-  return (
-    <>
-      <div
-        className={`admin-profile-overlay ${showAdminProfile ? "show" : ""}`}
-      >
-        <div className="admin-profile-modal fade-in">
-          <button
-            className="profile-close-btn"
-            onClick={() => setShowAdminProfile(false)}
-            aria-label="Close Profile"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+    return (
+      <>
+        <div
+          className={`admin-profile-overlay ${showAdminProfile ? "show" : ""}`}
+        >
+          <div className="admin-profile-modal fade-in">
+            <button
+              className="profile-close-btn"
+              onClick={() => setShowAdminProfile(false)}
+              aria-label="Close Profile"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
 
-          <div className="profile-header-section">
-            <div className="profile-avatar-large">
-              <div className="avatar-gradient">{userInitials}</div>
-            </div>
-            <div className="profile-header-info">
-              <h1 className="profile-name">{displayName}</h1>
-              <p className="profile-role" style={{ textTransform: 'capitalize' }}>
-                {displayRole}
-              </p>
-            </div>
-          </div>
-
-          <div className="profile-content-grid">
-            {/* Personal Information Card */}
-            <div className="profile-card" data-animation="slide-up">
-              <div className="profile-card-header">
-                <h3 className="profile-card-title">
-                  <svg
-                    className="card-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Personal Information
-                </h3>
+            <div className="profile-header-section">
+              <div className="profile-avatar-large">
+                <div className="avatar-gradient">{userInitials}</div>
               </div>
-              <div className="profile-info-grid">
-                <div className="info-item">
-                  <span className="info-label">Full Name</span>
-                  <span className="info-value">{displayName}</span>
+              <div className="profile-header-info">
+                <h1 className="profile-name">{displayName}</h1>
+                <p
+                  className="profile-role"
+                  style={{ textTransform: "capitalize" }}
+                >
+                  {displayRole}
+                </p>
+              </div>
+            </div>
+
+            <div className="profile-content-grid">
+              {/* Personal Information Card */}
+              <div className="profile-card" data-animation="slide-up">
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Personal Information
+                  </h3>
                 </div>
-                <div className="info-item">
-                  <span className="info-label">Email</span>
-                  <span className="info-value">{displayEmail}</span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Role</span>
-                  <span className="info-value" style={{ textTransform: 'capitalize' }}>
-                    {displayRole}
-                  </span>
-                </div>
-                <div className="info-item">
-                  <span className="info-label">Organization</span>
-                  <span className="info-value">{displayOrganization}</span>
-                </div>
-                
-                {/* Show employee-specific fields for non-admins */}
-                {currentUser?.user_role !== 'admin' && (
-                  <>
-                    {displaySalary && (
+                <div className="profile-info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Full Name</span>
+                    <span className="info-value">{displayName}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Email</span>
+                    <span className="info-value">{displayEmail}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Role</span>
+                    <span
+                      className="info-value"
+                      style={{ textTransform: "capitalize" }}
+                    >
+                      {displayRole}
+                    </span>
+                  </div>
+                  <div className="info-item">
+                    <span className="info-label">Organization</span>
+                    <span className="info-value">{displayOrganization}</span>
+                  </div>
+                  {currentUser?.user_role !== "admin" && (
+                    <>
                       <div className="info-item">
                         <span className="info-label">Hourly Rate</span>
-                        <span className="info-value" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                          {displaySalary}
-                        </span>
+                        <span className="info-value">{displaySalary}</span>
                       </div>
-                    )}
-                    {displayMaxHours && (
                       <div className="info-item">
                         <span className="info-label">Max Hours/Week</span>
-                        <span className="info-value">{displayMaxHours} hrs</span>
+                        <span className="info-value">{displayMaxHours}</span>
                       </div>
-                    )}
-                    {displayPrefHours && (
                       <div className="info-item">
                         <span className="info-label">Preferred Hours/Week</span>
-                        <span className="info-value">{displayPrefHours} hrs</span>
+                        <span className="info-value">{displayPrefHours}</span>
                       </div>
-                    )}
-                    {displayMaxConsecSlots && (
                       <div className="info-item">
-                        <span className="info-label">Max Consecutive Slots</span>
-                        <span className="info-value">{displayMaxConsecSlots} slots</span>
-                      </div>
-                    )}
-                    {displayOnCall !== null && (
-                      <div className="info-item">
-                        <span className="info-label">On Call Status</span>
+                        <span className="info-label">
+                          Max Consecutive Slots
+                        </span>
                         <span className="info-value">
-                          <span className={`badge ${currentUser?.on_call ? 'badge-primary' : 'badge-secondary'}`}>
+                          {displayMaxConsecSlots}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <span className="info-label">On Call</span>
+                        <span className="info-value">
+                          <span
+                            className={`badge ${currentUser?.on_call ? "badge-primary" : "badge-secondary"}`}
+                          >
                             {displayOnCall}
                           </span>
                         </span>
                       </div>
-                    )}
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Work Statistics Card - For Non-Admins with Profile Data */}
-            {currentUser?.user_role !== 'admin' && (
+              {/* Work Statistics Card */}
+              {currentUser?.user_role !== "admin" && profileData && (
+                <div
+                  className="profile-card"
+                  data-animation="slide-up"
+                  style={{ animationDelay: "0.1s" }}
+                >
+                  <div className="profile-card-header">
+                    <h3 className="profile-card-title">
+                      <svg
+                        className="card-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Work Hours
+                    </h3>
+                  </div>
+                  <div className="profile-info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Total Hours Worked</span>
+                      <span
+                        className="info-value"
+                        style={{
+                          fontSize: "var(--text-2xl)",
+                          fontWeight: 700,
+                          color: "var(--color-primary)",
+                        }}
+                      >
+                        {profileData.hours_worked || "0"} hrs
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">This Week</span>
+                      <span
+                        className="info-value"
+                        style={{
+                          fontSize: "var(--text-2xl)",
+                          fontWeight: 700,
+                          color: "var(--color-secondary)",
+                        }}
+                      >
+                        {profileData.hours_worked_this_week || "0"} hrs
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Utilization Rate</span>
+                      <span className="info-value">
+                        {currentUser?.max_hours_per_week &&
+                        profileData.hours_worked_this_week
+                          ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Weekly Earnings</span>
+                      <span
+                        className="info-value"
+                        style={{ color: "var(--color-accent)" }}
+                      >
+                        {currentUser?.salary_per_hour &&
+                        profileData.hours_worked_this_week
+                          ? `$${(currentUser.salary_per_hour * profileData.hours_worked_this_week).toFixed(2)}`
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Statistics Card */}
               <div
                 className="profile-card"
                 data-animation="slide-up"
-                style={{ animationDelay: "0.1s" }}
+                style={{
+                  animationDelay:
+                    currentUser?.user_role !== "admin" && profileData
+                      ? "0.2s"
+                      : "0.1s",
+                }}
               >
                 <div className="profile-card-header">
                   <h3 className="profile-card-title">
@@ -5624,341 +5922,294 @@ const renderAdminProfile = () => {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
                       />
                     </svg>
-                    Work Hours
+                    {currentUser?.user_role === "admin"
+                      ? "Organization Statistics"
+                      : "My Statistics"}
                   </h3>
                 </div>
-                <div className="profile-info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Total Hours Worked</span>
-                    <span className="info-value" style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-primary)' }}>
-                      {profileData?.hours_worked !== null && profileData?.hours_worked !== undefined 
-                        ? `${profileData.hours_worked} hrs` 
-                        : profileLoading ? "Loading..." : "No data"}
-                    </span>
+                <div className="profile-stats-grid">
+                  <div className="stat-item">
+                    <div className="stat-value">{roleStats.stat1.value}</div>
+                    <div className="stat-label">{roleStats.stat1.label}</div>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">This Week</span>
-                    <span className="info-value" style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-secondary)' }}>
-                      {profileData?.hours_worked_this_week !== null && profileData?.hours_worked_this_week !== undefined
-                        ? `${profileData.hours_worked_this_week} hrs`
-                        : profileLoading ? "Loading..." : "No data"}
-                    </span>
+                  <div className="stat-item">
+                    <div className="stat-value">{roleStats.stat2.value}</div>
+                    <div className="stat-label">{roleStats.stat2.label}</div>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Utilization Rate</span>
-                    <span className="info-value">
-                      {currentUser?.max_hours_per_week && profileData?.hours_worked_this_week 
-                        ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
-                        : "N/A"}
-                    </span>
+                  <div className="stat-item">
+                    <div className="stat-value">{roleStats.stat3.value}</div>
+                    <div className="stat-label">{roleStats.stat3.label}</div>
                   </div>
-                  <div className="info-item">
-                    <span className="info-label">Weekly Earnings</span>
-                    <span className="info-value" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
-                      {currentUser?.salary_per_hour && profileData?.hours_worked_this_week
-                        ? `$${(currentUser.salary_per_hour * profileData.hours_worked_this_week).toFixed(2)}`
-                        : "N/A"}
-                    </span>
+                  <div className="stat-item">
+                    <div className="stat-value">{roleStats.stat4.value}</div>
+                    <div className="stat-label">{roleStats.stat4.label}</div>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Statistics Card */}
-            <div
-              className="profile-card"
-              data-animation="slide-up"
-              style={{ animationDelay: currentUser?.user_role !== 'admin' ? "0.2s" : "0.1s" }}
-            >
-              <div className="profile-card-header">
-                <h3 className="profile-card-title">
-                  <svg
-                    className="card-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                    />
-                  </svg>
-                  {currentUser?.user_role === 'admin' ? 'Organization Statistics' : 'My Statistics'}
-                </h3>
-              </div>
-              <div className="profile-stats-grid">
-                <div className="stat-item">
-                  <div className="stat-value">{roleStats.stat1.value}</div>
-                  <div className="stat-label">{roleStats.stat1.label}</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{roleStats.stat2.value}</div>
-                  <div className="stat-label">{roleStats.stat2.label}</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{roleStats.stat3.value}</div>
-                  <div className="stat-label">{roleStats.stat3.label}</div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-value">{roleStats.stat4.value}</div>
-                  <div className="stat-label">{roleStats.stat4.label}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Security Settings Card */}
-            <div
-              className="profile-card profile-card-full"
-              data-animation="slide-up"
-              style={{ animationDelay: currentUser?.user_role !== 'admin' ? "0.3s" : "0.2s" }}
-            >
-              <div className="profile-card-header">
-                <h3 className="profile-card-title">
-                  <svg
-                    className="card-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                    />
-                  </svg>
-                  Security & Account
-                </h3>
-              </div>
-
-              <div className="password-change-section">
-                <h4 className="section-subtitle">
-                  <svg
-                    className="subtitle-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                    />
-                  </svg>
-                  Change Password
-                </h4>
-
-                {passwordError && (
-                  <div
-                    className="login-error-message"
-                    style={{ marginBottom: "var(--space-4)" }}
-                  >
-                    {passwordError}
-                  </div>
-                )}
-                {passwordSuccess && (
-                  <div
-                    className="login-error-message"
-                    style={{
-                      marginBottom: "var(--space-4)",
-                      background: "var(--secondary-50)",
-                      color: "var(--color-secondary)",
-                      borderColor: "var(--color-secondary)",
-                    }}
-                  >
-                    {passwordSuccess}
-                  </div>
-                )}
-
-                <form
-                  onSubmit={handleChangePassword}
-                  className="password-form"
-                >
-                  <div className="password-form-grid">
-                    <div className="form-group">
-                      <label htmlFor="old_password" className="form-label">
-                        Current Password
-                      </label>
-                      <input
-                        type="password"
-                        id="old_password"
-                        className="form-input"
-                        value={passwordForm.old_password}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            old_password: e.target.value,
-                          })
-                        }
-                        required
-                        minLength={8}
-                        disabled={passwordLoading}
-                        placeholder="Enter current password"
+              {/* Security Settings Card */}
+              <div
+                className="profile-card profile-card-full"
+                data-animation="slide-up"
+                style={{
+                  animationDelay:
+                    currentUser?.user_role !== "admin" && profileData
+                      ? "0.3s"
+                      : "0.2s",
+                }}
+              >
+                <div className="profile-card-header">
+                  <h3 className="profile-card-title">
+                    <svg
+                      className="card-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                       />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="new_password" className="form-label">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="new_password"
-                        className="form-input"
-                        value={passwordForm.new_password}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            new_password: e.target.value,
-                          })
-                        }
-                        required
-                        minLength={8}
-                        disabled={passwordLoading}
-                        placeholder="Enter new password (min 8 chars)"
+                    </svg>
+                    Security & Account
+                  </h3>
+                </div>
+
+                <div className="password-change-section">
+                  <h4 className="section-subtitle">
+                    <svg
+                      className="subtitle-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                       />
+                    </svg>
+                    Change Password
+                  </h4>
+
+                  {passwordError && (
+                    <div
+                      className="login-error-message"
+                      style={{ marginBottom: "var(--space-4)" }}
+                    >
+                      {passwordError}
                     </div>
-                    <div className="form-group">
-                      <label
-                        htmlFor="confirm_password"
-                        className="form-label"
+                  )}
+                  {passwordSuccess && (
+                    <div
+                      className="login-error-message"
+                      style={{
+                        marginBottom: "var(--space-4)",
+                        background: "var(--secondary-50)",
+                        color: "var(--color-secondary)",
+                        borderColor: "var(--color-secondary)",
+                      }}
+                    >
+                      {passwordSuccess}
+                    </div>
+                  )}
+
+                  <form
+                    onSubmit={handleChangePassword}
+                    className="password-form"
+                  >
+                    <div className="password-form-grid">
+                      <div className="form-group">
+                        <label htmlFor="old_password" className="form-label">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          id="old_password"
+                          className="form-input"
+                          value={passwordForm.old_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              old_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="new_password" className="form-label">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          id="new_password"
+                          className="form-input"
+                          value={passwordForm.new_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              new_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Enter new password"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label
+                          htmlFor="confirm_password"
+                          className="form-label"
+                        >
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          id="confirm_password"
+                          className="form-input"
+                          value={passwordForm.confirm_password}
+                          onChange={(e) =>
+                            setPasswordForm({
+                              ...passwordForm,
+                              confirm_password: e.target.value,
+                            })
+                          }
+                          required
+                          minLength={6}
+                          disabled={passwordLoading}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn-primary password-submit-btn"
+                      disabled={passwordLoading}
+                    >
+                      {passwordLoading
+                        ? "Changing Password..."
+                        : "Update Password"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="security-info">
+                  <div className="info-row">
+                    <svg
+                      className="info-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    <div>
+                      <div className="info-title">Account Status</div>
+                      <div className="info-subtitle">
+                        <span className="badge badge-primary">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                  {currentUser?.created_at && (
+                    <div className="info-row">
+                      <svg
+                        className="info-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
                       >
-                        Confirm New Password
-                      </label>
-                      <input
-                        type="password"
-                        id="confirm_password"
-                        className="form-input"
-                        value={passwordForm.confirm_password}
-                        onChange={(e) =>
-                          setPasswordForm({
-                            ...passwordForm,
-                            confirm_password: e.target.value,
-                          })
-                        }
-                        required
-                        minLength={8}
-                        disabled={passwordLoading}
-                        placeholder="Confirm new password"
-                      />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <div>
+                        <div className="info-title">Member Since</div>
+                        <div className="info-subtitle">
+                          {new Date(currentUser.created_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            },
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn-primary password-submit-btn"
-                    disabled={passwordLoading}
-                  >
-                    {passwordLoading
-                      ? "Changing Password..."
-                      : "Update Password"}
-                  </button>
-                </form>
-              </div>
-
-              <div className="security-info">
-                <div className="info-row">
-                  <svg
-                    className="info-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  <div>
-                    <div className="info-title">Account Status</div>
-                    <div className="info-subtitle">
-                      <span className="badge badge-primary">Active</span>
+                  )}
+                  {currentUser?.updated_at && (
+                    <div className="info-row">
+                      <svg
+                        className="info-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <div>
+                        <div className="info-title">Last Updated</div>
+                        <div className="info-subtitle">
+                          {new Date(currentUser.updated_at).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            },
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-                {(profileData?.created_at || currentUser?.created_at) && (
-                  <div className="info-row">
-                    <svg
-                      className="info-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <div>
-                      <div className="info-title">Member Since</div>
-                      <div className="info-subtitle">
-                        {new Date(profileData?.created_at || currentUser?.created_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {currentUser?.updated_at && (
-                  <div className="info-row">
-                    <svg
-                      className="info-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    <div>
-                      <div className="info-title">Last Updated</div>
-                      <div className="info-subtitle">
-                        {new Date(currentUser.updated_at).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
 
-          <div className="profile-footer">
-            <button
-              className="btn-secondary"
-              onClick={() => setShowAdminProfile(false)}
-            >
-              Close Profile
-            </button>
+            <div className="profile-footer">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowAdminProfile(false)}
+              >
+                Close Profile
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </>
-  )
-}
+      </>
+    )
+  }
+
   return (
     <div className={`dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}>
       {/* Premium Sidebar */}
@@ -6062,8 +6313,8 @@ const renderAdminProfile = () => {
                   {currentUser?.user_role || "Administrator"}
                 </div>
               </div>
-            )}          
-            </div>
+            )}
+          </div>
           {!sidebarCollapsed && (
             <button
               className="logout-btn"
