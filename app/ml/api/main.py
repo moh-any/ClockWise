@@ -772,7 +772,12 @@ def prepare_features_for_prediction(
     combined = add_lag_features(combined)
     
     prediction_start_ts = _parse_datetime_naive(prediction_start)
-    prediction_df = combined[combined['datetime'] >= prediction_start_ts].copy()
+    # Only keep rows within the requested prediction window (prediction_days from start)
+    prediction_end_ts = prediction_start_ts + timedelta(days=prediction_days)
+    prediction_df = combined[
+        (combined['datetime'] >= prediction_start_ts) & 
+        (combined['datetime'] < prediction_end_ts)
+    ].copy()
     
     type_mapping = {'bar': 1332, 'cafe': 1333, 'lounge': 1334, 'restaurant': 1335, 'pub': 1336}
     prediction_df['type_id'] = type_mapping.get(place.type, 1335)
@@ -1343,7 +1348,9 @@ def predict_demand_only(request: DemandPredictionRequest):
                 hours=hours
             ))
         
-        logger.info(f"Built {len(days)} days with predictions")
+        # Limit to requested prediction_days
+        days = days[:request.prediction_days]
+        logger.info(f"Built {len(days)} days with predictions (limited to {request.prediction_days})")
         
         demand_output = DemandOutput(
             restaurant_name=request.place.resolved_name,
