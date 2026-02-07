@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS organizations(
 CREATE TABLE IF NOT EXISTS organizations_roles (
     organization_id UUID,
     role VARCHAR(50),
-    min_needed_per_shift INTEGER,
-    items_per_role_per_hour INTEGER,
-    need_for_demand BOOLEAN NOT NULL,
-    independent BOOLEAN,
+    min_needed_per_shift INTEGER 3,
+    items_per_role_per_hour INTEGER DEFAULT 10,
+    need_for_demand BOOLEAN NOT NULL DEFAULT true,
+    independent BOOLEAN DEFAULT false,
     PRIMARY KEY (organization_id, role),
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
     CHECK ((role != 'manager' AND role != 'admin' AND min_needed_per_shift >= 0) OR 
