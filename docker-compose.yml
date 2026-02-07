@@ -23,11 +23,13 @@ services:
     restart: always
   ml: 
     container_name: "MLModel"
-    build: .
+    build: ./app/ml/
     ports: 
-      - "{ML_PORT}:8000"
+      - "${ML_PORT}:8000"
     env_file: 
       - .env
     restart: always
+    depends_on:
+      - cw_app
 volumes:
   postgres-data:
