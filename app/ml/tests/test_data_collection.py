@@ -33,7 +33,6 @@ class TestSocialMediaAggregator:
         signals = {
             'twitter_virality': 0.8,
             'google_trends': 80,
-            'instagram_engagement': 0.1,
             'event_attendance': 2000
         }
         

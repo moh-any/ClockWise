@@ -14,7 +14,7 @@ The QuickServe ML Platform provides intelligent automation for restaurant operat
 |--------|---------|------------|
 | **Demand Prediction** | Forecast hourly item/order counts | CatBoost + Quantile Regression |
 | **Staff Scheduling** | Optimal shift planning | Google OR-Tools CP-SAT |
-| **Surge Detection** | Real-time viral event response | Redis + Social Media APIs |
+| **Surge Detection** | Real-time viral event response | Social Media APIs |
 | **Campaign AI** | Marketing campaign recommendations | XGBoost + Thompson Sampling |
 
 ---
@@ -25,7 +25,6 @@ The QuickServe ML Platform provides intelligent automation for restaurant operat
 
 ```bash
 Python 3.12+
-Redis (optional, for surge detection)
 8GB RAM recommended
 ```
 
@@ -93,10 +92,10 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ├─────────────────────────────────────────────────────────────────────────┤
 │                         EXTERNAL SERVICES                               │
 │                                                                         │
-│      ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐        │
-│      │ Weather  │   │ Holiday  │   │  Redis   │   │ Twitter  │        │
-│      │ API      │   │ API      │   │ (Cache)  │   │ Trends   │        │
-│      └──────────┘   └──────────┘   └──────────┘   └──────────┘        │
+│      ┌──────────┐   ┌──────────┐   ┌──────────┐                        │
+│      │ Weather  │   │ Holiday  │   │ Twitter  │                        │
+│      │ API      │   │ API      │   │ Trends   │                        │
+│      └──────────┘   └──────────┘   └──────────┘                        │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -287,10 +286,6 @@ app/ml/
 Create a `.env` file:
 
 ```bash
-# Optional: Redis for surge detection
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
 # Optional: Twitter API for social signals
 TWITTER_BEARER_TOKEN=your_token
 
@@ -372,10 +367,9 @@ docker run -p 8000:8000 quickserve-ml
 ### Production Considerations
 
 1. **Scaling**: Use multiple uvicorn workers
-2. **Redis**: Required for surge detection at scale
-3. **Monitoring**: Add Prometheus metrics endpoint
-4. **Logging**: Configure structured logging for debugging
-5. **Model Updates**: Hot-reload models without downtime
+2. **Monitoring**: Add Prometheus metrics endpoint
+3. **Logging**: Configure structured logging for debugging
+4. **Model Updates**: Hot-reload models without downtime
 
 ---
 

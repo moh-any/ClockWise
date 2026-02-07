@@ -26,7 +26,6 @@
 
 ### Challenge
 Social media can cause **unpredictable demand surges** that exceed normal predictions by 2-10x within hours:
-- Influencer posts (TikTok, Instagram)
 - Viral reviews or "secret menu" items
 - Local events trending on Twitter
 - Reddit/Facebook group recommendations
@@ -62,15 +61,15 @@ Social media can cause **unpredictable demand surges** that exceed normal predic
 │  │                 │  │                   │  │                  │         │
 │  │ • Order count   │  │ • Predicted items │  │ • Google Trends  │         │
 │  │ • Items ordered │  │ • Predicted orders│  │ • Twitter counts │         │
-│  │ • Timestamp     │  │ • Confidence bands│  │ • Instagram eng. │         │
-│  │ • Place ID      │  │                   │  │ • Event calendar │         │
+│  │ • Timestamp     │  │ • Confidence bands│  │ • Event calendar │         │
+│  │ • Place ID      │  │                   │  │                  │         │
 │  └────────┬────────┘  └─────────┬─────────┘  └─────────┬────────┘         │
 │           │                     │                      │                  │
 │           └─────────────────────┼──────────────────────┘                  │
 │                                 ▼                                         │
 │                    ┌──────────────────────────┐                           │
-│                    │   Redis Time-Series DB   │                           │
-│                    │   (5-minute resolution)  │                           │
+│                    │  Data Collection Storage  │                           │
+│                    │   (5-minute resolution)   │                           │
 │                    │                          │                           │
 │                    │  Key: place_id:YYYYMMDDHH│                           │
 │                    │  Value: {                │                           │
@@ -179,8 +178,7 @@ class RealTimeDataCollector:
     Runs as background service (Celery task or separate process).
     """
     
-    def __init__(self, redis_client, update_interval_seconds=300):
-        self.redis = redis_client
+    def __init__(self, update_interval_seconds=300):
         self.interval = update_interval_seconds
         self.social_media_cache_ttl = 900  # 15 minutes
     
@@ -193,7 +191,7 @@ class RealTimeDataCollector:
     
     def collect_predictions(self, place_id: int, time_window: timedelta) -> dict:
         """
-        Fetch predictions from Redis cache or recompute if needed.
+        Fetch predictions from cache or recompute if needed.
         Returns: {timestamp: {item_count_pred: float, order_count_pred: float}}
         """
         pass
@@ -205,7 +203,6 @@ class RealTimeDataCollector:
             google_trends: float,
             twitter_mentions: int,
             twitter_virality: float,
-            instagram_engagement: float,
             nearby_events: int,
             composite_signal: float  # 0-1 score
         }
@@ -214,7 +211,7 @@ class RealTimeDataCollector:
     
     def aggregate_and_store(self, place_id: int):
         """
-        Combine all data sources and store in Redis time-series.
+        Combine all data sources and store in database.
         Called every 5 minutes per active venue.
         """
         # Get current hour slot
@@ -232,7 +229,7 @@ class RealTimeDataCollector:
         
         ratio = actual_items / predicted_items if predicted_items > 0 else 0
         
-        # Store in Redis
+        # Store in database
         key = f"surge:metrics:{place_id}:{hour_key}"
         data = {
             'timestamp': current_time.isoformat(),
@@ -242,8 +239,6 @@ class RealTimeDataCollector:
             'social_signals': social,
             'excess_demand': actual_items - predicted_items
         }
-        
-        self.redis.setex(key, timedelta(days=7), json.dumps(data))
 ```
 
 **Deployment:** 
@@ -311,7 +306,7 @@ class SurgeDetector:
         
         Args:
             place_id: Venue ID
-            metrics: List of SurgeMetrics for last N hours (from Redis)
+            metrics: List of SurgeMetrics for last N hours
         
         Returns:
             SurgeEvent if detected, None otherwise
@@ -529,7 +524,6 @@ class SocialMediaAggregator:
     def __init__(self):
         # API credentials from environment
         self.twitter_bearer = os.getenv('TWITTER_BEARER_TOKEN')
-        self.instagram_token = os.getenv('INSTAGRAM_ACCESS_TOKEN')
         self.eventbrite_key = os.getenv('EVENTBRITE_API_KEY')
         
         # In-memory cache to reduce API calls
@@ -546,7 +540,6 @@ class SocialMediaAggregator:
                 'google_trends': 0.75,      # 0-100 normalized to 0-1
                 'twitter_mentions': 45,      # Raw count
                 'twitter_virality': 0.82,    # 0-1 engagement rate
-                'instagram_engagement': 0.05, # 0-1 engagement rate
                 'nearby_events': 2,          # Count of events
                 'event_attendance': 1500,    # Total expected
                 'composite_signal': 0.68     # Weighted average
@@ -567,9 +560,6 @@ class SocialMediaAggregator:
         signals['twitter_mentions'] = twitter_data['mentions']
         signals['twitter_virality'] = twitter_data['virality']
         
-        # Instagram (optional, requires business account)
-        signals['instagram_engagement'] = self._get_instagram_engagement(place_id)
-        
         # Nearby events
         event_data = self._get_nearby_events(latitude, longitude)
         signals['nearby_events'] = event_data['count']
@@ -577,10 +567,9 @@ class SocialMediaAggregator:
         
         # Composite score (prioritize high-signal sources)
         composite = (
-            signals['twitter_virality'] * 0.35 +
-            (signals['google_trends'] / 100) * 0.25 +
-            signals['instagram_engagement'] * 0.20 +
-            min(1.0, signals['event_attendance'] / 5000) * 0.20
+            signals['twitter_virality'] * 0.40 +
+            (signals['google_trends'] / 100) * 0.30 +
+            min(1.0, signals['event_attendance'] / 5000) * 0.30
         )
         signals['composite_signal'] = composite
         
@@ -649,12 +638,6 @@ class SocialMediaAggregator:
         except Exception as e:
             print(f"Twitter API error: {e}")
             return {'mentions': 0, 'virality': 0.0}
-    
-    def _get_instagram_engagement(self, place_id: int) -> float:
-        """Get Instagram engagement rate (if available)."""
-        # Requires venue to have linked Instagram business account
-        # For MVP, return 0 unless implemented
-        return 0.0
     
     def _get_nearby_events(self, latitude: float, longitude: float) -> Dict[str, int]:
         """Get nearby events from Eventbrite."""
@@ -1060,10 +1043,10 @@ class EmergencyScheduler:
 │       ├─ Fetch actual orders from last hour                 │
 │       ├─ Fetch predictions from cache                       │
 │       ├─ Fetch social media signals (15min cache)           │
-│       └─ Store in Redis time-series                         │
+│       └─ Store in database time-series                         │
 │                                                              │
 │    2. SurgeDetector.check_surge()                           │
-│       ├─ Load last 3 hours of metrics from Redis            │
+│       ├─ Load last 3 hours of metrics from storage            │
 │       ├─ Check surge conditions                             │
 │       └─ Return SurgeEvent or None                          │
 │                                                              │
@@ -1100,7 +1083,7 @@ class EmergencyScheduler:
 ### Phase 1: Foundation (Week 1-2)
 
 **Goals:**
-- [ ] Set up Redis time-series database
+- [ ] Set up time-series data storage
 - [ ] Implement RealTimeDataCollector (without social APIs)
 - [ ] Implement SurgeDetector core logic
 - [ ] Unit tests for detection algorithm
@@ -1108,7 +1091,7 @@ class EmergencyScheduler:
 **Deliverables:**
 1. `src/data_collector.py` - Collect actuals vs predictions
 2. `src/surge_detector.py` - Detection algorithm
-3. Redis schema documentation
+3. Database schema documentation
 4. Test suite with synthetic surge data
 
 **Testing:**
@@ -1188,7 +1171,7 @@ class EmergencyScheduler:
 
 **Goals:**
 - [ ] Deploy background monitoring service
-- [ ] Set up production Redis cluster
+- [ ] Set up production data storage
 - [ ] Configure alerting channels
 - [ ] Train operations team
 
@@ -1201,7 +1184,7 @@ class EmergencyScheduler:
 
 **Testing:**
 - Load testing (100 venues × 5min = stable?)
-- Failure testing (Redis down, API outage)
+- Failure testing (storage down, API outage)
 - End-to-end production test with staging data
 
 ---
@@ -1237,8 +1220,8 @@ export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
 # LLM (Optional)
 export ANTHROPIC_API_KEY="your_anthropic_key"
 
-# Redis
-export REDIS_URL="redis://localhost:6379"
+# Twitter API
+export TWITTER_BEARER_TOKEN="your_token"
 ```
 
 ### API Cost Estimates (Monthly)
@@ -1511,7 +1494,7 @@ locust -f tests/load_test.py --users 100 --spawn-rate 10
 # Expected performance:
 # - 95th percentile: <3 seconds per venue
 # - Error rate: <0.1%
-# - Redis memory: <2GB for 7 days of data
+# - Database storage: Minimal for time-series data
 ```
 
 ---
