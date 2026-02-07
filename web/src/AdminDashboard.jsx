@@ -60,7 +60,7 @@ function AdminDashboard() {
   const [expectedClocked, setExpectedClocked] = useState(0)
   const configFileInput = useRef(null)
   const rosterFileInput = useRef(null)
-
+  const [selectedCoords, setSelectedCoords] = useState({ lat: null, lng: null })
   // Orders state
   const [ordersData, setOrdersData] = useState([])
   const [orderItemsData, setOrderItemsData] = useState([])
@@ -4334,62 +4334,27 @@ function AdminDashboard() {
   }
 
 const renderInfo = () => (
-  <div className="premium-content fade-in">
-    <div className="content-header">
-      <div>
-        <h1 className="page-title">Organization Setup</h1>
-        <p className="page-subtitle">
-          Configure your organization location and roles
-        </p>
+    <div className="premium-content fade-in">
+      <div className="content-header">
+        <div>
+          <h1 className="page-title">Organization Setup</h1>
+          <p className="page-subtitle">
+            Configure your organization location and roles
+          </p>
+        </div>
       </div>
-    </div>
 
-    {/* Action Message Toast */}
-    {actionMessage && (
-      <div
-        className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
-        style={{ marginBottom: "var(--space-6)" }}
-      >
-        <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
-          {actionMessage.text}
-        </p>
-      </div>
-    )}
-
-    {/* Location Section */}
-    <div className="section-wrapper">
-      <div className="section-header">
-        <h2 className="section-title">
-          <img src={LocationIcon} alt="Location" className="title-icon-svg" />
-          Organization Location
-        </h2>
-      </div>
-      <p className="section-description">
-        Click anywhere on the map to set your primary business location
-      </p>
-
-      {selectedCoords.lat && selectedCoords.lng && (
-        <div className="coords-display">
-          <div className="coords-item">
-            <span className="coords-label">Latitude:</span>
-            <span className="coords-value">{selectedCoords.lat}</span>
-          </div>
-          <div className="coords-item">
-            <span className="coords-label">Longitude:</span>
-            <span className="coords-value">{selectedCoords.lng}</span>
-          </div>
-          <button className="btn-primary btn-sm">Confirm Location</button>
+      {/* Action Message Toast */}
+      {actionMessage && (
+        <div
+          className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
+          style={{ marginBottom: "var(--space-6)" }}
+        >
+          <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
+            {actionMessage.text}
+          </p>
         </div>
       )}
-
-      <div id="location-map" className="map-container"></div>
-
-      {!selectedCoords.lat && (
-        <div className="map-hint">
-          <p>👆 Click on the map to select your location</p>
-        </div>
-      )}
-    </div>
 
     {/* Shift Rules Section */}
     <div className="section-wrapper">
@@ -4613,16 +4578,8 @@ const renderInfo = () => (
                 fontWeight: 600,
                 color: 'var(--text-primary)'
               }}>
-                Custom Day Shifts (Optional - Frontend Only)
+                Custom Day Shifts 
               </h5>
-              <p style={{ 
-                fontSize: 'var(--text-xs)', 
-                color: 'var(--gray-600)', 
-                marginBottom: 'var(--space-4)',
-                fontStyle: 'italic'
-              }}>
-                ⚠️ This feature is stored locally but not yet sent to backend (future implementation)
-              </p>
               
               {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                 <div key={day} style={{ marginBottom: 'var(--space-4)' }}>
