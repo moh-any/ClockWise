@@ -1596,6 +1596,9 @@ function AdminDashboard() {
       const file = event.target.files[0]
       if (!file) return
 
+      // Close modal immediately
+      setShowUploadCampaigns(false)
+
       try {
         setCampaignsLoading(true)
         const response = await api.campaigns.uploadCampaignsCSV(file)
@@ -1604,7 +1607,7 @@ function AdminDashboard() {
           text: `Campaigns uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchCampaigns(campaignsFilter)
+        await fetchCampaigns(campaignsFilter)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -1613,7 +1616,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setCampaignsLoading(false)
-        setShowUploadCampaigns(false)
         if (campaignsFileInput.current) campaignsFileInput.current.value = ""
       }
     }
@@ -1621,6 +1623,9 @@ function AdminDashboard() {
     const handleCampaignItemsUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
+
+      // Close modal immediately
+      setShowUploadCampaigns(false)
 
       try {
         setCampaignsLoading(true)
@@ -1630,7 +1635,7 @@ function AdminDashboard() {
           text: `Campaign items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchCampaigns(campaignsFilter)
+        await fetchCampaigns(campaignsFilter)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -1639,7 +1644,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setCampaignsLoading(false)
-        setShowUploadCampaignItems(false)
         if (campaignItemsFileInput.current)
           campaignItemsFileInput.current.value = ""
       }
@@ -2161,6 +2165,9 @@ function AdminDashboard() {
       const file = event.target.files[0]
       if (!file) return
 
+      // Close modal immediately
+      setShowUploadOrders(false)
+
       try {
         setOrdersLoading(true)
         const response = await api.orders.uploadOrdersCSV(file)
@@ -2169,7 +2176,7 @@ function AdminDashboard() {
           text: `Orders uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchOrders(ordersFilter)
+        await fetchOrders(ordersFilter)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -2178,7 +2185,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
-        setShowUploadOrders(false)
         if (ordersFileInput.current) ordersFileInput.current.value = ""
       }
     }
@@ -2186,6 +2192,9 @@ function AdminDashboard() {
     const handleItemsUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
+
+      // Close modal immediately
+      setShowUploadItems(false)
 
       try {
         setOrdersLoading(true)
@@ -2195,7 +2204,7 @@ function AdminDashboard() {
           text: `Items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchOrders(ordersFilter, ordersDataType)
+        await fetchOrders(ordersFilter, ordersDataType)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -2204,7 +2213,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
-        setShowUploadItems(false)
         if (itemsFileInput.current) itemsFileInput.current.value = ""
       }
     }
@@ -2212,6 +2220,9 @@ function AdminDashboard() {
     const handleOrderItemsUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
+
+      // Close modal immediately
+      setShowUploadOrderItems(false)
 
       try {
         setOrdersLoading(true)
@@ -2221,7 +2232,7 @@ function AdminDashboard() {
           text: `Order items uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchOrders(ordersFilter, ordersDataType)
+        await fetchOrders(ordersFilter, ordersDataType)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -2230,7 +2241,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
-        setShowUploadOrderItems(false)
         if (orderItemsFileInput.current) orderItemsFileInput.current.value = ""
       }
     }
@@ -2238,6 +2248,9 @@ function AdminDashboard() {
     const handleDeliveriesUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
+
+      // Close modal immediately
+      setShowUploadDeliveries(false)
 
       try {
         setOrdersLoading(true)
@@ -2247,7 +2260,7 @@ function AdminDashboard() {
           text: `Deliveries uploaded: ${response.success_count} successful, ${response.error_count} failed`,
         })
         setTimeout(() => setActionMessage(null), 5000)
-        fetchOrders(ordersFilter, ordersDataType)
+        await fetchOrders(ordersFilter, ordersDataType)
       } catch (err) {
         setActionMessage({
           type: "error",
@@ -2256,7 +2269,6 @@ function AdminDashboard() {
         setTimeout(() => setActionMessage(null), 4000)
       } finally {
         setOrdersLoading(false)
-        setShowUploadDeliveries(false)
         if (deliveriesFileInput.current) deliveriesFileInput.current.value = ""
       }
     }
@@ -2816,57 +2828,59 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {orderItemsData.slice(0, 100).map((orderItem, index) => (
-                          <tr
-                            key={`${orderItem.order_id}-${orderItem.item_id}-${index}`}
-                            style={{
-                              borderBottom: "1px solid var(--gray-200)",
-                            }}
-                          >
-                            <td
+                        {orderItemsData
+                          .slice(0, 100)
+                          .map((orderItem, index) => (
+                            <tr
+                              key={`${orderItem.order_id}-${orderItem.item_id}-${index}`}
                               style={{
-                                padding: "var(--space-3)",
-                                fontSize: "var(--text-sm)",
-                                color: "var(--gray-700)",
+                                borderBottom: "1px solid var(--gray-200)",
                               }}
                             >
-                              {orderItem.order_id
-                                ? orderItem.order_id.slice(0, 8) + "..."
-                                : "—"}
-                            </td>
-                            <td
-                              style={{
-                                padding: "var(--space-3)",
-                                fontSize: "var(--text-sm)",
-                                color: "var(--gray-700)",
-                              }}
-                            >
-                              {orderItem.item_id
-                                ? orderItem.item_id.slice(0, 8) + "..."
-                                : "—"}
-                            </td>
-                            <td
-                              style={{
-                                padding: "var(--space-3)",
-                                fontSize: "var(--text-sm)",
-                                color: "var(--gray-700)",
-                                textAlign: "center",
-                              }}
-                            >
-                              {orderItem.quantity}
-                            </td>
-                            <td
-                              style={{
-                                padding: "var(--space-3)",
-                                fontSize: "var(--text-sm)",
-                                color: "var(--primary-600)",
-                                fontWeight: 600,
-                              }}
-                            >
-                              ${orderItem.total_price?.toFixed(2) || "0.00"}
-                            </td>
-                          </tr>
-                        ))}
+                              <td
+                                style={{
+                                  padding: "var(--space-3)",
+                                  fontSize: "var(--text-sm)",
+                                  color: "var(--gray-700)",
+                                }}
+                              >
+                                {orderItem.order_id
+                                  ? orderItem.order_id.slice(0, 8) + "..."
+                                  : "—"}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "var(--space-3)",
+                                  fontSize: "var(--text-sm)",
+                                  color: "var(--gray-700)",
+                                }}
+                              >
+                                {orderItem.item_id
+                                  ? orderItem.item_id.slice(0, 8) + "..."
+                                  : "—"}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "var(--space-3)",
+                                  fontSize: "var(--text-sm)",
+                                  color: "var(--gray-700)",
+                                  textAlign: "center",
+                                }}
+                              >
+                                {orderItem.quantity}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "var(--space-3)",
+                                  fontSize: "var(--text-sm)",
+                                  color: "var(--primary-600)",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                ${orderItem.total_price?.toFixed(2) || "0.00"}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   ) : (
@@ -2898,110 +2912,116 @@ function AdminDashboard() {
                     >
                       Showing first 100 of {ordersData.length} items
                     </p>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Item ID
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Name
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Needed Employees
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Price
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ordersData.slice(0, 100).map((item, index) => (
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
                         <tr
-                          key={item.item_id || `item-${index}`}
-                          style={{ borderBottom: "1px solid var(--gray-200)" }}
+                          style={{ borderBottom: "2px solid var(--gray-200)" }}
                         >
-                          <td
+                          <th
                             style={{
+                              textAlign: "left",
                               padding: "var(--space-4)",
                               fontSize: "var(--text-sm)",
-                              color: "var(--gray-700)",
-                            }}
-                          >
-                            {item.item_id
-                              ? item.item_id.slice(0, 8) + "..."
-                              : "—"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "var(--space-4)",
-                              fontSize: "var(--text-base)",
-                              color: "var(--gray-700)",
                               fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
                             }}
                           >
-                            {item.name}
-                          </td>
-                          <td
+                            Item ID
+                          </th>
+                          <th
                             style={{
+                              textAlign: "left",
                               padding: "var(--space-4)",
-                              fontSize: "var(--text-base)",
-                              color: "var(--gray-700)",
-                              textAlign: "center",
-                            }}
-                          >
-                            {item.needed_employees}
-                          </td>
-                          <td
-                            style={{
-                              padding: "var(--space-4)",
-                              fontSize: "var(--text-base)",
-                              color: "var(--primary-600)",
+                              fontSize: "var(--text-sm)",
                               fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
                             }}
                           >
-                            ${item.price?.toFixed(2) || "0.00"}
-                          </td>
+                            Name
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Needed Employees
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Price
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {ordersData.slice(0, 100).map((item, index) => (
+                          <tr
+                            key={item.item_id || `item-${index}`}
+                            style={{
+                              borderBottom: "1px solid var(--gray-200)",
+                            }}
+                          >
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                              }}
+                            >
+                              {item.item_id
+                                ? item.item_id.slice(0, 8) + "..."
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-base)",
+                                color: "var(--gray-700)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {item.name}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-base)",
+                                color: "var(--gray-700)",
+                                textAlign: "center",
+                              }}
+                            >
+                              {item.needed_employees}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-base)",
+                                color: "var(--primary-600)",
+                                fontWeight: 600,
+                              }}
+                            >
+                              ${item.price?.toFixed(2) || "0.00"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </>
                 ) : (
                   <>
@@ -3014,167 +3034,173 @@ function AdminDashboard() {
                     >
                       Showing first 100 of {ordersData.length} deliveries
                     </p>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Order ID
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Driver ID
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Status
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Location
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Out for Delivery
-                        </th>
-                        <th
-                          style={{
-                            textAlign: "left",
-                            padding: "var(--space-4)",
-                            fontSize: "var(--text-sm)",
-                            fontWeight: 600,
-                            color: "var(--gray-600)",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Delivered
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ordersData.slice(0, 100).map((delivery, index) => (
+                    <table
+                      style={{ width: "100%", borderCollapse: "collapse" }}
+                    >
+                      <thead>
                         <tr
-                          key={delivery.order_id || `delivery-${index}`}
-                          style={{ borderBottom: "1px solid var(--gray-200)" }}
+                          style={{ borderBottom: "2px solid var(--gray-200)" }}
                         >
-                          <td
+                          <th
                             style={{
+                              textAlign: "left",
                               padding: "var(--space-4)",
                               fontSize: "var(--text-sm)",
-                              color: "var(--gray-700)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
                             }}
                           >
-                            {delivery.order_id
-                              ? delivery.order_id.slice(0, 8) + "..."
-                              : "—"}
-                          </td>
-                          <td
+                            Order ID
+                          </th>
+                          <th
                             style={{
+                              textAlign: "left",
                               padding: "var(--space-4)",
                               fontSize: "var(--text-sm)",
-                              color: "var(--gray-700)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
                             }}
                           >
-                            {delivery.driver_id
-                              ? delivery.driver_id.slice(0, 8) + "..."
-                              : "—"}
-                          </td>
-                          <td style={{ padding: "var(--space-4)" }}>
-                            <span
+                            Driver ID
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Status
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Location
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Out for Delivery
+                          </th>
+                          <th
+                            style={{
+                              textAlign: "left",
+                              padding: "var(--space-4)",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 600,
+                              color: "var(--gray-600)",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Delivered
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ordersData.slice(0, 100).map((delivery, index) => (
+                          <tr
+                            key={delivery.order_id || `delivery-${index}`}
+                            style={{
+                              borderBottom: "1px solid var(--gray-200)",
+                            }}
+                          >
+                            <td
                               style={{
-                                padding: "4px 12px",
-                                borderRadius: "var(--radius-full)",
-                                fontSize: "var(--text-xs)",
-                                fontWeight: 600,
-                                backgroundColor:
-                                  getStatusBadge(delivery.status) + "20",
-                                color: getStatusBadge(delivery.status),
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
                               }}
                             >
-                              {delivery.status}
-                            </span>
-                          </td>
-                          <td
-                            style={{
-                              padding: "var(--space-4)",
-                              fontSize: "var(--text-sm)",
-                              color: "var(--gray-700)",
-                            }}
-                          >
-                            {delivery.location
-                              ? `${delivery.location.latitude.toFixed(4)}, ${delivery.location.longitude.toFixed(4)}`
-                              : "—"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "var(--space-4)",
-                              fontSize: "var(--text-sm)",
-                              color: "var(--gray-500)",
-                            }}
-                          >
-                            {delivery.out_for_delivery_time
-                              ? new Date(
-                                  delivery.out_for_delivery_time,
-                                ).toLocaleString()
-                              : "—"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "var(--space-4)",
-                              fontSize: "var(--text-sm)",
-                              color: "var(--gray-500)",
-                            }}
-                          >
-                            {delivery.delivered_time
-                              ? new Date(
-                                  delivery.delivered_time,
-                                ).toLocaleString()
-                              : "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                              {delivery.order_id
+                                ? delivery.order_id.slice(0, 8) + "..."
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                              }}
+                            >
+                              {delivery.driver_id
+                                ? delivery.driver_id.slice(0, 8) + "..."
+                                : "—"}
+                            </td>
+                            <td style={{ padding: "var(--space-4)" }}>
+                              <span
+                                style={{
+                                  padding: "4px 12px",
+                                  borderRadius: "var(--radius-full)",
+                                  fontSize: "var(--text-xs)",
+                                  fontWeight: 600,
+                                  backgroundColor:
+                                    getStatusBadge(delivery.status) + "20",
+                                  color: getStatusBadge(delivery.status),
+                                }}
+                              >
+                                {delivery.status}
+                              </span>
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-700)",
+                              }}
+                            >
+                              {delivery.location
+                                ? `${delivery.location.latitude.toFixed(4)}, ${delivery.location.longitude.toFixed(4)}`
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-500)",
+                              }}
+                            >
+                              {delivery.out_for_delivery_time
+                                ? new Date(
+                                    delivery.out_for_delivery_time,
+                                  ).toLocaleString()
+                                : "—"}
+                            </td>
+                            <td
+                              style={{
+                                padding: "var(--space-4)",
+                                fontSize: "var(--text-sm)",
+                                color: "var(--gray-500)",
+                              }}
+                            >
+                              {delivery.delivered_time
+                                ? new Date(
+                                    delivery.delivered_time,
+                                  ).toLocaleString()
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </>
                 )}
               </div>
@@ -6435,6 +6461,37 @@ function AdminDashboard() {
           </button>
         ))}
       </nav>
+
+      {/* Upload Loading Overlay */}
+      {(campaignsLoading || ordersLoading) && (
+        <div className="upload-loader-overlay">
+          <div className="loader-container">
+            <svg
+              width="120"
+              height="120"
+              viewBox="0 0 120 120"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g transform="translate(60, 60)">
+                <path
+                  className="iso-slice slice-1"
+                  d="M0 -15 L25 0 L0 15 L-25 0 Z"
+                />
+                <path
+                  className="iso-slice slice-2"
+                  d="M0 -15 L25 0 L0 15 L-25 0 Z"
+                />
+                <path
+                  className="iso-slice slice-3"
+                  d="M0 -15 L25 0 L0 15 L-25 0 Z"
+                />
+              </g>
+            </svg>
+            <div className="loader-text">Uploading data...</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
