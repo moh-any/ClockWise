@@ -1174,7 +1174,6 @@ const renderInsights = () => {
         <div className="empty-state">
           <img src={AnalyticsIcon} alt="Insights" className="empty-icon-svg" />
           <h3>No Insights Available</h3>
-<<<<<<< HEAD
           <p>Insights data will appear here once you have sufficient activity</p>
           <button className="btn-primary" onClick={() => fetchDashboardData()}>
             <svg
@@ -1192,11 +1191,6 @@ const renderInsights = () => {
             </svg>
             Load Insights
           </button>
-=======
-          <p>
-            Insights data will appear here once you have sufficient activity
-          </p>
->>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
         </div>
       )}
     </div>
@@ -4832,62 +4826,8 @@ const renderAdminProfile = () => {
               </div>
             </div>
 
-<<<<<<< HEAD
             {/* Work Statistics Card */}
             {currentUser?.user_role !== 'admin' && profileData && (
-=======
-            <div className="profile-content-grid">
-              {/* Personal Information Card */}
-              <div className="profile-card" data-animation="slide-up">
-                <div className="profile-card-header">
-                  <h3 className="profile-card-title">
-                    <svg
-                      className="card-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    Personal Information
-                  </h3>
-                </div>
-                <div className="profile-info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Full Name</span>
-                    <span className="info-value">{displayName}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Email</span>
-                    <span className="info-value">{displayEmail}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Role</span>
-                    <span
-                      className="info-value"
-                      style={{ textTransform: "capitalize" }}
-                    >
-                      {displayRole}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Organization</span>
-                    <span className="info-value">
-                      {currentUser?.organization_name ||
-                        currentUser?.organization ||
-                        "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Account Statistics Card */}
->>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
               <div
                 className="profile-card"
                 data-animation="slide-up"
@@ -5208,7 +5148,6 @@ const renderAdminProfile = () => {
                       />
                     </svg>
                     <div>
-<<<<<<< HEAD
                       <div className="info-title">Last Updated</div>
                       <div className="info-subtitle">
                         {new Date(currentUser.updated_at).toLocaleDateString('en-US', {
@@ -5216,39 +5155,6 @@ const renderAdminProfile = () => {
                           month: 'long',
                           day: 'numeric'
                         })}
-=======
-                      <div className="info-title">Account Status</div>
-                      <div className="info-subtitle">Active</div>
-                    </div>
-                  </div>
-                  {currentUser?.created_at && (
-                    <div className="info-row">
-                      <svg
-                        className="info-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <div>
-                        <div className="info-title">Member Since</div>
-                        <div className="info-subtitle">
-                          {new Date(currentUser.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            },
-                          )}
-                        </div>
->>>>>>> f7642f7d9ae3364d50be8e9027ca8dc9f89af726
                       </div>
                     </div>
                   </div>
