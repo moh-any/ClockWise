@@ -15,6 +15,7 @@ import TargetHitIcon from "./Icons/Target-Hit-Icon.svg"
 import MissedTargetIcon from "./Icons/Missed-Target-Icon.svg"
 import LocationIcon from "./Icons/location-Icon.svg"
 import CloudUploadIcon from "./Icons/Cloud-Upload-Icon.svg"
+import ItemsIcon from "./Icons/Items-Icon.svg"
 import ConfigurationIcon from "./Icons/Configuration-Icon.svg"
 import EmployeeIcon from "./Icons/Employee-Icon.svg"
 import LightModeIcon from "./Icons/Light-Mode-Icon.svg"
@@ -61,15 +62,18 @@ function AdminDashboard() {
 
   // Orders state
   const [ordersData, setOrdersData] = useState([])
+  const [orderItemsData, setOrderItemsData] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [ordersFilter, setOrdersFilter] = useState('all')
   const [ordersDataType, setOrdersDataType] = useState('orders') // orders, items, deliveries
   const [ordersInsights, setOrdersInsights] = useState([])
   const [showUploadOrders, setShowUploadOrders] = useState(false)
   const [showUploadItems, setShowUploadItems] = useState(false)
+  const [showUploadOrderItems, setShowUploadOrderItems] = useState(false)
   const [showUploadDeliveries, setShowUploadDeliveries] = useState(false)
   const ordersFileInput = useRef(null)
   const itemsFileInput = useRef(null)
+  const orderItemsFileInput = useRef(null)
   const deliveriesFileInput = useRef(null)
 
   // Staffing state
@@ -438,52 +442,75 @@ function AdminDashboard() {
     }
   }, [activeTab])
 
+  // Consolidated fetch function for orders/items/deliveries
+  const fetchOrders = async (filter = 'all', dataType = 'orders') => {
+    try {
+      setOrdersLoading(true)
+      let data
+      let insights
+      if (dataType === 'items') {
+        // Items don't have time filters
+        data = await api.items.getAllItems()
+        insights = await api.items.getItemInsights()
+      } else if (dataType === 'deliveries') {
+        insights = await api.deliveries.getDeliveryInsights()
+        switch (filter) {
+          case 'today':
+            data = await api.deliveries.getDeliveriesToday()
+            break
+          case 'week':
+            data = await api.deliveries.getDeliveriesWeek()
+            break
+          default:
+            data = await api.deliveries.getAllDeliveries()
+        }
+      } else {
+        insights = await api.orders.getOrderInsights()
+        switch (filter) {
+          case 'today':
+            data = await api.orders.getOrdersToday()
+            break
+          case 'week':
+            data = await api.orders.getOrdersWeek()
+            break
+          default:
+            data = await api.orders.getAllOrders()
+        }
+      }
+      setOrdersData(data.data || [])
+      setOrdersInsights(insights.data || [])
+      
+      // Extract order items from orders data
+      if (dataType === 'orders' && data.data) {
+        const allOrderItems = []
+        data.data.forEach(order => {
+          const items = order.order_items || order.items || []
+          items.forEach(item => {
+            allOrderItems.push({
+              order_id: order.order_id,
+              item_id: item.item_id,
+              quantity: item.quantity,
+              total_price: item.total_price
+            })
+          })
+        })
+        setOrderItemsData(allOrderItems)
+      } else {
+        setOrderItemsData([])
+      }
+    } catch (err) {
+      console.error('Failed to fetch data:', err)
+      setActionMessage({ type: 'error', text: err.message || 'Failed to load data' })
+      setTimeout(() => setActionMessage(null), 4000)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
+
   // Fetch orders when orders tab is active or filter/type changes
   useEffect(() => {
     if (activeTab === "orders") {
-      const fetchOrdersData = async () => {
-        try {
-          setOrdersLoading(true)
-          let data
-          let insights
-          if (ordersDataType === 'items') {
-            // Items don't have time filters, always get all
-            data = await api.items.getAllItems()
-            insights = await api.items.getItemInsights()
-          } else if (ordersDataType === 'deliveries') {
-            insights = await api.deliveries.getDeliveryInsights()
-            switch (ordersFilter) {
-              case 'today':
-                data = await api.deliveries.getDeliveriesToday()
-                break
-              case 'week':
-                data = await api.deliveries.getDeliveriesWeek()
-                break
-              default:
-                data = await api.deliveries.getAllDeliveries()
-            }
-          } else {
-            insights = await api.orders.getOrderInsights()
-            switch (ordersFilter) {
-              case 'today':
-                data = await api.orders.getOrdersToday()
-                break
-              case 'week':
-                data = await api.orders.getOrdersWeek()
-                break
-              default:
-                data = await api.orders.getAllOrders()
-            }
-          }
-          setOrdersData(data.data || [])
-          setOrdersInsights(insights.data || [])
-        } catch (err) {
-          console.error('Failed to fetch orders:', err)
-        } finally {
-          setOrdersLoading(false)
-        }
-      }
-      fetchOrdersData()
+      fetchOrders(ordersFilter, ordersDataType)
     }
   }, [activeTab, ordersFilter, ordersDataType])
 
@@ -961,51 +988,6 @@ function AdminDashboard() {
   )
 
   const renderOrders = () => {
-    const fetchOrders = async (filter = 'all', dataType = 'orders') => {
-      try {
-        setOrdersLoading(true)
-        let data
-        let insights
-        if (dataType === 'items') {
-          // Items don't have time filters
-          data = await api.items.getAllItems()
-          insights = await api.items.getItemInsights()
-        } else if (dataType === 'deliveries') {
-          insights = await api.deliveries.getDeliveryInsights()
-          switch (filter) {
-            case 'today':
-              data = await api.deliveries.getDeliveriesToday()
-              break
-            case 'week':
-              data = await api.deliveries.getDeliveriesWeek()
-              break
-            default:
-              data = await api.deliveries.getAllDeliveries()
-          }
-        } else {
-          insights = await api.orders.getOrderInsights()
-          switch (filter) {
-            case 'today':
-              data = await api.orders.getOrdersToday()
-              break
-            case 'week':
-              data = await api.orders.getOrdersWeek()
-              break
-            default:
-              data = await api.orders.getAllOrders()
-          }
-        }
-        setOrdersData(data.data || [])
-        setOrdersInsights(insights.data || [])
-      } catch (err) {
-        console.error('Failed to fetch data:', err)
-        setActionMessage({ type: 'error', text: err.message || 'Failed to load data' })
-        setTimeout(() => setActionMessage(null), 4000)
-      } finally {
-        setOrdersLoading(false)
-      }
-    }
-
     const handleOrdersUpload = async (event) => {
       const file = event.target.files[0]
       if (!file) return
@@ -1049,6 +1031,29 @@ function AdminDashboard() {
         setOrdersLoading(false)
         setShowUploadItems(false)
         if (itemsFileInput.current) itemsFileInput.current.value = ''
+      }
+    }
+
+    const handleOrderItemsUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setOrdersLoading(true)
+        const response = await api.orders.uploadOrderItemsCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Order items uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchOrders(ordersFilter, ordersDataType)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload order items' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+        setShowUploadOrderItems(false)
+        if (orderItemsFileInput.current) orderItemsFileInput.current.value = ''
       }
     }
 
@@ -1156,13 +1161,19 @@ function AdminDashboard() {
                   </svg>
                   Upload Orders
                 </button>
+                <button className="btn-secondary" onClick={() => setShowUploadOrderItems(true)}>
+                  <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Upload Order Items
+                </button>
               </>
             ) : ordersDataType === 'items' ? (
               <button className="btn-secondary" onClick={() => setShowUploadItems(true)}>
                 <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                Upload Items
+                Upload Items Catalog
               </button>
             ) : (
               <button className="btn-secondary" onClick={() => setShowUploadDeliveries(true)}>
@@ -1240,57 +1251,91 @@ function AdminDashboard() {
           </div>
         ) : ordersData && ordersData.length > 0 ? (
           <div className="section-wrapper">
-            <div style={{ overflowX: 'auto' }}>
-              {ordersDataType === 'orders' ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Type</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Amount</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Discount</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item Count</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Rating</th>
-                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ordersData.map((order) => (
-                      <tr key={order.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
-                          {order.order_id.slice(0, 8)}...
-                        </td>
-                        <td style={{ padding: 'var(--space-4)' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getOrderTypeColor(order.order_type) + '20', color: getOrderTypeColor(order.order_type) }}>
-                            {order.order_type}
-                          </span>
-                        </td>
-                        <td style={{ padding: 'var(--space-4)' }}>
-                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(order.order_status) + '20', color: getStatusBadge(order.order_status) }}>
-                            {order.order_status}
-                          </span>
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
-                          ${order.total_amount?.toFixed(2) || '0.00'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--accent-500)' }}>
-                          ${order.discount_amount?.toFixed(2) || '0.00'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', textAlign: 'center' }}>
-                          {order.item_count || 0}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)' }}>
-                          {order.rating ? `⭐ ${order.rating}` : '—'}
-                        </td>
-                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
-                          {new Date(order.create_time).toLocaleDateString()}
-                        </td>
+            {ordersDataType === 'orders' ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                {/* Orders Table */}
+                <div style={{ overflowX: 'auto' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-3)', color: 'var(--gray-700)' }}>Orders</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Type</th>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Amount</th>
+                        <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Items</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : ordersDataType === 'items' ? (
+                    </thead>
+                    <tbody>
+                      {ordersData.map((order) => (
+                        <tr key={order.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                          <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                            {order.order_id.slice(0, 8)}...
+                          </td>
+                          <td style={{ padding: 'var(--space-3)' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getOrderTypeColor(order.order_type) + '20', color: getOrderTypeColor(order.order_type) }}>
+                              {order.order_type}
+                            </span>
+                          </td>
+                          <td style={{ padding: 'var(--space-3)' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(order.order_status) + '20', color: getStatusBadge(order.order_status) }}>
+                              {order.order_status}
+                            </span>
+                          </td>
+                          <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)', fontWeight: 600 }}>
+                            ${order.total_amount?.toFixed(2) || '0.00'}
+                          </td>
+                          <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)', textAlign: 'center' }}>
+                            {order.item_count || 0}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Order Items Table */}
+                <div style={{ overflowX: 'auto' }}>
+                  <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 600, marginBottom: 'var(--space-3)', color: 'var(--gray-700)' }}>Order Items</h3>
+                  {orderItemsData.length > 0 ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                          <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
+                          <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item ID</th>
+                          <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Qty</th>
+                          <th style={{ textAlign: 'left', padding: 'var(--space-3)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderItemsData.map((orderItem, index) => (
+                          <tr key={`${orderItem.order_id}-${orderItem.item_id}-${index}`} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                            <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                              {orderItem.order_id ? orderItem.order_id.slice(0, 8) + '...' : '—'}
+                            </td>
+                            <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                              {orderItem.item_id ? orderItem.item_id.slice(0, 8) + '...' : '—'}
+                            </td>
+                            <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)', textAlign: 'center' }}>
+                              {orderItem.quantity}
+                            </td>
+                            <td style={{ padding: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--primary-600)', fontWeight: 600 }}>
+                              ${orderItem.total_price?.toFixed(2) || '0.00'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--gray-500)' }}>
+                      <p>No order items found. Upload order items CSV to link items to orders.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+            <div style={{ overflowX: 'auto' }}>
+              {ordersDataType === 'items' ? (
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
@@ -1360,6 +1405,7 @@ function AdminDashboard() {
                 </table>
               )}
             </div>
+            )}
           </div>
         ) : (
           <div className="empty-state">
@@ -1397,16 +1443,16 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* Upload Items Modal */}
+        {/* Upload Items Catalog Modal */}
         {showUploadItems && (
           <div className="modal-overlay" onClick={() => setShowUploadItems(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2 className="section-title">Upload Items CSV</h2>
+                <h2 className="section-title">Upload Items Catalog CSV</h2>
                 <button className="collapse-btn" onClick={() => setShowUploadItems(false)}>×</button>
               </div>
               <div className="upload-card" onClick={() => itemsFileInput.current?.click()}>
-                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+                <img src={ItemsIcon} alt="Items" className="upload-icon-svg" />
                 <h3 className="upload-title">Items Catalog Data</h3>
                 <p className="upload-description">Upload menu items for your organization</p>
                 <ul className="upload-specs">
@@ -1419,6 +1465,34 @@ function AdminDashboard() {
                   accept=".csv"
                   style={{ display: 'none' }}
                   onChange={handleItemsUpload}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Order Items Modal */}
+        {showUploadOrderItems && (
+          <div className="modal-overlay" onClick={() => setShowUploadOrderItems(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Order Items CSV</h2>
+                <button className="collapse-btn" onClick={() => setShowUploadOrderItems(false)}>×</button>
+              </div>
+              <div className="upload-card" onClick={() => orderItemsFileInput.current?.click()}>
+                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+                <h3 className="upload-title">Order Items Relationship</h3>
+                <p className="upload-description">Link items to specific orders</p>
+                <ul className="upload-specs">
+                  <li>Required: order_id, item_id, quantity, total_price</li>
+                  <li>Prerequisites: Both Orders and Items must already exist</li>
+                </ul>
+                <input
+                  ref={orderItemsFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={handleOrderItemsUpload}
                 />
               </div>
             </div>
