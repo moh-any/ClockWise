@@ -149,7 +149,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 
 	// Handlers for Endpoints
 	orgHandler := api.NewOrgHandler(orgStore, userStore, userRolesStore, rolesStore, emailService, Logger)
-	staffingHandler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, Logger)
+	staffingHandler := api.NewStaffingHandler(userStore, orgStore, userRolesStore, rolesStore, uploadService, emailService, Logger)
 	employeeHandler := api.NewEmployeeHandler(userStore, emailService, requestStore, orgStore, Logger)
 	preferencesHandler := api.NewPreferencesHandler(preferencesStore, userRolesStore, userStore, rolesStore, Logger)
 	rulesHandler := api.NewRulesHandler(rulesStore, operatingHoursStore, Logger)
