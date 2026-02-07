@@ -76,6 +76,16 @@ function AdminDashboard() {
   const orderItemsFileInput = useRef(null)
   const deliveriesFileInput = useRef(null)
 
+  // Campaigns state
+  const [campaignsData, setCampaignsData] = useState([])
+  const [campaignsLoading, setCampaignsLoading] = useState(false)
+  const [campaignsFilter, setCampaignsFilter] = useState('all') // all, week
+  const [campaignsInsights, setCampaignsInsights] = useState([])
+  const [showUploadCampaigns, setShowUploadCampaigns] = useState(false)
+  const [showUploadCampaignItems, setShowUploadCampaignItems] = useState(false)
+  const campaignsFileInput = useRef(null)
+  const campaignItemsFileInput = useRef(null)
+
   // Staffing state
   const [employees, setEmployees] = useState([])
   const [showDelegateModal, setShowDelegateModal] = useState(false)
@@ -136,7 +146,7 @@ function AdminDashboard() {
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
     { id: "insights", label: "Insights", icon: AnalyticsIcon },
-    { id: "planning", label: "Planning", icon: PlanningIcon },
+    { id: "campaigns", label: "Campaigns", icon: PlanningIcon }, // Changed from "planning" to "campaigns"
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
     { id: "orders", label: "Orders", icon: OrdersIcon },
     { id: "info", label: "Setup", icon: InfoIcon },
@@ -513,6 +523,33 @@ function AdminDashboard() {
       fetchOrders(ordersFilter, ordersDataType)
     }
   }, [activeTab, ordersFilter, ordersDataType])
+  // Fetch campaigns when campaigns tab is active or filter changes
+  useEffect(() => {
+    if (activeTab === "campaigns") {
+      const fetchCampaignsData = async () => {
+        try {
+          setCampaignsLoading(true)
+          let data
+          let insights
+          insights = await api.campaigns.getCampaignInsights()
+          switch (campaignsFilter) {
+            case 'week':
+              data = await api.campaigns.getCampaignsWeek()
+              break
+            default:
+              data = await api.campaigns.getAllCampaigns()
+          }
+          setCampaignsData(data.data || [])
+          setCampaignsInsights(insights.data || [])
+        } catch (err) {
+          console.error('Failed to fetch campaigns:', err)
+        } finally {
+          setCampaignsLoading(false)
+        }
+      }
+      fetchCampaignsData()
+    }
+  }, [activeTab, campaignsFilter])
 
   const initializeMap = () => {
     if (typeof window.mapboxgl === "undefined") {
@@ -912,80 +949,302 @@ function AdminDashboard() {
     </div>
   )
 
-  const renderPlanning = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Workforce Planning</h1>
-          <p className="page-subtitle">Strategic insights for growth</p>
-        </div>
-        <button className="btn-primary">Create Campaign</button>
-      </div>
+  const renderCampaigns = () => {
+    const fetchCampaigns = async (filter = 'all') => {
+      try {
+        setCampaignsLoading(true)
+        let data
+        let insights
+        insights = await api.campaigns.getCampaignInsights()
+        switch (filter) {
+          case 'week':
+            data = await api.campaigns.getCampaignsWeek()
+            break
+          default:
+            data = await api.campaigns.getAllCampaigns()
+        }
+        setCampaignsData(data.data || [])
+        setCampaignsInsights(insights.data || [])
+      } catch (err) {
+        console.error('Failed to fetch campaigns:', err)
+        setActionMessage({ type: 'error', text: err.message || 'Failed to load campaigns' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setCampaignsLoading(false)
+      }
+    }
 
-      <div className="planning-metrics">
-        <div className="metric-card metric-success">
-          <img src={ChartUpIcon} alt="Hires" className="metric-icon-svg" />
-          <div className="metric-content">
-            <h4>Recent Hires</h4>
-            <div className="metric-value">24</div>
-            <p className="metric-label">Last 30 days</p>
+    const handleCampaignsUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setCampaignsLoading(true)
+        const response = await api.campaigns.uploadCampaignsCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Campaigns uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchCampaigns(campaignsFilter)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload campaigns' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setCampaignsLoading(false)
+        setShowUploadCampaigns(false)
+        if (campaignsFileInput.current) campaignsFileInput.current.value = ''
+      }
+    }
+
+    const handleCampaignItemsUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setCampaignsLoading(true)
+        const response = await api.campaigns.uploadCampaignItemsCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Campaign items uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchCampaigns(campaignsFilter)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload campaign items' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setCampaignsLoading(false)
+        setShowUploadCampaignItems(false)
+        if (campaignItemsFileInput.current) campaignItemsFileInput.current.value = ''
+      }
+    }
+
+    const handleGetRecommendations = () => {
+      setActionMessage({
+        type: 'success',
+        text: 'Campaign recommendations feature coming soon! Our AI will analyze your data to suggest optimal campaigns.'
+      })
+      setTimeout(() => setActionMessage(null), 5000)
+    }
+
+    const downloadCSV = () => {
+      if (!campaignsData || campaignsData.length === 0) {
+        setActionMessage({ type: 'error', text: 'No campaigns to download' })
+        setTimeout(() => setActionMessage(null), 3000)
+        return
+      }
+
+      let csvContent = 'Campaign ID,Name,Status,Start Time,End Time,Discount (%),Items Count\n'
+      campaignsData.forEach(campaign => {
+        const itemsCount = campaign.items_included ? campaign.items_included.length : 0
+        csvContent += `${campaign.id},${campaign.name},${campaign.status},${campaign.start_time},${campaign.end_time},${campaign.discount || ''},${itemsCount}\n`
+      })
+      
+      const filename = `campaigns_${campaignsFilter}_${new Date().toISOString().split('T')[0]}.csv`
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      setActionMessage({ type: 'success', text: 'CSV downloaded successfully' })
+      setTimeout(() => setActionMessage(null), 3000)
+    }
+
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'active': return 'var(--color-primary)'
+        case 'inactive': return 'var(--gray-500)'
+        default: return 'var(--gray-500)'
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Campaign Management</h1>
+            <p className="page-subtitle">Manage and analyze marketing campaigns</p>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <button className="btn-secondary" onClick={() => setShowUploadCampaigns(true)}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Upload Campaigns
+            </button>
+            <button className="btn-secondary" onClick={handleGetRecommendations}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              Get Recommendations
+            </button>
+            <button className="btn-primary" onClick={() => fetchCampaigns(campaignsFilter)}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button className="btn-secondary" onClick={downloadCSV}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download CSV
+            </button>
           </div>
         </div>
-        <div className="metric-card metric-warning">
-          <img
-            src={ChartDownIcon}
-            alt="Attrition"
-            className="metric-icon-svg"
+
+        <div className="filter-bar" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <button 
+            className={campaignsFilter === 'all' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => setCampaignsFilter('all')}
+          >
+            All Campaigns
+          </button>
+          <button 
+            className={campaignsFilter === 'week' ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => setCampaignsFilter('week')}
+          >
+            This Week
+          </button>
+        </div>
+
+        {/* Insights Boxes */}
+        {campaignsInsights.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+            {campaignsInsights.map((insight, index) => (
+              <div key={index} className="stat-card" style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginBottom: 'var(--space-2)' }}>{insight.title}</p>
+                <h3 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--primary-600)' }}>{insight.statistic}</h3>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {campaignsLoading ? (
+          <div className="empty-state">
+            <h3>Loading campaigns...</h3>
+          </div>
+        ) : campaignsData && campaignsData.length > 0 ? (
+          <div className="section-wrapper">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Campaign ID</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Name</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Start Date</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>End Date</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Discount</th>
+                    <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Items</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campaignsData.map((campaign) => (
+                    <tr key={campaign.id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                        {campaign.id.slice(0, 8)}...
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
+                        {campaign.name}
+                      </td>
+                      <td style={{ padding: 'var(--space-4)' }}>
+                        <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusColor(campaign.status) + '20', color: getStatusColor(campaign.status) }}>
+                          {campaign.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                        {new Date(campaign.start_time).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                        {new Date(campaign.end_time).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--secondary-600)', fontWeight: 600 }}>
+                        {campaign.discount ? `${campaign.discount}%` : '—'}
+                      </td>
+                      <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)' }}>
+                        {campaign.items_included && campaign.items_included.length > 0 ? (
+                          <span title={campaign.items_included.map(item => item.name).join(', ')}>
+                            {campaign.items_included.length} item{campaign.items_included.length !== 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--gray-400)' }}>No items</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <img src={PlanningIcon} alt="Campaigns" className="empty-icon-svg" />
+            <h3>No Campaigns Found</h3>
+            <p>Upload campaigns data to get started</p>
+          </div>
+        )}
+
+{/* Upload Campaigns Modal */}
+{showUploadCampaigns && (
+  <div className="modal-overlay" onClick={() => setShowUploadCampaigns(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-header">
+        <h2 className="section-title">Upload Campaigns CSV</h2>
+        <button className="collapse-btn" onClick={() => setShowUploadCampaigns(false)}>×</button>
+      </div>
+      <div className="upload-card" onClick={() => campaignsFileInput.current?.click()}>
+        <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+        <h3 className="upload-title">Campaigns Data</h3>
+        <p className="upload-description">Upload marketing campaigns history</p>
+        <ul className="upload-specs">
+          <li><strong>Required:</strong> id (UUID), name, status, start_time, end_time</li>
+          <li><strong>Optional:</strong> discount_percent</li>
+          <li><strong>Status values:</strong> active, inactive</li>
+          <li><strong>Timestamp formats:</strong> RFC3339 (2024-06-01T00:00:00Z) or DateTime (2024-06-01 00:00:00)</li>
+          <li>Discount percentage is optional (e.g., 15.50)</li>
+        </ul>
+        <input
+          ref={campaignsFileInput}
+          type="file"
+          accept=".csv"
+          style={{ display: 'none' }}
+          onChange={handleCampaignsUpload}
+        />
+      </div>
+      <div style={{ marginTop: 'var(--space-4)' }}>
+        <div className="upload-card" onClick={() => campaignItemsFileInput.current?.click()}>
+          <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+          <h3 className="upload-title">Campaign Items Data</h3>
+          <p className="upload-description">Link items to campaigns</p>
+          <ul className="upload-specs">
+            <li><strong>Required:</strong> campaign_id (UUID), item_id (UUID)</li>
+            <li><strong>Prerequisites:</strong> Campaigns and Items must already exist</li>
+            <li>Multiple items can be associated with the same campaign</li>
+            <li>Duplicate campaign-item pairs are ignored</li>
+          </ul>
+          <input
+            ref={campaignItemsFileInput}
+            type="file"
+            accept=".csv"
+            style={{ display: 'none' }}
+            onChange={handleCampaignItemsUpload}
           />
-          <div className="metric-content">
-            <h4>Attrition Rate</h4>
-            <div className="metric-value">5.2%</div>
-            <p className="metric-label">Below industry avg</p>
-          </div>
-        </div>
-        <div className="metric-card metric-info">
-          <img src={TargetHitIcon} alt="Goal" className="metric-icon-svg" />
-          <div className="metric-content">
-            <h4>Hiring Goal</h4>
-            <div className="metric-value">85%</div>
-            <p className="metric-label">On track</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="section-wrapper">
-        <h2 className="section-title">AI-Powered Campaign Suggestions</h2>
-        <div className="campaigns-list">
-          <div className="campaign-card">
-            <div className="campaign-priority priority-high">High Priority</div>
-            <h3 className="campaign-title">Black Friday Hiring Blitz</h3>
-            <p className="campaign-description">
-              Projected 40% demand increase. Recommend hiring 15 additional
-              staff by Nov 1st.
-            </p>
-            <div className="campaign-footer">
-              <button className="btn-primary btn-sm">Launch Campaign</button>
-              <button className="btn-link">View Forecast</button>
-            </div>
-          </div>
-          <div className="campaign-card">
-            <div className="campaign-priority priority-medium">
-              Medium Priority
-            </div>
-            <h3 className="campaign-title">Q2 Expansion Prep</h3>
-            <p className="campaign-description">
-              New location opening requires 8-10 trained staff. Start
-              recruitment Q1.
-            </p>
-            <div className="campaign-footer">
-              <button className="btn-primary btn-sm">Launch Campaign</button>
-              <button className="btn-link">View Details</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
-  )
+  </div>
+)}
+      </div>
+    )
+  }
 
   const renderOrders = () => {
     const handleOrdersUpload = async (event) => {
@@ -3708,12 +3967,12 @@ function AdminDashboard() {
             {activeTab === "home" && renderHomeDashboard()}
             {activeTab === "schedule" && renderMasterSchedule()}
             {activeTab === "insights" && renderInsights()}
-            {activeTab === "planning" && renderPlanning()}
+            {activeTab === "campaigns" && renderCampaigns()} {/* Changed from "planning" */}
             {activeTab === "staffing" && renderStaffing()}
             {activeTab === "orders" && renderOrders()}
             {activeTab === "info" && renderInfo()}
           </>
-        )}
+        )}      
         {renderAdminProfile()}
       </main>
 
