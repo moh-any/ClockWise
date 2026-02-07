@@ -15,7 +15,6 @@ import (
 )
 
 // TODO: Add Caching
-// TODO: Add Nginx for rate limiting
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()

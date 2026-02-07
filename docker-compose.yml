@@ -9,6 +9,7 @@ services:
     restart: always
     depends_on: 
       - db
+      - redis
   db:
     container_name: "ClockwiseDB"
     image: postgres:12.4-alpine
@@ -50,6 +51,21 @@ services:
     depends_on:
       - cw-app
       - cw-web
+  redis:
+    container_name: "ClockwiseRedis"
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
   #Add Redis Service
 volumes:
   postgres-data:
+  redis-data:
