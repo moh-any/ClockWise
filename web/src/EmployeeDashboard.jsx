@@ -56,9 +56,20 @@ function EmployeeDashboard() {
   const [preferencesSuccess, setPreferencesSuccess] = useState("")
   const [weeklyAvailabilitySaved, setWeeklyAvailabilitySaved] = useState(false)
 
+  // Requests state
+  const [requests, setRequests] = useState([])
+  const [requestForm, setRequestForm] = useState({
+    type: "calloff",
+    message: "",
+  })
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  const [requestsError, setRequestsError] = useState("")
+  const [requestsSuccess, setRequestsSuccess] = useState("")
+
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
+    { id: "requests", label: "Requests", icon: InfoIcon },
     { id: "preferences", label: "Preferences", icon: SettingsIcon },
     { id: "profile", label: "Profile", icon: InfoIcon },
   ]
@@ -133,6 +144,12 @@ function EmployeeDashboard() {
     fetchDashboardData()
     fetchCurrentUser()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === "requests" && currentUser?.user_id) {
+      fetchUserRequests()
+    }
+  }, [activeTab, currentUser])
 
   const fetchCurrentUser = async () => {
     try {
@@ -388,6 +405,48 @@ function EmployeeDashboard() {
     }
   }
 
+  // Fetch user's submitted requests
+  const fetchUserRequests = async () => {
+    if (!currentUser?.user_id) return
+
+    try {
+      const response = await api.requests.getEmployeeRequests(
+        currentUser.user_id,
+      )
+      setRequests(response.requests || [])
+    } catch (err) {
+      console.error("Error fetching requests:", err)
+    }
+  }
+
+  // Submit a new request
+  const handleSubmitRequest = async (e) => {
+    e.preventDefault()
+    setRequestsLoading(true)
+    setRequestsError("")
+    setRequestsSuccess("")
+
+    try {
+      await api.requests.submitRequest(requestForm)
+      setRequestsSuccess("Request submitted successfully!")
+      setRequestForm({
+        type: "calloff",
+        message: "",
+      })
+
+      // Refresh the requests list
+      await fetchUserRequests()
+
+      setTimeout(() => {
+        setRequestsSuccess("")
+      }, 3000)
+    } catch (err) {
+      setRequestsError(err.message || "Failed to submit request")
+    } finally {
+      setRequestsLoading(false)
+    }
+  }
+
   const renderSkeletonLoader = () => (
     <div className="skeleton-loader">
       <div className="skeleton-card"></div>
@@ -457,22 +516,174 @@ function EmployeeDashboard() {
     </div>
   )
 
-  const renderSchedule = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">My Schedule</h1>
-          <p className="page-subtitle">View your upcoming shifts</p>
+  // Hardcoded personal schedule data - Employee's shifts for the week
+  const personalScheduleData = [
+    { day: 0, startHour: 9, endHour: 17, role: "Waiter" }, // Monday
+    { day: 2, startHour: 9, endHour: 17, role: "Waiter" }, // Wednesday
+    { day: 4, startHour: 10, endHour: 18, role: "Waiter" }, // Friday
+    { day: 5, startHour: 11, endHour: 19, role: "Waiter" }, // Saturday
+  ]
+
+  const calculateTotalHours = () => {
+    return personalScheduleData.reduce((total, shift) => {
+      return total + (shift.endHour - shift.startHour)
+    }, 0)
+  }
+
+  const formatHour = (hour) => {
+    if (hour === 0) return "12 AM"
+    if (hour === 12) return "12 PM"
+    if (hour < 12) return `${hour} AM`
+    return `${hour - 12} PM`
+  }
+
+  const renderSchedule = () => {
+    const headerGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+    const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
+    const totalHours = calculateTotalHours()
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Schedule</h1>
+            <p className="page-subtitle">Your weekly work schedule</p>
+          </div>
+          <div className="schedule-summary">
+            <div className="summary-card">
+              <span className="summary-label">Total Hours</span>
+              <span className="summary-value">{totalHours}h</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">Shifts</span>
+              <span className="summary-value">
+                {personalScheduleData.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="personal-schedule-alert">
+          <div className="alert-icon">ℹ️</div>
+          <div className="alert-content">
+            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
+            demonstrate your personal work shifts.
+          </div>
+        </div>
+
+        <div className="personal-schedule-view">
+          <div className="schedule-grid">
+            <div
+              className="schedule-header-cell schedule-corner-cell"
+              style={{
+                background: cornerGradient,
+                gridRow: 1,
+                gridColumn: 1,
+              }}
+            >
+              <div className="corner-label">Time / Day</div>
+            </div>
+            {daysShort.map((day, dayIndex) => (
+              <div
+                key={dayIndex}
+                className="schedule-header-cell"
+                style={{
+                  background: headerGradient,
+                  gridRow: 1,
+                  gridColumn: dayIndex + 2,
+                }}
+              >
+                <span className="day-name">{day}</span>
+              </div>
+            ))}
+
+            {/* Hour Labels */}
+            {Array.from({ length: 24 }).map((_, hour) => (
+              <div
+                key={`hour-${hour}`}
+                className="schedule-hour-label"
+                style={{
+                  gridRow: hour + 2,
+                  gridColumn: 1,
+                }}
+              >
+                <span className="hour-time">{formatHour(hour)}</span>
+              </div>
+            ))}
+
+            {/* Shift Blocks - spanning multiple hours */}
+            {personalScheduleData.map((shift, idx) => {
+              const dayIndex = daysShort.findIndex((d) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                return dayMap[d] === shift.day
+              })
+
+              return (
+                <div
+                  key={`shift-${idx}`}
+                  className="shift-block"
+                  style={{
+                    gridRow: `${shift.startHour + 2} / ${shift.endHour + 2}`,
+                    gridColumn: dayIndex + 2,
+                    backgroundColor: primaryColor,
+                    borderColor: primaryColor,
+                  }}
+                >
+                  <div className="shift-info">
+                    <div className="shift-role">{shift.role}</div>
+                    <div className="shift-hours">
+                      {formatHour(shift.startHour)} -{" "}
+                      {formatHour(shift.endHour)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Background cells for empty slots */}
+            {Array.from({ length: 24 }).map((_, hour) =>
+              daysShort.map((_, dayIndex) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                const actualDay = dayMap[daysShort[dayIndex]]
+                const hasShift = personalScheduleData.some(
+                  (s) =>
+                    s.day === actualDay &&
+                    hour >= s.startHour &&
+                    hour < s.endHour,
+                )
+                return hasShift ? null : (
+                  <div
+                    key={`cell-${hour}-${dayIndex}`}
+                    className="schedule-cell empty-cell"
+                    style={{
+                      gridRow: hour + 2,
+                      gridColumn: dayIndex + 2,
+                    }}
+                  />
+                )
+              }),
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="empty-state">
-        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-        <h3>Schedule View Coming Soon</h3>
-        <p>View your assigned shifts and work calendar</p>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const renderPreferences = () => (
     <div className="premium-content fade-in">
@@ -711,6 +922,146 @@ function EmployeeDashboard() {
       </div>
     </div>
   )
+
+  const renderRequests = () => {
+    const getRequestTypeLabel = (type) => {
+      const labels = {
+        calloff: "Call Off",
+        holiday: "Holiday / Leave",
+        resign: "Resignation",
+      }
+      return labels[type] || type
+    }
+
+    const getStatusBadgeClass = (status) => {
+      switch (status) {
+        case "approved":
+          return "status-badge status-approved"
+        case "declined":
+          return "status-badge status-declined"
+        case "pending":
+        default:
+          return "status-badge status-pending"
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Requests</h1>
+            <p className="page-subtitle">
+              Submit and track your time-off and other requests
+            </p>
+          </div>
+        </div>
+
+        {/* Submit New Request Form */}
+        <div className="section-wrapper">
+          <div className="section-header">
+            <h2 className="section-title">Submit New Request</h2>
+          </div>
+
+          <form onSubmit={handleSubmitRequest} className="request-form">
+            {requestsError && (
+              <div className="alert alert-error">{requestsError}</div>
+            )}
+            {requestsSuccess && (
+              <div className="alert alert-success">{requestsSuccess}</div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">Request Type</label>
+              <select
+                className="form-input"
+                value={requestForm.type}
+                onChange={(e) =>
+                  setRequestForm({ ...requestForm, type: e.target.value })
+                }
+                required
+              >
+                <option value="calloff">Call Off (Sick/Emergency)</option>
+                <option value="holiday">Holiday / Vacation</option>
+                <option value="resign">Resignation</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Message / Reason</label>
+              <textarea
+                className="form-input"
+                rows="4"
+                placeholder="Please provide details about your request..."
+                value={requestForm.message}
+                onChange={(e) =>
+                  setRequestForm({ ...requestForm, message: e.target.value })
+                }
+                required
+                minLength={10}
+              />
+              <small className="form-hint">Minimum 10 characters</small>
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={requestsLoading}
+            >
+              {requestsLoading ? "Submitting..." : "Submit Request"}
+            </button>
+          </form>
+        </div>
+
+        {/* My Requests List */}
+        <div
+          className="section-wrapper"
+          style={{ marginTop: "var(--emp-space-6)" }}
+        >
+          <div className="section-header">
+            <h2 className="section-title">My Submitted Requests</h2>
+          </div>
+
+          {requests.length === 0 ? (
+            <div className="empty-state">
+              <p>You haven't submitted any requests yet.</p>
+            </div>
+          ) : (
+            <div className="requests-list">
+              {requests.map((request) => (
+                <div key={request.id} className="request-card">
+                  <div className="request-header">
+                    <div className="request-type">
+                      {getRequestTypeLabel(request.request_type)}
+                    </div>
+                    <span className={getStatusBadgeClass(request.status)}>
+                      {request.status?.toUpperCase() || "PENDING"}
+                    </span>
+                  </div>
+                  <div className="request-body">
+                    <p className="request-message">{request.reason}</p>
+                    {request.start_date && (
+                      <div className="request-dates">
+                        <strong>Dates:</strong>{" "}
+                        {new Date(request.start_date).toLocaleDateString()}
+                        {request.end_date &&
+                          ` - ${new Date(request.end_date).toLocaleDateString()}`}
+                      </div>
+                    )}
+                  </div>
+                  <div className="request-footer">
+                    <span className="request-date">
+                      Submitted:{" "}
+                      {new Date(request.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   const renderProfile = () => (
     <div className="premium-content fade-in">
@@ -1019,6 +1370,7 @@ function EmployeeDashboard() {
           <>
             {activeTab === "home" && renderHomeDashboard()}
             {activeTab === "schedule" && renderSchedule()}
+            {activeTab === "requests" && renderRequests()}
             {activeTab === "preferences" && renderPreferences()}
             {activeTab === "profile" && renderProfile()}
           </>

@@ -72,10 +72,18 @@ function ManagerDashboard() {
   const [mgrRulesError, setMgrRulesError] = useState("")
   const [mgrRulesSuccess, setMgrRulesSuccess] = useState("")
 
+  // Requests Management state
+  const [mgrAllRequests, setMgrAllRequests] = useState([])
+  const [mgrAllRequestsLoading, setMgrAllRequestsLoading] = useState(false)
+  const [mgrAllRequestsError, setMgrAllRequestsError] = useState("")
+  const [mgrRequestActionLoading, setMgrRequestActionLoading] = useState(false)
+  const [mgrRequestActionMessage, setMgrRequestActionMessage] = useState(null)
+
   const mgrNavigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
+    { id: "requests", label: "Requests", icon: InfoIcon },
     { id: "orders", label: "Orders", icon: InfoIcon },
     { id: "rules", label: "Rules", icon: SettingsIcon },
     { id: "profile", label: "Profile", icon: InfoIcon },
@@ -378,6 +386,97 @@ function ManagerDashboard() {
     }
   }
 
+  // Fetch all requests for Requests Management tab
+  const mgrFetchAllRequests = async () => {
+    setMgrAllRequestsLoading(true)
+    setMgrAllRequestsError("")
+    try {
+      // Fetch all employees first to get their requests
+      const employeesResponse = await api.staffing.getAllEmployees()
+      const employeesList = employeesResponse.employees || []
+
+      // Fetch requests for each employee
+      const requestsPromises = employeesList.map(async (employee) => {
+        try {
+          const response = await api.requests.getEmployeeRequests(employee.id)
+          return {
+            employee,
+            requests: response.requests || [],
+          }
+        } catch (err) {
+          console.error(
+            `Error fetching requests for ${employee.full_name}:`,
+            err,
+          )
+          return {
+            employee,
+            requests: [],
+          }
+        }
+      })
+
+      const employeeRequestsData = await Promise.all(requestsPromises)
+
+      // Filter to only include employees with requests
+      const employeesWithRequests = employeeRequestsData.filter(
+        (data) => data.requests.length > 0,
+      )
+
+      setMgrAllRequests(employeesWithRequests)
+    } catch (err) {
+      console.error("Error fetching all requests:", err)
+      setMgrAllRequestsError(err.message || "Failed to load requests")
+    } finally {
+      setMgrAllRequestsLoading(false)
+    }
+  }
+
+  // Handle approve request from Requests Management tab
+  const mgrHandleApproveRequest = async (employeeId, requestId) => {
+    setMgrRequestActionLoading(true)
+    try {
+      await api.requests.approveRequest(employeeId, requestId)
+      setMgrRequestActionMessage({
+        type: "success",
+        text: "Request approved successfully!",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+      // Refresh the requests list
+      await mgrFetchAllRequests()
+    } catch (err) {
+      setMgrRequestActionMessage({
+        type: "error",
+        text: err.message || "Failed to approve request",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+    } finally {
+      setMgrRequestActionLoading(false)
+    }
+  }
+
+  // Handle decline request from Requests Management tab
+  const mgrHandleDeclineRequest = async (employeeId, requestId) => {
+    setMgrRequestActionLoading(true)
+    try {
+      await api.requests.declineRequest(employeeId, requestId)
+      setMgrRequestActionMessage({
+        type: "success",
+        text: "Request declined successfully!",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+      // Refresh the requests list
+      await mgrFetchAllRequests()
+    } catch (err) {
+      setMgrRequestActionMessage({
+        type: "error",
+        text: err.message || "Failed to decline request",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+    } finally {
+      setMgrRequestActionLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (mgrActiveTab === "staffing") {
       mgrFetchStaffing()
@@ -385,6 +484,8 @@ function ManagerDashboard() {
       mgrFetchOrders(mgrOrdersFilter)
     } else if (mgrActiveTab === "rules") {
       mgrFetchRules()
+    } else if (mgrActiveTab === "requests") {
+      mgrFetchAllRequests()
     }
   }, [mgrActiveTab])
 
@@ -607,53 +708,63 @@ function ManagerDashboard() {
           ))}
         </div>
 
-{/* Employees Table */}
-{mgrEmployees.length > 0 ? (
-  <div className="table-wrapper">
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th className="text-right">Salary/Hr</th>
-          <th className="text-center">Max Hrs/Week</th>
-          <th className="text-center">On Call</th>
-        </tr>
-      </thead>
-      <tbody>
-        {mgrEmployees.map((employee) => (
-          <tr key={employee.id}>
-            <td>{employee.full_name}</td>
-            <td style={{ color: 'var(--mgr-gray-600)' }}>{employee.email}</td>
-            <td>
-              <span className="badge badge-primary">
-                {employee.user_role}
-              </span>
-            </td>
-            <td className="text-right" style={{ fontWeight: 600 }}>
-              {employee.salary_per_hour ? `$${employee.salary_per_hour}` : "N/A"}
-            </td>
-            <td className="text-center">
-              {employee.max_hours_per_week || "N/A"}
-            </td>
-            <td className="text-center">
-              <span className={`badge ${employee.on_call ? 'badge-success' : 'badge-secondary'}`}>
-                {employee.on_call ? "Yes" : "No"}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-) : (
-  <div className="empty-state">
-    <img src={EmployeeIcon} alt="No Employees" className="empty-icon-svg" />
-    <h3>No Employees Found</h3>
-    <p>Start by delegating new team members</p>
-  </div>
-)}
+        {/* Employees Table */}
+        {mgrEmployees.length > 0 ? (
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th className="text-right">Salary/Hr</th>
+                  <th className="text-center">Max Hrs/Week</th>
+                  <th className="text-center">On Call</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mgrEmployees.map((employee) => (
+                  <tr key={employee.id}>
+                    <td>{employee.full_name}</td>
+                    <td style={{ color: "var(--mgr-gray-600)" }}>
+                      {employee.email}
+                    </td>
+                    <td>
+                      <span className="badge badge-primary">
+                        {employee.user_role}
+                      </span>
+                    </td>
+                    <td className="text-right" style={{ fontWeight: 600 }}>
+                      {employee.salary_per_hour
+                        ? `$${employee.salary_per_hour}`
+                        : "N/A"}
+                    </td>
+                    <td className="text-center">
+                      {employee.max_hours_per_week || "N/A"}
+                    </td>
+                    <td className="text-center">
+                      <span
+                        className={`badge ${employee.on_call ? "badge-success" : "badge-secondary"}`}
+                      >
+                        {employee.on_call ? "Yes" : "No"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <img
+              src={EmployeeIcon}
+              alt="No Employees"
+              className="empty-icon-svg"
+            />
+            <h3>No Employees Found</h3>
+            <p>Start by delegating new team members</p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -912,22 +1023,335 @@ function ManagerDashboard() {
     </div>
   )
 
-  const mgrRenderSchedule = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Schedule Management</h1>
-          <p className="page-subtitle">View and manage team schedules</p>
+  // Render Requests Management
+  const mgrRenderRequests = () => {
+    const getRequestTypeLabel = (type) => {
+      const labels = {
+        calloff: "Call Off",
+        holiday: "Holiday / Leave",
+        resign: "Resignation",
+      }
+      return labels[type] || type
+    }
+
+    const getStatusBadgeClass = (status) => {
+      switch (status) {
+        case "approved":
+          return "status-badge status-approved"
+        case "declined":
+          return "status-badge status-declined"
+        case "pending":
+        default:
+          return "status-badge status-pending"
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Employee Requests Management</h1>
+            <p className="page-subtitle">
+              Review and manage employee time-off and other requests
+            </p>
+          </div>
+        </div>
+
+        {mgrRequestActionMessage && (
+          <div
+            className={`alert ${
+              mgrRequestActionMessage.type === "success"
+                ? "alert-success"
+                : "alert-error"
+            }`}
+            style={{ marginBottom: "var(--mgr-space-4)" }}
+          >
+            {mgrRequestActionMessage.text}
+          </div>
+        )}
+
+        {mgrAllRequestsLoading ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading requests...</p>
+          </div>
+        ) : mgrAllRequestsError ? (
+          <div className="error-state">
+            <img
+              src={MissedTargetIcon}
+              alt="Error"
+              className="error-icon-svg"
+            />
+            <h3>Error Loading Requests</h3>
+            <p>{mgrAllRequestsError}</p>
+            <button className="btn-primary" onClick={mgrFetchAllRequests}>
+              Retry
+            </button>
+          </div>
+        ) : mgrAllRequests.length === 0 ? (
+          <div className="empty-state">
+            <img src={InfoIcon} alt="No Requests" className="empty-icon-svg" />
+            <h3>No Pending Requests</h3>
+            <p>There are currently no employee requests to review.</p>
+          </div>
+        ) : (
+          <div className="requests-container">
+            {mgrAllRequests.map(({ employee, requests }) => (
+              <div key={employee.id} className="employee-requests-section">
+                <div className="employee-header">
+                  <div className="employee-info">
+                    <div className="employee-avatar">
+                      {employee.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                    <div>
+                      <h3 className="employee-name">{employee.full_name}</h3>
+                      <p className="employee-role">{employee.user_role}</p>
+                    </div>
+                  </div>
+                  <div className="requests-count">
+                    {requests.length} Request{requests.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+
+                <div className="requests-list">
+                  {requests.map((request) => (
+                    <div key={request.id} className="request-card">
+                      <div className="request-header">
+                        <div className="request-type">
+                          {getRequestTypeLabel(request.request_type)}
+                        </div>
+                        <span className={getStatusBadgeClass(request.status)}>
+                          {request.status?.toUpperCase() || "PENDING"}
+                        </span>
+                      </div>
+                      <div className="request-body">
+                        <p className="request-message">{request.reason}</p>
+                        {request.start_date && (
+                          <div className="request-dates">
+                            <strong>Dates:</strong>{" "}
+                            {new Date(request.start_date).toLocaleDateString()}
+                            {request.end_date &&
+                              ` - ${new Date(
+                                request.end_date,
+                              ).toLocaleDateString()}`}
+                          </div>
+                        )}
+                      </div>
+                      <div className="request-footer">
+                        <span className="request-date">
+                          Submitted:{" "}
+                          {new Date(request.created_at).toLocaleDateString()}
+                        </span>
+                        {request.status === "pending" && (
+                          <div className="request-actions">
+                            <button
+                              className="btn-approve"
+                              onClick={() =>
+                                mgrHandleApproveRequest(employee.id, request.id)
+                              }
+                              disabled={mgrRequestActionLoading}
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              className="btn-decline"
+                              onClick={() =>
+                                mgrHandleDeclineRequest(employee.id, request.id)
+                              }
+                              disabled={mgrRequestActionLoading}
+                            >
+                              ✕ Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Hardcoded personal schedule data - Manager's shifts for the week
+  const mgrPersonalScheduleData = [
+    { day: 0, startHour: 8, endHour: 16, role: "Manager" }, // Monday
+    { day: 1, startHour: 8, endHour: 16, role: "Manager" }, // Tuesday
+    { day: 2, startHour: 8, endHour: 16, role: "Manager" }, // Wednesday
+    { day: 3, startHour: 8, endHour: 16, role: "Manager" }, // Thursday
+    { day: 4, startHour: 8, endHour: 16, role: "Manager" }, // Friday
+  ]
+
+  const mgrDaysShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+  const mgrCalculateTotalHours = () => {
+    return mgrPersonalScheduleData.reduce((total, shift) => {
+      return total + (shift.endHour - shift.startHour)
+    }, 0)
+  }
+
+  const mgrFormatHour = (hour) => {
+    if (hour === 0) return "12 AM"
+    if (hour === 12) return "12 PM"
+    if (hour < 12) return `${hour} AM`
+    return `${hour - 12} PM`
+  }
+
+  const mgrRenderSchedule = () => {
+    const headerGradient = `linear-gradient(135deg, ${mgrPrimaryColor}, ${mgrSecondaryColor})`
+    const cornerGradient = `linear-gradient(135deg, ${mgrSecondaryColor}, ${mgrAccentColor})`
+    const totalHours = mgrCalculateTotalHours()
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Schedule</h1>
+            <p className="page-subtitle">Your weekly work schedule</p>
+          </div>
+          <div className="schedule-summary">
+            <div className="summary-card">
+              <span className="summary-label">Total Hours</span>
+              <span className="summary-value">{totalHours}h</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">Shifts</span>
+              <span className="summary-value">
+                {mgrPersonalScheduleData.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="personal-schedule-alert">
+          <div className="alert-icon">ℹ️</div>
+          <div className="alert-content">
+            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
+            demonstrate your personal work shifts.
+          </div>
+        </div>
+
+        <div className="personal-schedule-view">
+          <div className="schedule-grid">
+            <div
+              className="schedule-header-cell schedule-corner-cell"
+              style={{
+                background: cornerGradient,
+                gridRow: 1,
+                gridColumn: 1,
+              }}
+            >
+              <div className="corner-label">Time / Day</div>
+            </div>
+            {mgrDaysShort.map((day, dayIndex) => (
+              <div
+                key={dayIndex}
+                className="schedule-header-cell"
+                style={{
+                  background: headerGradient,
+                  gridRow: 1,
+                  gridColumn: dayIndex + 2,
+                }}
+              >
+                <span className="day-name">{day}</span>
+              </div>
+            ))}
+
+            {/* Hour Labels */}
+            {Array.from({ length: 24 }).map((_, hour) => (
+              <div
+                key={`hour-${hour}`}
+                className="schedule-hour-label"
+                style={{
+                  gridRow: hour + 2,
+                  gridColumn: 1,
+                }}
+              >
+                <span className="hour-time">{mgrFormatHour(hour)}</span>
+              </div>
+            ))}
+
+            {/* Shift Blocks - spanning multiple hours */}
+            {mgrPersonalScheduleData.map((shift, idx) => {
+              const dayIndex = mgrDaysShort.findIndex((d) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                return dayMap[d] === shift.day
+              })
+
+              return (
+                <div
+                  key={`shift-${idx}`}
+                  className="shift-block"
+                  style={{
+                    gridRow: `${shift.startHour + 2} / ${shift.endHour + 2}`,
+                    gridColumn: dayIndex + 2,
+                    backgroundColor: mgrPrimaryColor,
+                    borderColor: mgrPrimaryColor,
+                  }}
+                >
+                  <div className="shift-info">
+                    <div className="shift-role">{shift.role}</div>
+                    <div className="shift-hours">
+                      {mgrFormatHour(shift.startHour)} -{" "}
+                      {mgrFormatHour(shift.endHour)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Background cells for empty slots */}
+            {Array.from({ length: 24 }).map((_, hour) =>
+              mgrDaysShort.map((_, dayIndex) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                const actualDay = dayMap[mgrDaysShort[dayIndex]]
+                const hasShift = mgrPersonalScheduleData.some(
+                  (s) =>
+                    s.day === actualDay &&
+                    hour >= s.startHour &&
+                    hour < s.endHour,
+                )
+                return hasShift ? null : (
+                  <div
+                    key={`cell-${hour}-${dayIndex}`}
+                    className="schedule-cell empty-cell"
+                    style={{
+                      gridRow: hour + 2,
+                      gridColumn: dayIndex + 2,
+                    }}
+                  />
+                )
+              }),
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="empty-state">
-        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-        <h3>Schedule View Coming Soon</h3>
-        <p>Manage team shifts and work calendar</p>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const mgrRenderProfile = () => (
     <div className="premium-content fade-in">
@@ -1208,6 +1632,7 @@ function ManagerDashboard() {
             {mgrActiveTab === "home" && mgrRenderHomeDashboard()}
             {mgrActiveTab === "staffing" && mgrRenderStaffing()}
             {mgrActiveTab === "schedule" && mgrRenderSchedule()}
+            {mgrActiveTab === "requests" && mgrRenderRequests()}
             {mgrActiveTab === "orders" && mgrRenderOrders()}
             {mgrActiveTab === "rules" && mgrRenderRules()}
             {mgrActiveTab === "profile" && mgrRenderProfile()}

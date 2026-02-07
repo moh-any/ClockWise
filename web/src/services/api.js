@@ -473,6 +473,32 @@ export const requestsAPI = {
       },
     )
   },
+
+  /**
+   * Submit a new request (employee/manager only)
+   * @param {Object} data - Request data
+   * @param {string} data.type - Request type: "calloff" | "holiday" | "resign"
+   * @param {string} data.message - Request message/reason
+   * @returns {Promise<{request_id: string, message: string}>}
+   */
+  submitRequest: async (data) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/request`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * Get all requests for the organization (admin/manager only)
+   * @returns {Promise<{requests: Array}>}
+   */
+  getAllRequests: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/staffing/requests`, {
+      method: "GET",
+    })
+  },
 }
 
 // ============================================================================
@@ -880,7 +906,20 @@ export const campaignsAPI = {
       body: formData,
     })
   },
-
+    recommendCampaigns: async (params) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/recommend`, {
+      method: "POST",
+      body: JSON.stringify(params),
+    })
+  },
+    submitCampaignFeedback: async (feedback) => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/feedback`, {
+      method: "POST",
+      body: JSON.stringify(feedback),
+    })
+  },
   /**
    * Upload campaign items CSV file
    * @param {File} file - CSV file with campaign items data
