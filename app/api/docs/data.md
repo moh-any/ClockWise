@@ -126,7 +126,20 @@ Currently, the API does not require authentication. For production deployment, i
     },
     "fixed_shifts": true,
     "number_of_shifts_per_day": 3,
-    "shift_times": ["10:00-14:00", "14:00-18:00", "18:00-22:00"],
+    "shift_times": [
+      {
+        "from":"10:00",
+        "to":"14:00"
+      },
+      {
+        "from":"14:00",
+        "to":"18:00"
+      },
+      {
+        "from":"18:00",
+        "to":"22:00"
+      }
+    ],
     "rating": 4.5,
     "accepting_orders": true
   },
@@ -1280,3 +1293,47 @@ I've created **2 comprehensive production-ready files**:
 - ✅ Error handling
 
 **Both files are ready to use in production!** 🚀✨
+---
+
+## Database Schema Changes (v2.0.0)
+
+### Migration 00021: Demand Table Constraint Fix
+
+**Issue:** The demand table constraint was incompatible with the ML service's response format.
+
+**Root Cause:** 
+- PostgreSQL's `TO_CHAR(demand_date, 'Day')` returns day names with padding (e.g., "Saturday " with trailing spaces)
+- The ML service sends lowercase day names (e.g., "saturday")
+- Original constraint: `day = TRIM(TO_CHAR(demand_date, 'Day'))` did not handle case differences
+
+**Solution:**
+Updated the constraint to: `LOWER(TRIM(day)) = LOWER(TRIM(TO_CHAR(demand_date, 'Day')))`
+
+This change:
+- Converts both sides to lowercase for case-insensitive comparison
+- Trims whitespace from both sides
+- Validates that the day name matches the actual day of the week for the given date
+- Allows the ML service to send lowercase day names that are properly validated
+
+**Demand Table Schema:**
+
+```sql
+CREATE TABLE demand (
+    organization_id UUID REFERENCES organizations(id),
+    demand_date DATE,
+    day VARCHAR(10),
+    hour INTEGER,
+    order_count INTEGER,
+    item_count INTEGER,
+    PRIMARY KEY (organization_id, demand_date, hour),
+    CHECK (hour >= 0 AND hour <= 23),
+    CHECK (order_count >= 0),
+    CHECK (item_count >= 0),
+    CHECK (LOWER(TRIM(day)) = LOWER(TRIM(TO_CHAR(demand_date, 'Day'))))
+);
+```
+
+**Migration Files:**
+- `00013_create_demand_table.sql` - Initial table creation
+- `00021_fix_demand_day_constraint.sql` - Constraint fix for ML service compatibility
+
