@@ -13,8 +13,7 @@ CREATE TABLE IF NOT EXISTS users(
     preferred_hours_per_week INTEGER,
     max_consec_slots INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id, user_role) REFERENCES organizations_roles(organization_id,role)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
