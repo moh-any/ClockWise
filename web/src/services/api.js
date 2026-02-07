@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost"
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost"
 
 const getAuthToken = () => {
   return localStorage.getItem("access_token")
@@ -935,6 +934,28 @@ export const dashboardAPI = {
     const orgId = getOrgId()
     return apiRequest(`/api/${orgId}/dashboard/surge/week`, {
       method: "GET",
+    })
+  },
+
+  /**
+   * Get demand heatmap predictions
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  getDemandHeatmap: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/demand`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Generate demand predictions using ML service
+   * @returns {Promise<{message: string}>}
+   */
+  generateDemandPrediction: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/demand/predict`, {
+      method: "POST",
     })
   },
 }
