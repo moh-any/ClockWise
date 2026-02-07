@@ -99,7 +99,7 @@ func TestStoreOrder(t *testing.T) {
 			DiscountAmount: func() *float64 { f := 0.0; return &f }(),
 			Rating:         func() *float64 { f := 5.0; return &f }(),
 			OrderItems: []database.OrderItem{
-				{ItemID: itemID, Quantity: func() *int { i := 2; return &i }(), TotalPrice: func() *int { i := 50; return &i }()},
+				{ItemID: itemID, Quantity: func() *int { i := 2; return &i }(), TotalPrice: func() *float64 { i := 50.0; return &i }()},
 			},
 			DeliveryStatus: &database.OrderDelivery{
 				DriverID:           driverID,

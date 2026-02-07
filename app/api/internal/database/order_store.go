@@ -11,22 +11,23 @@ import (
 
 type Order struct {
 	OrderID        uuid.UUID      `json:"order_id"`
-	UserID         uuid.UUID      `json:"user_id"`
-	OrganizationID uuid.UUID      `json:"organization_id"`
+	UserID         uuid.UUID      `json:"user_id,omitempty"`
+	OrganizationID uuid.UUID      `json:"-"`
 	CreateTime     time.Time      `json:"create_time"`
 	OrderType      string         `json:"order_type"`
 	OrderStatus    string         `json:"order_status"`
 	TotalAmount    *float64       `json:"total_amount"`
 	DiscountAmount *float64       `json:"discount_amount"`
 	Rating         *float64       `json:"rating,omitempty"`
-	OrderItems     []OrderItem    `json:"order_items"`
+	OrderItems     []OrderItem    `json:"items"`
 	DeliveryStatus *OrderDelivery `json:"delivery_status,omitempty"`
+	OrderCount     int            `json:"item_count"`
 }
 
 type OrderItem struct {
 	ItemID     uuid.UUID `json:"item_id"`
 	Quantity   *int      `json:"quantity"`
-	TotalPrice *int      `json:"total_price"`
+	TotalPrice *float64      `json:"total_price"`
 }
 
 type Item struct {
@@ -107,6 +108,8 @@ func (pgos *PostgresOrderStore) GetAllOrdersForLastWeek(org_id uuid.UUID) ([]Ord
 		return nil, err
 	}
 
+	orders = pgos.setOrderCounts(orders)
+
 	return pgos.populateDeliveries(orders)
 }
 
@@ -135,6 +138,8 @@ func (pgos *PostgresOrderStore) GetAllOrders(org_id uuid.UUID) ([]Order, error) 
 		return nil, err
 	}
 
+	orders = pgos.setOrderCounts(orders)
+
 	return pgos.populateDeliveries(orders)
 }
 
@@ -162,6 +167,8 @@ func (pgos *PostgresOrderStore) GetTodaysOrder(org_id uuid.UUID) ([]Order, error
 	if err != nil {
 		return nil, err
 	}
+
+	orders = pgos.setOrderCounts(orders)
 
 	return pgos.populateDeliveries(orders)
 }
@@ -327,6 +334,9 @@ func (pgos *PostgresOrderStore) GetDeliveryInsights(org_id uuid.UUID) ([]Insight
 }
 
 func (pgos *PostgresOrderStore) StoreOrder(org_id uuid.UUID, order *Order) error {
+	// Set OrderCount based on number of items
+	order.OrderCount = len(order.OrderItems)
+
 	tx, err := pgos.DB.Begin()
 	if err != nil {
 		pgos.Logger.Error("Failed to begin transaction", "error", err)
@@ -413,6 +423,14 @@ func (pgos *PostgresOrderStore) scanOrders(rows *sql.Rows) ([]Order, error) {
 	}
 
 	return orders, nil
+}
+
+// setOrderCounts calculates OrderCount (number of items) for each order
+func (pgos *PostgresOrderStore) setOrderCounts(orders []Order) []Order {
+	for i := range orders {
+		orders[i].OrderCount = len(orders[i].OrderItems)
+	}
+	return orders
 }
 
 // populateOrderItems fetches order_items for a batch of orders and attaches them

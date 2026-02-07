@@ -2,10 +2,10 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; 
 CREATE TABLE IF NOT EXISTS orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL,
+    id UUID PRIMARY KEY,
+    user_id UUID,
     organization_id UUID NOT NULL REFERENCES organizations(id),
-    create_time TIMESTAMP NOT NULL,   
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,   
     order_type VARCHAR(10) NOT NULL CHECK (order_type IN ('delivery','takeaway','dine in')),
     order_status VARCHAR(10) NOT NULL CHECK (order_status IN ('completed','incompleted')),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE TABLE IF NOT EXISTS items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     organization_id UUID NOT NULL REFERENCES organizations(id),
     name VARCHAR(50) NOT NULL,
     needed_num_to_prepare INTEGER NOT NULL,

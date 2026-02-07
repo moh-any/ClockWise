@@ -439,7 +439,7 @@ func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 		}
 
 		// Parse total_price
-		totalPrice, err := strconv.Atoi(row["total_price"])
+		totalPrice, err := strconv.ParseFloat(row["total_price"],32)
 		if err != nil {
 			oh.Logger.Warn("invalid total_price in row", "row", i, "error", err)
 			errorCount++
