@@ -57,7 +57,7 @@ func TestGetAllRoles(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		env.ResetMocks()
-		roles := []*database.OrganizationRole{{Role: "Server"}}
+		roles := []database.OrganizationRole{{Role: "Server"}}
 		env.RolesStore.On("GetRolesByOrganizationID", orgID).Return(roles, nil).Once()
 
 		w := httptest.NewRecorder()

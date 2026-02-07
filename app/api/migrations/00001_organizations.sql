@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS organizations(
 CREATE TABLE IF NOT EXISTS organizations_roles (
     organization_id UUID,
     role VARCHAR(50),
-    min_needed_per_shift INTEGER 3,
+    min_needed_per_shift INTEGER DEFAULT 3,
     items_per_role_per_hour INTEGER DEFAULT 10,
     need_for_demand BOOLEAN NOT NULL DEFAULT true,
     independent BOOLEAN DEFAULT false,
