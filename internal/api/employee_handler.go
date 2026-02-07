@@ -325,7 +325,16 @@ func (h *EmployeeHandler) ApproveRequest(c *gin.Context) {
 	}()
 
 	//TODO: Handle If type = resign mark the employee as not working, else if holiday cancel for the whole day if call off cancel for the next shift
+	if request.Type == "resign" {
+
+	} else if request.Type == "holiday" {
+
+	} else if request.Type == "calloff" { 
+
+	}
 	//TODO: Send to the model to update schedule and redirect to the schedule
+
+
 
 	h.Logger.Info("request approved", "request_id", requestID, "by", user.ID)
 	c.JSON(http.StatusOK, gin.H{

@@ -10,30 +10,32 @@ import (
 )
 
 type Organization struct {
-	ID              uuid.UUID `json:"id"`
-	Name            string    `json:"name"`
-	Address         string    `json:"address"`
-	Email           string    `json:"email"`
-	Location        Location  `json:"location"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	HexCode1        string    `json:"hex1"`
-	HexCode2        string    `json:"hex2"`
-	HexCode3        string    `json:"hex3"`
-	Rating          *float64  `json:"rating"`
-	AcceptingOrders bool      `json:"accepting_orders"`
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	Address   string    `json:"address"`
+	Email     string    `json:"email"`
+	Type      string    `json:"type"`
+	Phone     string    `json:"phone"`
+	Location  Location  `json:"location"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	HexCode1  string    `json:"hex1"`
+	HexCode2  string    `json:"hex2"`
+	HexCode3  string    `json:"hex3"`
+	Rating    *float64  `json:"rating"`
 }
 
 type OrganizationProfile struct {
 	Name              string   `json:"name"`
 	Address           string   `json:"address"`
 	Email             string   `json:"email"`
+	Type              string   `json:"type"`
+	Phone             string   `json:"phone"`
 	Location          Location `json:"location"`
 	HexCode1          string   `json:"hex1"`
 	HexCode2          string   `json:"hex2"`
 	HexCode3          string   `json:"hex3"`
 	Rating            *float64 `json:"rating"`
-	AcceptingOrders   bool     `json:"accepting_orders"`
 	NumberOfEmployees int      `json:"number_of_employees"`
 }
 
@@ -67,8 +69,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 		org.Email = user.Email
 	}
 
-	queryOrg := `INSERT INTO organizations (id, name, address, latitude, longitude, email, created_at, updated_at, hex_code1, hex_code2, hex_code3, rating, accepting_orders) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
-	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Location.Latitude, org.Location.Longitude, org.Email, org.CreatedAt, org.UpdatedAt, org.HexCode1, org.HexCode2, org.HexCode3, org.Rating, org.AcceptingOrders); err != nil {
+	queryOrg := `INSERT INTO organizations (id, name, address, latitude, longitude, email, type, phone, created_at, updated_at, hex_code1, hex_code2, hex_code3, rating) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+	if _, err := tx.Exec(queryOrg, org.ID, org.Name, org.Address, org.Location.Latitude, org.Location.Longitude, org.Email, org.Type, org.Phone, org.CreatedAt, org.UpdatedAt, org.HexCode1, org.HexCode2, org.HexCode3, org.Rating); err != nil {
 		return fmt.Errorf("failed to insert org: %w", err)
 	}
 
@@ -93,8 +95,8 @@ func (s *PostgresOrgStore) CreateOrgWithAdmin(org *Organization, user *User, pla
 
 func (s *PostgresOrgStore) GetOrganizationByID(id uuid.UUID) (*Organization, error) {
 	var org Organization
-	query := `SELECT id, name, address, latitude, longitude, email, hex_code1, hex_code2, hex_code3, rating, accepting_orders, created_at, updated_at FROM organizations WHERE id = $1`
-	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Location.Latitude, &org.Location.Longitude, &org.Email, &org.HexCode1, &org.HexCode2, &org.HexCode3, &org.Rating, &org.AcceptingOrders, &org.CreatedAt, &org.UpdatedAt)
+	query := `SELECT id, name, address, latitude, longitude, email, type, phone, hex_code1, hex_code2, hex_code3, rating, created_at, updated_at FROM organizations WHERE id = $1`
+	err := s.db.QueryRow(query, id).Scan(&org.ID, &org.Name, &org.Address, &org.Location.Latitude, &org.Location.Longitude, &org.Email, &org.Type, &org.Phone, &org.HexCode1, &org.HexCode2, &org.HexCode3, &org.Rating, &org.CreatedAt, &org.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +108,7 @@ func (s *PostgresOrgStore) GetOrganizationProfile(id uuid.UUID) (*OrganizationPr
 
 	// Get organization details
 	orgQuery := `
-		SELECT name, address, latitude, longitude, email, hex_code1, hex_code2, hex_code3, rating, accepting_orders
+		SELECT name, address, latitude, longitude, email, type, phone, hex_code1, hex_code2, hex_code3, rating
 		FROM organizations 
 		WHERE id = $1
 	`
@@ -116,11 +118,12 @@ func (s *PostgresOrgStore) GetOrganizationProfile(id uuid.UUID) (*OrganizationPr
 		&profile.Location.Latitude,
 		&profile.Location.Longitude,
 		&profile.Email,
+		&profile.Type,
+		&profile.Phone,
 		&profile.HexCode1,
 		&profile.HexCode2,
 		&profile.HexCode3,
 		&profile.Rating,
-		&profile.AcceptingOrders,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

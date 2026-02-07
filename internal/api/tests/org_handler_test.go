@@ -60,6 +60,8 @@ func TestRegisterOrganization(t *testing.T) {
 		reqBody := api.RegisterOrgRequest{
 			OrgName:       "Test Org",
 			OrgAddress:    "123 St",
+			OrgType:       "restaurant",
+			OrgPhone:      "+1234567890",
 			AdminFullName: "Admin User",
 			AdminEmail:    "admin@test.com",
 			AdminPassword: "password123",
@@ -138,7 +140,7 @@ func TestDelegateUser(t *testing.T) {
 			FullName:      "Manager User",
 			Email:         "mgr@test.com",
 			Role:          "manager",
-			SalaryPerHour:  &salary,
+			SalaryPerHour: &salary,
 		}
 
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}

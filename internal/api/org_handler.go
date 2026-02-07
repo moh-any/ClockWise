@@ -34,6 +34,8 @@ func NewOrgHandler(orgStore database.OrgStore, userStore database.UserStore, use
 type RegisterOrgRequest struct {
 	OrgName       string   `json:"org_name" binding:"required"`
 	OrgAddress    string   `json:"org_address"`
+	OrgType       string   `json:"org_type" binding:"required,oneof=restaurant cafe bar lounge pub"`
+	OrgPhone      string   `json:"org_phone" binding:"required"`
 	Latitude      *float64 `json:"latitude"`
 	Longitude     *float64 `json:"longitude"`
 	AdminFullName string   `json:"admin_full_name" binding:"required"`
@@ -79,14 +81,15 @@ func (h *OrgHandler) RegisterOrganization(c *gin.Context) {
 	org := &database.Organization{
 		Name:    req.OrgName,
 		Address: req.OrgAddress,
+		Type:    req.OrgType,
+		Phone:   req.OrgPhone,
 		Location: database.Location{
 			Latitude:  req.Latitude,
 			Longitude: req.Longitude,
 		},
-		HexCode1:        req.Hex1,
-		HexCode2:        req.Hex2,
-		HexCode3:        req.Hex3,
-		AcceptingOrders: true, // Default to accepting orders
+		HexCode1: req.Hex1,
+		HexCode2: req.Hex2,
+		HexCode3: req.Hex3,
 	}
 
 	user := &database.User{

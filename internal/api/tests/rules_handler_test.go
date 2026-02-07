@@ -137,6 +137,7 @@ func TestUpdateOrganizationRules(t *testing.T) {
 			MinRestSlots:        2,
 			SlotLenHour:         1.0,
 			MinShiftLengthSlots: 4,
+			WaitingTime:         15,
 			OperatingHours: []api.OperatingHoursRequest{
 				{Weekday: "Monday", OpeningTime: "09:00", ClosingTime: "17:00"},
 			},
@@ -179,6 +180,7 @@ func TestUpdateOrganizationRules(t *testing.T) {
 			MinRestSlots:        2,
 			SlotLenHour:         1.0,
 			MinShiftLengthSlots: 4,
+			WaitingTime:         15,
 		}
 
 		jsonBytes, _ := json.Marshal(reqBody)
@@ -201,6 +203,7 @@ func TestUpdateOrganizationRules(t *testing.T) {
 			MinRestSlots:        2,
 			SlotLenHour:         1.0,
 			MinShiftLengthSlots: 4,
+			WaitingTime:         15,
 			FixedShifts:         true, // Error: NumberOfShiftsPerDay missing
 		}
 
@@ -224,6 +227,7 @@ func TestUpdateOrganizationRules(t *testing.T) {
 			MinRestSlots:        2,
 			SlotLenHour:         1.0,
 			MinShiftLengthSlots: 4,
+			WaitingTime:         15,
 			OperatingHours: []api.OperatingHoursRequest{
 				{Weekday: "Funday", OpeningTime: "09:00", ClosingTime: "17:00"},
 			},

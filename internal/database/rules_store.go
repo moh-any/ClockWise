@@ -22,6 +22,10 @@ type OrganizationRules struct {
 	MinRestSlots         int         `json:"min_rest_slots"`
 	SlotLenHour          float64     `json:"slot_len_hour"`
 	MinShiftLengthSlots  int         `json:"min_shift_length_slots"`
+	ReceivingPhone       bool        `json:"receiving_phone"`
+	Delivery             bool        `json:"delivery"`
+	WaitingTime          int         `json:"waiting_time"`
+	AcceptingOrders      bool        `json:"accepting_orders"`
 	ShiftTimes           []ShiftTime `json:"shift_times,omitempty"`
 }
 
@@ -56,8 +60,9 @@ func NewPostgresRulesStore(db *sql.DB, logger *slog.Logger) *PostgresRulesStore 
 func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 	query := `INSERT INTO organizations_rules 
 		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours, 
-		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots,
+		 receiving_phone, delivery, waiting_time, accepting_orders) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
 
 	_, err := s.db.Exec(query,
 		rules.OrganizationID,
@@ -71,6 +76,10 @@ func (s *PostgresRulesStore) CreateRules(rules *OrganizationRules) error {
 		rules.MinRestSlots,
 		rules.SlotLenHour,
 		rules.MinShiftLengthSlots,
+		rules.ReceivingPhone,
+		rules.Delivery,
+		rules.WaitingTime,
+		rules.AcceptingOrders,
 	)
 	if err != nil {
 		s.Logger.Error("failed to create rules", "error", err, "organization_id", rules.OrganizationID)
@@ -94,7 +103,8 @@ func (s *PostgresRulesStore) GetRulesByOrganizationID(orgID uuid.UUID) (*Organiz
 	var rules OrganizationRules
 
 	query := `SELECT organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours,
-		fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots 
+		fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots,
+		receiving_phone, delivery, waiting_time, accepting_orders 
 		FROM organizations_rules WHERE organization_id = $1`
 
 	err := s.db.QueryRow(query, orgID).Scan(
@@ -109,6 +119,10 @@ func (s *PostgresRulesStore) GetRulesByOrganizationID(orgID uuid.UUID) (*Organiz
 		&rules.MinRestSlots,
 		&rules.SlotLenHour,
 		&rules.MinShiftLengthSlots,
+		&rules.ReceivingPhone,
+		&rules.Delivery,
+		&rules.WaitingTime,
+		&rules.AcceptingOrders,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -143,7 +157,11 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 		meet_all_demand = $8,
 		min_rest_slots = $9,
 		slot_len_hour = $10,
-		min_shift_length_slots = $11 
+		min_shift_length_slots = $11,
+		receiving_phone = $12,
+		delivery = $13,
+		waiting_time = $14,
+		accepting_orders = $15 
 		WHERE organization_id = $1`
 
 	result, err := s.db.Exec(query,
@@ -158,6 +176,10 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 		rules.MinRestSlots,
 		rules.SlotLenHour,
 		rules.MinShiftLengthSlots,
+		rules.ReceivingPhone,
+		rules.Delivery,
+		rules.WaitingTime,
+		rules.AcceptingOrders,
 	)
 	if err != nil {
 		s.Logger.Error("failed to update rules", "error", err, "organization_id", rules.OrganizationID)
@@ -177,8 +199,9 @@ func (s *PostgresRulesStore) UpdateRules(rules *OrganizationRules) error {
 func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 	query := `INSERT INTO organizations_rules 
 		(organization_id, shift_max_hours, shift_min_hours, max_weekly_hours, min_weekly_hours,
-		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 fixed_shifts, number_of_shifts_per_day, meet_all_demand, min_rest_slots, slot_len_hour, min_shift_length_slots,
+		 receiving_phone, delivery, waiting_time, accepting_orders) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 		ON CONFLICT (organization_id) DO UPDATE SET 
 		shift_max_hours = EXCLUDED.shift_max_hours,
 		shift_min_hours = EXCLUDED.shift_min_hours,
@@ -189,7 +212,11 @@ func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 		meet_all_demand = EXCLUDED.meet_all_demand,
 		min_rest_slots = EXCLUDED.min_rest_slots,
 		slot_len_hour = EXCLUDED.slot_len_hour,
-		min_shift_length_slots = EXCLUDED.min_shift_length_slots`
+		min_shift_length_slots = EXCLUDED.min_shift_length_slots,
+		receiving_phone = EXCLUDED.receiving_phone,
+		delivery = EXCLUDED.delivery,
+		waiting_time = EXCLUDED.waiting_time,
+		accepting_orders = EXCLUDED.accepting_orders`
 
 	_, err := s.db.Exec(query,
 		rules.OrganizationID,
@@ -203,6 +230,10 @@ func (s *PostgresRulesStore) UpsertRules(rules *OrganizationRules) error {
 		rules.MinRestSlots,
 		rules.SlotLenHour,
 		rules.MinShiftLengthSlots,
+		rules.ReceivingPhone,
+		rules.Delivery,
+		rules.WaitingTime,
+		rules.AcceptingOrders,
 	)
 	if err != nil {
 		s.Logger.Error("failed to upsert rules", "error", err, "organization_id", rules.OrganizationID)

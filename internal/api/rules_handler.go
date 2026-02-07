@@ -44,6 +44,10 @@ type RulesRequest struct {
 	MinRestSlots         int                     `json:"min_rest_slots" binding:"required,min=0"`
 	SlotLenHour          float64                 `json:"slot_len_hour" binding:"required,gt=0"`
 	MinShiftLengthSlots  int                     `json:"min_shift_length_slots" binding:"required,min=1"`
+	ReceivingPhone       *bool                   `json:"receiving_phone"`
+	Delivery             *bool                   `json:"delivery"`
+	WaitingTime          int                     `json:"waiting_time" binding:"required,min=0"`
+	AcceptingOrders      *bool                   `json:"accepting_orders"`
 	OperatingHours       []OperatingHoursRequest `json:"operating_hours" binding:"max=7,dive"`
 	ShiftTimes           []database.ShiftTime    `json:"shift_times,omitempty"` // Only if fixed
 }
@@ -207,6 +211,20 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 		req.ShiftTimes = nil
 	}
 
+	// Default receiving_phone, delivery, and accepting_orders to true if not provided
+	receivingPhone := true
+	if req.ReceivingPhone != nil {
+		receivingPhone = *req.ReceivingPhone
+	}
+	delivery := true
+	if req.Delivery != nil {
+		delivery = *req.Delivery
+	}
+	acceptingOrders := true
+	if req.AcceptingOrders != nil {
+		acceptingOrders = *req.AcceptingOrders
+	}
+
 	rules := &database.OrganizationRules{
 		OrganizationID:       user.OrganizationID,
 		ShiftMaxHours:        req.ShiftMaxHours,
@@ -219,6 +237,10 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 		MinRestSlots:         req.MinRestSlots,
 		SlotLenHour:          req.SlotLenHour,
 		MinShiftLengthSlots:  req.MinShiftLengthSlots,
+		ReceivingPhone:       receivingPhone,
+		Delivery:             delivery,
+		WaitingTime:          req.WaitingTime,
+		AcceptingOrders:      acceptingOrders,
 		ShiftTimes:           req.ShiftTimes,
 	}
 

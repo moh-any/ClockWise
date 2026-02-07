@@ -37,6 +37,11 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
+
+
+// TODO Fix Docker Security Vulnerabilities
+
+
 func main() {
 	Logger := slog.Default()
 	server := server.NewServer(Logger)
