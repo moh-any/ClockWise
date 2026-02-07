@@ -78,3 +78,5 @@ yarn-error.log*
 
 .env
 API_DOCUMENTATION.md
+
+app/ml/catboost_info

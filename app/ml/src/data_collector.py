@@ -35,7 +35,10 @@ class RealTimeDataCollector:
     def __init__(self, 
                  model_path: str = "data/models/rf_model.joblib",
                  update_interval_seconds: int = 300,
-                 demo_mode: bool = False):
+                 demo_mode: bool = False,
+                 enable_monitoring: bool = True,
+                 auto_maintain: bool = False,
+                 maintenance_check_interval_hours: int = 6):
         """
         Initialize data collector.
         
@@ -43,12 +46,32 @@ class RealTimeDataCollector:
             model_path: Path to trained prediction model
             update_interval_seconds: Collection interval (default 5 minutes)
             demo_mode: If True, use simulated social media data
+            enable_monitoring: If True, log predictions vs actuals for model maintenance
+            auto_maintain: If True, automatically check and run model maintenance
+            maintenance_check_interval_hours: How often to check for maintenance needs (default 6 hours)
         """
         self.update_interval = update_interval_seconds
         self.demo_mode = demo_mode
+        self.enable_monitoring = enable_monitoring
+        self.auto_maintain = auto_maintain
+        self.maintenance_check_interval = timedelta(hours=maintenance_check_interval_hours)
+        self._last_maintenance_check = None
         
         # Initialize social media aggregator
         self.social = get_social_aggregator(demo_mode=demo_mode)
+        
+        # Initialize model monitor for logging predictions vs actuals
+        self.monitor = None
+        if enable_monitoring:
+            try:
+                from src.model_monitor import ModelMonitor
+                self.monitor = ModelMonitor()
+                print(f"✅ Model monitor initialized for performance tracking")
+            except Exception as e:
+                print(f"⚠️  Could not initialize model monitor: {e}")
+        
+        if auto_maintain:
+            print(f"🔧 Auto-maintenance enabled (check every {maintenance_check_interval_hours}h)")
         
         # Load ML model for predictions
         self.model = None
@@ -668,6 +691,26 @@ class RealTimeDataCollector:
                 'excess_demand': excess_demand
             }
             
+            # 8. Log to model monitor for performance tracking and retraining
+            if self.monitor is not None and self.enable_monitoring:
+                try:
+                    # Build feature dict for retraining data
+                    features = self._build_feature_vector(place_id, current_time)
+                    feature_dict = features.to_dict('records')[0] if not features.empty else None
+                    
+                    self.monitor.log_prediction_vs_actual(
+                        place_id=place_id,
+                        timestamp=current_time,
+                        predicted_items=predicted_items,
+                        predicted_orders=predicted_orders,
+                        actual_items=actual_items,
+                        actual_orders=actual_orders,
+                        features=feature_dict
+                    )
+                except Exception as e:
+                    # Don't fail data collection if monitoring fails
+                    print(f"⚠️  Could not log to monitor: {e}")
+            
             print(f"✅ Collected metrics for place {place_id} at {current_time.strftime('%H:%M')}")
             print(f"   Actual: {actual_items:.0f} items | Predicted: {predicted_items:.0f} | Ratio: {ratio:.2f}x")
             
@@ -719,6 +762,11 @@ class RealTimeDataCollector:
         
         duration = (datetime.now() - start_time).total_seconds()
         
+        # Run automatic maintenance if enabled
+        maintenance_result = None
+        if self.auto_maintain:
+            maintenance_result = self.run_automatic_maintenance()
+        
         return {
             'metrics': metrics_list,
             'summary': {
@@ -727,7 +775,8 @@ class RealTimeDataCollector:
                 'failed': failed,
                 'duration_seconds': duration,
                 'avg_time_per_venue': duration / len(venues) if venues else 0
-            }
+            },
+            'maintenance': maintenance_result
         }
     
     def get_single_venue_metrics(self, place_id: int, venue_name: str, 
@@ -746,6 +795,85 @@ class RealTimeDataCollector:
             Metrics dictionary or None if failed
         """
         return self.aggregate_and_collect(place_id, venue_name, latitude, longitude)
+    
+    def run_automatic_maintenance(self, force: bool = False) -> Optional[Dict]:
+        """
+        Check if model maintenance is needed and run it automatically.
+        
+        This is called after each collection cycle when auto_maintain=True.
+        Only runs if enough time has passed since last check.
+        
+        Args:
+            force: If True, skip interval check and run immediately
+        
+        Returns:
+            Maintenance result dict or None if no action taken
+        """
+        if not self.auto_maintain and not force:
+            return None
+        
+        now = datetime.now()
+        
+        # Check if we should run maintenance check
+        if not force and self._last_maintenance_check is not None:
+            time_since_last = now - self._last_maintenance_check
+            if time_since_last < self.maintenance_check_interval:
+                return None  # Too soon
+        
+        self._last_maintenance_check = now
+        print(f"\n🔧 Running automatic model maintenance check...")
+        
+        try:
+            from src.model_manager import HybridModelManager
+            
+            manager = HybridModelManager()
+            
+            # Check what action is needed
+            should_retrain, retrain_reason = manager.should_full_retrain()
+            should_finetune, finetune_reason = manager.should_fine_tune()
+            
+            if should_retrain:
+                print(f"   📊 Full retrain needed: {retrain_reason}")
+                result = manager.update_model()
+                
+                if result.get('status') == 'success':
+                    # Reload the model after update
+                    self._reload_model()
+                    print(f"   ✅ Full retrain completed successfully")
+                else:
+                    print(f"   ⚠️  Full retrain failed: {result.get('error', 'Unknown error')}")
+                
+                return result
+            
+            elif should_finetune:
+                print(f"   📊 Fine-tune needed: {finetune_reason}")
+                result = manager.update_model()
+                
+                if result.get('status') == 'success':
+                    # Reload the model after update
+                    self._reload_model()
+                    print(f"   ✅ Fine-tune completed successfully")
+                else:
+                    print(f"   ⚠️  Fine-tune failed: {result.get('error', 'Unknown error')}")
+                
+                return result
+            
+            else:
+                print(f"   ✅ No maintenance needed")
+                return {'status': 'no_action', 'message': 'Model is healthy'}
+        
+        except Exception as e:
+            print(f"   ❌ Maintenance check failed: {e}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def _reload_model(self) -> None:
+        """Reload the ML model from disk after maintenance update."""
+        try:
+            if self.model_path.exists():
+                self.model = joblib.load(self.model_path)
+                print(f"   🔄 Model reloaded from {self.model_path}")
+        except Exception as e:
+            print(f"   ⚠️  Could not reload model: {e}")
 
 
 def load_venues_from_database() -> List[Dict[str, any]]:
@@ -794,12 +922,36 @@ def _get_fallback_venues() -> List[Dict[str, any]]:
 
 
 if __name__ == "__main__":
-    # Demo usage
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Real-Time Data Collector for Surge Detection')
+    parser.add_argument('--auto-maintain', action='store_true', 
+                        help='Enable automatic model maintenance')
+    parser.add_argument('--maintenance-interval', type=int, default=6,
+                        help='Hours between maintenance checks (default: 6)')
+    parser.add_argument('--force-maintenance', action='store_true',
+                        help='Force run maintenance check now')
+    parser.add_argument('--demo', action='store_true', default=True,
+                        help='Use demo mode for social media APIs')
+    args = parser.parse_args()
+    
     print("=== Real-Time Data Collector Demo ===\n")
     
-    # Initialize collector with demo mode for social media
+    # Initialize collector with options
     print("Using DEMO MODE for social media APIs (simulated data)\n")
-    collector = RealTimeDataCollector(demo_mode=True)
+    collector = RealTimeDataCollector(
+        demo_mode=args.demo,
+        auto_maintain=args.auto_maintain,
+        maintenance_check_interval_hours=args.maintenance_interval
+    )
+    
+    # Force maintenance check if requested
+    if args.force_maintenance:
+        print("\n🔧 Forcing maintenance check...")
+        result = collector.run_automatic_maintenance(force=True)
+        if result:
+            print(f"   Result: {result.get('status', 'unknown')}")
+        print()
     
     # Load venues
     venues = load_venues_from_database()
@@ -817,6 +969,9 @@ if __name__ == "__main__":
     print(f"   Duration: {result['summary']['duration_seconds']:.2f}s")
     print(f"   Avg per venue: {result['summary']['avg_time_per_venue']:.2f}s")
     print(f"   Metrics collected: {len(result['metrics'])}")
+    
+    if result.get('maintenance'):
+        print(f"\n🔧 Maintenance: {result['maintenance'].get('status', 'unknown')}")
     print("="*60)
     
     # Show sample metrics
