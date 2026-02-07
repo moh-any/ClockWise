@@ -72,10 +72,18 @@ function ManagerDashboard() {
   const [mgrRulesError, setMgrRulesError] = useState("")
   const [mgrRulesSuccess, setMgrRulesSuccess] = useState("")
 
+  // Requests Management state
+  const [mgrAllRequests, setMgrAllRequests] = useState([])
+  const [mgrAllRequestsLoading, setMgrAllRequestsLoading] = useState(false)
+  const [mgrAllRequestsError, setMgrAllRequestsError] = useState("")
+  const [mgrRequestActionLoading, setMgrRequestActionLoading] = useState(false)
+  const [mgrRequestActionMessage, setMgrRequestActionMessage] = useState(null)
+
   const mgrNavigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
+    { id: "requests", label: "Requests", icon: InfoIcon },
     { id: "orders", label: "Orders", icon: InfoIcon },
     { id: "rules", label: "Rules", icon: SettingsIcon },
     { id: "profile", label: "Profile", icon: InfoIcon },
@@ -378,6 +386,97 @@ function ManagerDashboard() {
     }
   }
 
+  // Fetch all requests for Requests Management tab
+  const mgrFetchAllRequests = async () => {
+    setMgrAllRequestsLoading(true)
+    setMgrAllRequestsError("")
+    try {
+      // Fetch all employees first to get their requests
+      const employeesResponse = await api.staffing.getAllEmployees()
+      const employeesList = employeesResponse.employees || []
+
+      // Fetch requests for each employee
+      const requestsPromises = employeesList.map(async (employee) => {
+        try {
+          const response = await api.requests.getEmployeeRequests(employee.id)
+          return {
+            employee,
+            requests: response.requests || [],
+          }
+        } catch (err) {
+          console.error(
+            `Error fetching requests for ${employee.full_name}:`,
+            err,
+          )
+          return {
+            employee,
+            requests: [],
+          }
+        }
+      })
+
+      const employeeRequestsData = await Promise.all(requestsPromises)
+
+      // Filter to only include employees with requests
+      const employeesWithRequests = employeeRequestsData.filter(
+        (data) => data.requests.length > 0,
+      )
+
+      setMgrAllRequests(employeesWithRequests)
+    } catch (err) {
+      console.error("Error fetching all requests:", err)
+      setMgrAllRequestsError(err.message || "Failed to load requests")
+    } finally {
+      setMgrAllRequestsLoading(false)
+    }
+  }
+
+  // Handle approve request from Requests Management tab
+  const mgrHandleApproveRequest = async (employeeId, requestId) => {
+    setMgrRequestActionLoading(true)
+    try {
+      await api.requests.approveRequest(employeeId, requestId)
+      setMgrRequestActionMessage({
+        type: "success",
+        text: "Request approved successfully!",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+      // Refresh the requests list
+      await mgrFetchAllRequests()
+    } catch (err) {
+      setMgrRequestActionMessage({
+        type: "error",
+        text: err.message || "Failed to approve request",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+    } finally {
+      setMgrRequestActionLoading(false)
+    }
+  }
+
+  // Handle decline request from Requests Management tab
+  const mgrHandleDeclineRequest = async (employeeId, requestId) => {
+    setMgrRequestActionLoading(true)
+    try {
+      await api.requests.declineRequest(employeeId, requestId)
+      setMgrRequestActionMessage({
+        type: "success",
+        text: "Request declined successfully!",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+      // Refresh the requests list
+      await mgrFetchAllRequests()
+    } catch (err) {
+      setMgrRequestActionMessage({
+        type: "error",
+        text: err.message || "Failed to decline request",
+      })
+      setTimeout(() => setMgrRequestActionMessage(null), 3000)
+    } finally {
+      setMgrRequestActionLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (mgrActiveTab === "staffing") {
       mgrFetchStaffing()
@@ -385,6 +484,8 @@ function ManagerDashboard() {
       mgrFetchOrders(mgrOrdersFilter)
     } else if (mgrActiveTab === "rules") {
       mgrFetchRules()
+    } else if (mgrActiveTab === "requests") {
+      mgrFetchAllRequests()
     }
   }, [mgrActiveTab])
 
@@ -922,6 +1023,164 @@ function ManagerDashboard() {
     </div>
   )
 
+  // Render Requests Management
+  const mgrRenderRequests = () => {
+    const getRequestTypeLabel = (type) => {
+      const labels = {
+        calloff: "Call Off",
+        holiday: "Holiday / Leave",
+        resign: "Resignation",
+      }
+      return labels[type] || type
+    }
+
+    const getStatusBadgeClass = (status) => {
+      switch (status) {
+        case "approved":
+          return "status-badge status-approved"
+        case "declined":
+          return "status-badge status-declined"
+        case "pending":
+        default:
+          return "status-badge status-pending"
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Employee Requests Management</h1>
+            <p className="page-subtitle">
+              Review and manage employee time-off and other requests
+            </p>
+          </div>
+        </div>
+
+        {mgrRequestActionMessage && (
+          <div
+            className={`alert ${
+              mgrRequestActionMessage.type === "success"
+                ? "alert-success"
+                : "alert-error"
+            }`}
+            style={{ marginBottom: "var(--mgr-space-4)" }}
+          >
+            {mgrRequestActionMessage.text}
+          </div>
+        )}
+
+        {mgrAllRequestsLoading ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading requests...</p>
+          </div>
+        ) : mgrAllRequestsError ? (
+          <div className="error-state">
+            <img
+              src={MissedTargetIcon}
+              alt="Error"
+              className="error-icon-svg"
+            />
+            <h3>Error Loading Requests</h3>
+            <p>{mgrAllRequestsError}</p>
+            <button className="btn-primary" onClick={mgrFetchAllRequests}>
+              Retry
+            </button>
+          </div>
+        ) : mgrAllRequests.length === 0 ? (
+          <div className="empty-state">
+            <img src={InfoIcon} alt="No Requests" className="empty-icon-svg" />
+            <h3>No Pending Requests</h3>
+            <p>There are currently no employee requests to review.</p>
+          </div>
+        ) : (
+          <div className="requests-container">
+            {mgrAllRequests.map(({ employee, requests }) => (
+              <div key={employee.id} className="employee-requests-section">
+                <div className="employee-header">
+                  <div className="employee-info">
+                    <div className="employee-avatar">
+                      {employee.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </div>
+                    <div>
+                      <h3 className="employee-name">{employee.full_name}</h3>
+                      <p className="employee-role">{employee.user_role}</p>
+                    </div>
+                  </div>
+                  <div className="requests-count">
+                    {requests.length} Request{requests.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+
+                <div className="requests-list">
+                  {requests.map((request) => (
+                    <div key={request.id} className="request-card">
+                      <div className="request-header">
+                        <div className="request-type">
+                          {getRequestTypeLabel(request.request_type)}
+                        </div>
+                        <span className={getStatusBadgeClass(request.status)}>
+                          {request.status?.toUpperCase() || "PENDING"}
+                        </span>
+                      </div>
+                      <div className="request-body">
+                        <p className="request-message">{request.reason}</p>
+                        {request.start_date && (
+                          <div className="request-dates">
+                            <strong>Dates:</strong>{" "}
+                            {new Date(request.start_date).toLocaleDateString()}
+                            {request.end_date &&
+                              ` - ${new Date(
+                                request.end_date,
+                              ).toLocaleDateString()}`}
+                          </div>
+                        )}
+                      </div>
+                      <div className="request-footer">
+                        <span className="request-date">
+                          Submitted:{" "}
+                          {new Date(request.created_at).toLocaleDateString()}
+                        </span>
+                        {request.status === "pending" && (
+                          <div className="request-actions">
+                            <button
+                              className="btn-approve"
+                              onClick={() =>
+                                mgrHandleApproveRequest(employee.id, request.id)
+                              }
+                              disabled={mgrRequestActionLoading}
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              className="btn-decline"
+                              onClick={() =>
+                                mgrHandleDeclineRequest(employee.id, request.id)
+                              }
+                              disabled={mgrRequestActionLoading}
+                            >
+                              ✕ Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   // Hardcoded personal schedule data - Manager's shifts for the week
   const mgrPersonalScheduleData = [
     { day: 0, startHour: 8, endHour: 16, role: "Manager" }, // Monday
@@ -1373,6 +1632,7 @@ function ManagerDashboard() {
             {mgrActiveTab === "home" && mgrRenderHomeDashboard()}
             {mgrActiveTab === "staffing" && mgrRenderStaffing()}
             {mgrActiveTab === "schedule" && mgrRenderSchedule()}
+            {mgrActiveTab === "requests" && mgrRenderRequests()}
             {mgrActiveTab === "orders" && mgrRenderOrders()}
             {mgrActiveTab === "rules" && mgrRenderRules()}
             {mgrActiveTab === "profile" && mgrRenderProfile()}
