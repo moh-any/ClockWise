@@ -32,6 +32,7 @@ type Server struct {
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
 	campaignHandler    *api.CampaignHandler
+	alertHandler       *api.AlertHandler
 
 	userStore        database.UserStore
 	orgStore         database.OrgStore
@@ -42,6 +43,7 @@ type Server struct {
 	orderStore       database.OrderStore
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
+	alertStore       database.AlertStore
 
 	Logger *slog.Logger
 }
@@ -72,6 +74,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	orderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
 	campaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	demandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
+	alertStore := database.NewPostgresAlertStore(dbService.GetDB(), Logger)
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
@@ -90,6 +93,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	dashboardHandler := api.NewDashboardHandler(Logger)
 	scheduleHandler := api.NewScheduleHandler(Logger)
 	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, Logger)
+	alertHandler := api.NewAlertHandler(alertStore, Logger)
 
 	NewServer := &Server{
 		port: port,
@@ -103,6 +107,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rolesStore:       rolesStore,
 		campaignStore:    campaignStore,
 		demandStore:      demandStore,
+		alertStore:       alertStore,
 
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
@@ -116,6 +121,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		dashboardHandler:   dashboardHandler,
 		scheduleHandler:    scheduleHandler,
 		campaignHandler:    campaignHandler,
+		alertHandler:       alertHandler,
 
 		Logger: Logger,
 	}

@@ -122,13 +122,14 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// TODO: Dashboard which includes, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
-	dashboard.GET("", s.dashboardHandler.GetDashboardHandler) // Change according to the current user
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
 	dashboard.POST("/demand/refresh", s.dashboardHandler.RefreshDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	// TODO: Surge Detection
+	// TODO: Surge ML Model Handlin
 	surge := dashboard.Group("/surge")
-	surge.GET("") // Get All Alerts 
+	surge.GET("",s.alertHandler.GetAlertInsightsHandler) // Get All Alerts 
+	surge.GET("/all",s.alertHandler.GetAllAlertsHandler)
+	surge.GET("/week",s.alertHandler.GetAllAlertsForLastWeekHandler)
 
 	// Only called by external ML api
 	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
@@ -172,6 +173,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
+	// TODO Handle Get Employee Schedule
 	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
