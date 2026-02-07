@@ -286,7 +286,7 @@ export const authAPI = {
 
     // Handle nested structure - response may have user/claims nested or be flat
     const userData = response.user || response
-    
+
     // Save organization_id and user_id
     if (userData.organization_id) {
       localStorage.setItem("org_id", userData.organization_id)
@@ -632,6 +632,23 @@ export const insightsAPI = {
 }
 
 // ============================================================================
+// ORGANIZATION API
+// ============================================================================
+
+export const organizationAPI = {
+  /**
+   * Get organization profile including colors
+   * @returns {Promise<{data: Object, message: string}>}
+   */
+  getProfile: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}`, {
+      method: "GET",
+    })
+  },
+}
+
+// ============================================================================
 // HEALTH API
 // ============================================================================
 
@@ -655,6 +672,7 @@ export const healthAPI = {
 const api = {
   auth: authAPI,
   profile: profileAPI,
+  organization: organizationAPI,
   staffing: staffingAPI,
   requests: requestsAPI,
   roles: rolesAPI,

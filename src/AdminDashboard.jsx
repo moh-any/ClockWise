@@ -186,21 +186,30 @@ function AdminDashboard() {
       setAccentColor(accent)
 
       // Set scoped CSS variables for Admin Dashboard
-      const adminDashboard = document.querySelector('.dashboard-wrapper')
+      const adminDashboard = document.querySelector(".dashboard-wrapper")
       if (adminDashboard) {
         adminDashboard.style.setProperty("--color-primary", primary)
         adminDashboard.style.setProperty("--color-secondary", secondary)
         adminDashboard.style.setProperty("--color-accent", accent)
-        adminDashboard.style.setProperty("--primary-contrast", getContrastColor(primary))
-        adminDashboard.style.setProperty("--secondary-contrast", getContrastColor(secondary))
-        adminDashboard.style.setProperty("--accent-contrast", getContrastColor(accent))
+        adminDashboard.style.setProperty(
+          "--primary-contrast",
+          getContrastColor(primary),
+        )
+        adminDashboard.style.setProperty(
+          "--secondary-contrast",
+          getContrastColor(secondary),
+        )
+        adminDashboard.style.setProperty(
+          "--accent-contrast",
+          getContrastColor(accent),
+        )
       }
     }
   }, [])
 
   useEffect(() => {
     // Apply dark mode class to admin dashboard only
-    const adminDashboard = document.querySelector('.dashboard-wrapper')
+    const adminDashboard = document.querySelector(".dashboard-wrapper")
     if (adminDashboard) {
       if (darkMode) {
         adminDashboard.classList.add("dark-mode")
@@ -1618,11 +1627,8 @@ function AdminDashboard() {
                       required
                     >
                       <option value="">Select a role...</option>
-                      {availableRoles.map((r) => (
-                        <option key={r.role} value={r.role}>
-                          {r.role}
-                        </option>
-                      ))}
+                      <option value="manager">manager</option>
+                      <option value="employee">employee</option>
                     </select>
                   </div>
                   <div className="setting-item">

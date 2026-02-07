@@ -25,15 +25,45 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
       const userInfo = await api.auth.getCurrentUser()
       console.log("Full user info:", userInfo)
 
+      // Fetch and restore organization colors
+      try {
+        const orgProfile = await api.organization.getProfile()
+        if (orgProfile?.data) {
+          // Ensure hex colors have # prefix (API returns without #)
+          const addHashPrefix = (hex, fallback) => {
+            if (!hex) return fallback
+            return hex.startsWith("#") ? hex : `#${hex}`
+          }
+
+          const colors = [
+            addHashPrefix(orgProfile.data.hex1, "#4A90E2"),
+            addHashPrefix(orgProfile.data.hex2, "#7B68EE"),
+            addHashPrefix(orgProfile.data.hex3, "#FF6B6B"),
+          ]
+          localStorage.setItem("orgColors", JSON.stringify(colors))
+          console.log("Organization colors restored:", colors)
+        }
+      } catch (colorErr) {
+        console.error("Failed to fetch organization colors:", colorErr)
+        // Set default colors as fallback
+        const defaultColors = ["#4A90E2", "#7B68EE", "#FF6B6B"]
+        localStorage.setItem("orgColors", JSON.stringify(defaultColors))
+        console.log("Using default colors as fallback:", defaultColors)
+      }
+
       // Navigate based on user role - handle nested structure
       onClose()
-      
+
       // API returns nested structure with user.user_role or claims.user_role
-      const roleValue = userInfo?.user?.user_role || userInfo?.claims?.user_role || userInfo?.user_role || "employee"
+      const roleValue =
+        userInfo?.user?.user_role ||
+        userInfo?.claims?.user_role ||
+        userInfo?.user_role ||
+        "employee"
       const role = String(roleValue).toLowerCase().trim()
-      
+
       console.log("Detected role:", role)
-      
+
       if (role === "admin" || role === "manager") {
         console.log("✅ Navigating to /admin")
         navigate("/admin")

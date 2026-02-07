@@ -2115,3 +2115,168 @@ button:focus-visible {
   background: var(--emp-gray-700);
   color: var(--emp-gray-600);
 }
+/* ========================================
+   INSIGHTS SECTION STYLES
+   ======================================== */
+
+.employee-dashboard-wrapper .insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--emp-space-4);
+  margin-top: var(--emp-space-4);
+}
+
+.employee-dashboard-wrapper .insight-card {
+  padding: var(--emp-space-5);
+  border-radius: var(--emp-radius-xl);
+  background: var(--emp-card-bg);
+  border: 2px solid var(--emp-border-color);
+  transition: all var(--emp-transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.employee-dashboard-wrapper .insight-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--emp-gradient-primary);
+  opacity: 0;
+  transition: opacity var(--emp-transition-base);
+}
+
+.employee-dashboard-wrapper .insight-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--emp-shadow-lg);
+  border-color: var(--emp-color-primary);
+}
+
+.employee-dashboard-wrapper .insight-card:hover::before {
+  opacity: 1;
+}
+
+.employee-dashboard-wrapper .insight-title {
+  font-size: var(--emp-text-sm);
+  font-weight: 600;
+  color: var(--emp-text-secondary);
+  margin-bottom: var(--emp-space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.employee-dashboard-wrapper .insight-value {
+  font-size: var(--emp-text-3xl);
+  font-weight: 800;
+  color: var(--emp-color-primary);
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* Dark Mode for Insights */
+.employee-dashboard-wrapper.dark-mode .insight-card {
+  background: var(--emp-bg-tertiary);
+  border-color: rgba(74, 144, 226, 0.15);
+}
+
+.employee-dashboard-wrapper.dark-mode .insight-card:hover {
+  background: rgba(26, 31, 40, 0.9);
+  border-color: var(--emp-color-primary);
+  box-shadow: 0 8px 32px rgba(74, 144, 226, 0.3);
+}
+
+/* ========================================
+   PROFILE PAGE STYLES
+   ======================================== */
+
+.employee-dashboard-wrapper .profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--emp-space-4);
+  padding: var(--emp-space-5);
+  background: var(--emp-bg-secondary);
+  border-radius: var(--emp-radius-xl);
+  border: 1px solid var(--emp-border-color);
+}
+
+.employee-dashboard-wrapper .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emp-space-2);
+  padding: var(--emp-space-4);
+  background: var(--emp-card-bg);
+  border-radius: var(--emp-radius-lg);
+  border: 2px solid var(--emp-border-color);
+  transition: all var(--emp-transition-base);
+}
+
+.employee-dashboard-wrapper .info-item:hover {
+  border-color: var(--emp-primary-200);
+  transform: translateX(2px);
+  box-shadow: var(--emp-shadow-sm);
+}
+
+.employee-dashboard-wrapper .info-label {
+  font-size: var(--emp-text-xs);
+  font-weight: 700;
+  color: var(--emp-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.employee-dashboard-wrapper .info-value {
+  font-size: var(--emp-text-lg);
+  font-weight: 600;
+  color: var(--emp-text-primary);
+  word-break: break-word;
+}
+
+.employee-dashboard-wrapper .password-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emp-space-4);
+  max-width: 500px;
+  padding: var(--emp-space-5);
+  background: var(--emp-bg-secondary);
+  border-radius: var(--emp-radius-xl);
+  border: 1px solid var(--emp-border-color);
+}
+
+/* Dark Mode for Profile */
+.employee-dashboard-wrapper.dark-mode .profile-info-grid {
+  background: rgba(26, 31, 40, 0.5);
+  border-color: rgba(74, 144, 226, 0.15);
+}
+
+.employee-dashboard-wrapper.dark-mode .info-item {
+  background: var(--emp-bg-tertiary);
+  border-color: rgba(74, 144, 226, 0.15);
+}
+
+.employee-dashboard-wrapper.dark-mode .info-item:hover {
+  border-color: var(--emp-color-primary);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+}
+
+.employee-dashboard-wrapper.dark-mode .password-form {
+  background: rgba(26, 31, 40, 0.5);
+  border-color: rgba(74, 144, 226, 0.15);
+}
+
+/* Responsive Design for Profile */
+@media (max-width: 768px) {
+  .employee-dashboard-wrapper .profile-info-grid {
+    grid-template-columns: 1fr;
+    padding: var(--emp-space-4);
+  }
+
+  .employee-dashboard-wrapper .password-form {
+    padding: var(--emp-space-4);
+  }
+
+  .employee-dashboard-wrapper .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}

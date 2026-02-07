@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import "./EmployeeDashboard.css"
 import api from "./services/api"
 
@@ -12,6 +13,7 @@ import DarkModeIcon from "./Icons/Dark-Mode-Icon.svg"
 import MissedTargetIcon from "./Icons/Missed-Target-Icon.svg"
 
 function EmployeeDashboard() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("home")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showEmployeeProfile, setShowEmployeeProfile] = useState(false)
@@ -52,6 +54,7 @@ function EmployeeDashboard() {
   const [preferencesLoading, setPreferencesLoading] = useState(false)
   const [preferencesError, setPreferencesError] = useState("")
   const [preferencesSuccess, setPreferencesSuccess] = useState("")
+  const [weeklyAvailabilitySaved, setWeeklyAvailabilitySaved] = useState(false)
 
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
@@ -191,7 +194,7 @@ function EmployeeDashboard() {
 
       // Fetch preferences
       try {
-        const prefsResponse = await api.preferences.get()
+        const prefsResponse = await api.preferences.getPreferences()
         if (prefsResponse && prefsResponse.data) {
           const prefs = prefsResponse.data
           setPreferences(prefs.preferences || [])
@@ -260,6 +263,17 @@ function EmployeeDashboard() {
     localStorage.setItem("darkMode", newMode.toString())
   }
 
+  const handleLogout = async () => {
+    try {
+      await api.auth.logout()
+      navigate("/")
+    } catch (err) {
+      console.error("Logout error:", err)
+      // Still navigate to home even if API call fails
+      navigate("/")
+    }
+  }
+
   const handlePreferenceChange = (day, field, value) => {
     const updatedPreferences = [...preferences]
     const dayPref = updatedPreferences.find((p) => p.day === day)
@@ -278,6 +292,8 @@ function EmployeeDashboard() {
     }
 
     setPreferences(updatedPreferences)
+    // Reset weekly availability saved flag when user makes changes
+    setWeeklyAvailabilitySaved(false)
   }
 
   // Check if a day has all time fields filled
@@ -294,6 +310,15 @@ function EmployeeDashboard() {
   // Check if any day is fully filled
   const isAnyDayFullyFilled = () => {
     return preferences.some(isDayFullyFilled)
+  }
+
+  // Check if ALL days are fully filled
+  const isAllDaysFilled = () => {
+    if (preferences.length !== days.length) return false
+    return days.every((day) => {
+      const dayPref = preferences.find((p) => p.day === day)
+      return isDayFullyFilled(dayPref)
+    })
   }
 
   // Copy first fully filled day to all days
@@ -313,6 +338,21 @@ function EmployeeDashboard() {
     }))
 
     setPreferences(updatedPreferences)
+    // Reset weekly availability saved flag when applying to all days
+    setWeeklyAvailabilitySaved(false)
+  }
+
+  // Save weekly availability (just marks as ready, actual save happens with main Save button)
+  const handleSaveWeeklyAvailability = () => {
+    if (isAllDaysFilled()) {
+      setWeeklyAvailabilitySaved(true)
+      setPreferencesSuccess(
+        "Weekly availability confirmed! Click 'Save Preferences' to upload.",
+      )
+      setTimeout(() => {
+        setPreferencesSuccess("")
+      }, 4000)
+    }
   }
 
   const handleSavePreferences = async () => {
@@ -326,7 +366,7 @@ function EmployeeDashboard() {
         (p) => p.preferred_start_time && p.preferred_end_time,
       )
 
-      await api.preferences.update({
+      await api.preferences.savePreferences({
         preferences: validPreferences,
         user_roles: userRoles,
         max_hours_per_week: maxHoursPerWeek,
@@ -336,6 +376,8 @@ function EmployeeDashboard() {
       })
 
       setPreferencesSuccess("Preferences saved successfully!")
+      // Reset weekly availability flag after successful save
+      setWeeklyAvailabilitySaved(false)
       setTimeout(() => {
         setPreferencesSuccess("")
       }, 3000)
@@ -402,45 +444,11 @@ function EmployeeDashboard() {
               Your Insights
             </h2>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "var(--space-4)",
-              marginTop: "var(--space-4)",
-            }}
-          >
+          <div className="insights-grid">
             {insights.map((insight, index) => (
-              <div
-                key={index}
-                className="insight-card"
-                style={{
-                  padding: "var(--space-4)",
-                  borderRadius: "var(--radius-lg)",
-                  background: "var(--card-bg)",
-                  border: "1px solid var(--border-color)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <h4
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 500,
-                    color: "var(--gray-600)",
-                    marginBottom: "var(--space-2)",
-                  }}
-                >
-                  {insight.title}
-                </h4>
-                <p
-                  style={{
-                    fontSize: "var(--text-2xl)",
-                    fontWeight: 700,
-                    color: "var(--color-primary)",
-                  }}
-                >
-                  {insight.statistic}
-                </p>
+              <div key={index} className="insight-card">
+                <h4 className="insight-title">{insight.title}</h4>
+                <p className="insight-value">{insight.statistic}</p>
               </div>
             ))}
           </div>
@@ -595,18 +603,38 @@ function EmployeeDashboard() {
       >
         <div className="section-header">
           <h2 className="section-title">Weekly Availability</h2>
-          <button
-            className="btn-apply-all"
-            onClick={handleApplyToAllDays}
-            disabled={!isAnyDayFullyFilled()}
-            title={
-              !isAnyDayFullyFilled()
-                ? "Fill out one complete day first"
-                : "Apply first complete day to all days"
-            }
-          >
-            Apply to All Days
-          </button>
+          <div style={{ display: "flex", gap: "var(--emp-space-3)" }}>
+            <button
+              className="btn-apply-all"
+              onClick={handleApplyToAllDays}
+              disabled={!isAnyDayFullyFilled()}
+              title={
+                !isAnyDayFullyFilled()
+                  ? "Fill out one complete day first"
+                  : "Apply first complete day to all days"
+              }
+            >
+              Apply to All Days
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleSaveWeeklyAvailability}
+              disabled={!isAllDaysFilled()}
+              title={
+                !isAllDaysFilled()
+                  ? "Complete all days first (4 time slots per day)"
+                  : "Confirm weekly availability is complete"
+              }
+              style={{
+                opacity: isAllDaysFilled() ? 1 : 0.5,
+                cursor: isAllDaysFilled() ? "pointer" : "not-allowed",
+              }}
+            >
+              {weeklyAvailabilitySaved
+                ? "✓ Weekly Availability Saved"
+                : "Save Weekly Availability"}
+            </button>
+          </div>
         </div>
         <div className="preferences-table">
           {days.map((day, index) => {
@@ -702,15 +730,21 @@ function EmployeeDashboard() {
         <div className="profile-info-grid">
           <div className="info-item">
             <div className="info-label">Full Name</div>
-            <div className="info-value">{currentUser?.full_name || "N/A"}</div>
+            <div className="info-value">
+              {currentUser?.full_name || profileData?.full_name || "N/A"}
+            </div>
           </div>
           <div className="info-item">
             <div className="info-label">Email</div>
-            <div className="info-value">{currentUser?.email || "N/A"}</div>
+            <div className="info-value">
+              {currentUser?.email || profileData?.email || "N/A"}
+            </div>
           </div>
           <div className="info-item">
             <div className="info-label">Role</div>
-            <div className="info-value">{profileData?.user_role || "N/A"}</div>
+            <div className="info-value">
+              {currentUser?.user_role || profileData?.user_role || "N/A"}
+            </div>
           </div>
           <div className="info-item">
             <div className="info-label">Organization</div>
@@ -718,10 +752,12 @@ function EmployeeDashboard() {
               {profileData?.organization || "N/A"}
             </div>
           </div>
-          {profileData?.salary_per_hour && (
+          {(currentUser?.salary_per_hour || profileData?.salary_per_hour) && (
             <div className="info-item">
               <div className="info-label">Salary Per Hour</div>
-              <div className="info-value">${profileData.salary_per_hour}</div>
+              <div className="info-value">
+                ${currentUser?.salary_per_hour || profileData?.salary_per_hour}
+              </div>
             </div>
           )}
           <div className="info-item">
@@ -732,6 +768,40 @@ function EmployeeDashboard() {
                 : "N/A"}
             </div>
           </div>
+          {profileData?.hours_worked !== null &&
+            profileData?.hours_worked !== undefined && (
+              <div className="info-item">
+                <div className="info-label">Total Hours Worked</div>
+                <div className="info-value">{profileData.hours_worked} hrs</div>
+              </div>
+            )}
+          {profileData?.hours_worked_this_week !== null &&
+            profileData?.hours_worked_this_week !== undefined && (
+              <div className="info-item">
+                <div className="info-label">Hours This Week</div>
+                <div className="info-value">
+                  {profileData.hours_worked_this_week} hrs
+                </div>
+              </div>
+            )}
+          {(currentUser?.max_hours_per_week ||
+            currentUser?.max_hours_per_week === 0) && (
+            <div className="info-item">
+              <div className="info-label">Max Hours Per Week</div>
+              <div className="info-value">
+                {currentUser.max_hours_per_week} hrs
+              </div>
+            </div>
+          )}
+          {(currentUser?.preferred_hours_per_week ||
+            currentUser?.preferred_hours_per_week === 0) && (
+            <div className="info-item">
+              <div className="info-label">Preferred Hours Per Week</div>
+              <div className="info-value">
+                {currentUser.preferred_hours_per_week} hrs
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -891,27 +961,40 @@ function EmployeeDashboard() {
           </div>
           <div className="user-profile">
             <div className="user-avatar">
-              {currentUser?.full_name
-                ? currentUser.full_name
+              {(() => {
+                const fullName =
+                  currentUser?.full_name || profileData?.full_name || ""
+                if (fullName) {
+                  return fullName
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
                     .toUpperCase()
                     .slice(0, 2)
-                : "..."}
+                }
+                return "?"
+              })()}
             </div>
             {!sidebarCollapsed && (
               <div className="user-info">
                 <div className="user-name">
-                  {currentUser?.full_name || "Loading..."}
+                  {currentUser?.full_name ||
+                    profileData?.full_name ||
+                    "Loading..."}
                 </div>
                 <div className="user-role">
-                  {currentUser?.user_role || "Employee"}
+                  {currentUser?.user_role ||
+                    profileData?.user_role ||
+                    "Employee"}
                 </div>
               </div>
             )}
           </div>
-          {!sidebarCollapsed && <button className="logout-btn">Logout</button>}
+          {!sidebarCollapsed && (
+            <button className="logout-btn" onClick={handleLogout}>
+              Logout
+            </button>
+          )}
         </div>
       </aside>
 
