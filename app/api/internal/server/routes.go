@@ -147,8 +147,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	campaigns.GET("", s.campaignHandler.GetCampaignsInsightsHandler)       // Campaign insights
 	campaigns.POST("/upload", s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
 	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
-	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)             // Get All Campaigns
-	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler) // Get All Campaigns for last week
+	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)              // Get All Campaigns
+	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler)  // Get All Campaigns for last week
+	campaigns.POST("/recommend", s.campaignHandler.RecommendCampaignsHandler)    // Get AI recommendations
+	campaigns.POST("/feedback", s.campaignHandler.SubmitCampaignFeedbackHandler) // Submit campaign feedback
 
 	// TODO Add connection to campaign model routes
 

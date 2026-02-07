@@ -3611,3 +3611,111 @@ body:has(.admin-profile-overlay.show) {
   background: var(--bg-tertiary);
   border-color: var(--border-color);
 }
+
+/* ========================================
+   PREMIUM UPLOAD LOADING ANIMATION
+   ======================================== */
+
+.upload-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.loader-container svg {
+  filter: drop-shadow(0 8px 24px rgba(74, 144, 226, 0.4));
+}
+
+.loader-text {
+  color: #ffffff;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* The Base Style */
+.iso-slice {
+  will-change: transform, opacity;
+}
+
+/* Opacity variations for depth */
+.slice-1 {
+  fill: var(--color-primary);
+  opacity: 1;
+  animation: stack-anim 2.4s infinite ease-in-out;
+  animation-delay: 0s;
+}
+
+.slice-2 {
+  fill: var(--color-secondary);
+  opacity: 0.7;
+  animation: stack-anim 2.4s infinite ease-in-out;
+  animation-delay: -0.8s;
+}
+
+.slice-3 {
+  fill: var(--color-accent);
+  opacity: 0.5;
+  animation: stack-anim 2.4s infinite ease-in-out;
+  animation-delay: -1.6s;
+}
+
+/* The Animation Keyframes */
+@keyframes stack-anim {
+  0% {
+    transform: translate(0, 0);
+  }
+  15% {
+    /* Slide out to the right */
+    transform: translate(30px, 15px);
+  }
+  30% {
+    /* Move up */
+    transform: translate(30px, -30px);
+  }
+  50% {
+    /* Slide back into top position */
+    transform: translate(0, -15px);
+  }
+  100% {
+    /* Settle down to start position */
+    transform: translate(0, 0);
+  }
+}

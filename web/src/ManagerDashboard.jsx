@@ -607,45 +607,53 @@ function ManagerDashboard() {
           ))}
         </div>
 
-        {/* Employees Table */}
-        {mgrEmployees.length > 0 ? (
-          <div className="table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Salary/Hr</th>
-                  <th>Max Hrs/Week</th>
-                  <th>On Call</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mgrEmployees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>{employee.full_name}</td>
-                    <td>{employee.email}</td>
-                    <td>
-                      <span className="badge badge-primary">
-                        {employee.user_role}
-                      </span>
-                    </td>
-                    <td>${employee.salary_per_hour || "N/A"}</td>
-                    <td>{employee.max_hours_per_week || "N/A"}</td>
-                    <td>{employee.on_call ? "Yes" : "No"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <img src={InfoIcon} alt="No Employees" className="empty-icon-svg" />
-            <h3>No Employees Found</h3>
-            <p>Start by delegating new team members</p>
-          </div>
-        )}
+{/* Employees Table */}
+{mgrEmployees.length > 0 ? (
+  <div className="table-wrapper">
+    <table className="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th className="text-right">Salary/Hr</th>
+          <th className="text-center">Max Hrs/Week</th>
+          <th className="text-center">On Call</th>
+        </tr>
+      </thead>
+      <tbody>
+        {mgrEmployees.map((employee) => (
+          <tr key={employee.id}>
+            <td>{employee.full_name}</td>
+            <td style={{ color: 'var(--mgr-gray-600)' }}>{employee.email}</td>
+            <td>
+              <span className="badge badge-primary">
+                {employee.user_role}
+              </span>
+            </td>
+            <td className="text-right" style={{ fontWeight: 600 }}>
+              {employee.salary_per_hour ? `$${employee.salary_per_hour}` : "N/A"}
+            </td>
+            <td className="text-center">
+              {employee.max_hours_per_week || "N/A"}
+            </td>
+            <td className="text-center">
+              <span className={`badge ${employee.on_call ? 'badge-success' : 'badge-secondary'}`}>
+                {employee.on_call ? "Yes" : "No"}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <div className="empty-state">
+    <img src={EmployeeIcon} alt="No Employees" className="empty-icon-svg" />
+    <h3>No Employees Found</h3>
+    <p>Start by delegating new team members</p>
+  </div>
+)}
       </div>
     </div>
   )
