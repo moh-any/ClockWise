@@ -32,7 +32,6 @@ class SurgeDetectionConfig:
     # Social Media APIs
     TWITTER_BEARER_TOKEN: Optional[str] = os.getenv('TWITTER_BEARER_TOKEN')
     EVENTBRITE_API_KEY: Optional[str] = os.getenv('EVENTBRITE_API_KEY')
-    INSTAGRAM_ACCESS_TOKEN: Optional[str] = os.getenv('INSTAGRAM_ACCESS_TOKEN')
     
     # Alert System (Layer 3)
     TWILIO_ACCOUNT_SID: Optional[str] = os.getenv('TWILIO_ACCOUNT_SID')
@@ -120,7 +119,6 @@ class SurgeDetectionConfig:
         print("\n📱 SOCIAL MEDIA APIs:")
         print(f"   Twitter: {'✅' if cls.TWITTER_BEARER_TOKEN else '❌'}")
         print(f"   Eventbrite: {'✅' if cls.EVENTBRITE_API_KEY else '❌'}")
-        print(f"   Instagram: {'✅' if cls.INSTAGRAM_ACCESS_TOKEN else '❌'}")
         
         print("\n🚨 SURGE DETECTION:")
         print(f"   Threshold: {cls.SURGE_THRESHOLD}x")

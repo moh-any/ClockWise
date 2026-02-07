@@ -70,7 +70,7 @@ class SurgeDetector:
         
         Args:
             place_id: Venue ID
-            metrics: List of SurgeMetrics for last N hours (from Redis)
+            metrics: List of SurgeMetrics for last N hours
         
         Returns:
             SurgeEvent if detected, None otherwise

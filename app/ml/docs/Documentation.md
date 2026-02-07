@@ -2106,8 +2106,8 @@ for issue in insights['feasibility_analysis']:
 
 **Solutions**:
 ```python
-# 1. Cache weather data
-weather_cache = {}  # Implement Redis cache
+# 1. Cache weather data in memory
+weather_cache = {}  # In-memory cache with TTL
 
 # 2. Pre-fetch holidays for common locations
 pre_cache_holidays(['DK', 'US', 'UK', 'FR'])
