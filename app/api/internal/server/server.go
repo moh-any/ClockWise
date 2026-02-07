@@ -45,6 +45,7 @@ type Server struct {
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
 	alertStore       database.AlertStore
+	scheduleStore    database.ScheduleStore
 
 	Logger *slog.Logger
 }
@@ -61,10 +62,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	if err != nil {
 		panic(fmt.Sprintf("failed to run database migrations: %s", err))
 	}
-	
-	scheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
 
-	
 	// Initialize Redis cache service with graceful fallback
 	redisAddr := os.Getenv("REDIS_ADDR")
 	redisPwd := os.Getenv("REDIS_PASSWORD")
@@ -91,6 +89,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	baseCampaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	baseDemandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
 	baseAlertStore := database.NewPostgresAlertStore(dbService.GetDB(), Logger)
+	baseScheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
 
 	// Wrap stores with caching if Redis is available
 	var userStore database.UserStore
@@ -106,6 +105,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	var campaignStore database.CampaignStore
 	var demandStore database.DemandStore
 	var alertStore database.AlertStore
+	var scheduleStore database.ScheduleStore
 
 	if cacheService != nil {
 		// Wrap with caching layer
@@ -122,6 +122,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore = cache.NewCachedCampaignStore(baseCampaignStore, cacheService)
 		demandStore = cache.NewCachedDemandStore(baseDemandStore, cacheService)
 		alertStore = cache.NewCachedAlertStore(baseAlertStore, cacheService)
+		scheduleStore = baseScheduleStore
 		Logger.Info("All stores wrapped with Redis caching layer")
 	} else {
 		// Use base stores directly (no caching)
@@ -138,6 +139,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore = baseCampaignStore
 		demandStore = baseDemandStore
 		alertStore = baseAlertStore
+		scheduleStore = baseScheduleStore
 		Logger.Warn("Running without cache layer - all requests will hit PostgreSQL directly")
 	}
 
@@ -194,6 +196,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore:    campaignStore,
 		demandStore:      demandStore,
 		alertStore:       alertStore,
+		scheduleStore:    scheduleStore,
 
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,

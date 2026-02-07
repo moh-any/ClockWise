@@ -123,6 +123,11 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
+	if organization == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "organization not found"})
+		return
+	}
+
 	organization_rules, err := dh.RulesStore.GetRulesByOrganizationID(user.OrganizationID)
 
 	if err != nil {
@@ -130,10 +135,25 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
+	if organization_rules == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "organization rules not found"})
+		return
+	}
+
 	operating_hours, err := dh.OperatingHoursStore.GetOperatingHours(user.OrganizationID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get organization operating hours details"})
+		return
+	}
+
+	if operating_hours == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "operating hours not found"})
+		return
+	}
+
+	if organization_rules.NumberOfShiftsPerDay == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "number of shifts per day not configured"})
 		return
 	}
 
@@ -161,10 +181,20 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
+	if orders == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no orders found for this organization"})
+		return
+	}
+
 	campaigns, err := dh.CampaignStore.GetAllCampaigns(user.OrganizationID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get organization campaigns details, please make sure to upload them"})
+		return
+	}
+
+	if campaigns == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no campaigns found for this organization"})
 		return
 	}
 	days := 7
@@ -227,7 +257,7 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode ML response"})
 		return
 	}
-	
+
 	// Store in Demand Store
 	err = dh.DemandStore.StoreDemandHeatMap(user.OrganizationID, demandResponse)
 
@@ -237,5 +267,5 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 	}
 
 	// Return the successfully decoded response
-	c.JSON(http.StatusOK, gin.H{"message": "demand prediction retrieved successfuly from API","data":demandResponse})
+	c.JSON(http.StatusOK, gin.H{"message": "demand prediction retrieved successfuly from API", "data": demandResponse})
 }

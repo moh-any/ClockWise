@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Add Caching
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
@@ -23,7 +22,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80","http://localhost:8000","http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Encoding"},
 		AllowCredentials: true,
