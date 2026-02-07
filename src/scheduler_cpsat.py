@@ -130,9 +130,6 @@ class SchedulerCPSAT:
         E, R, D, T = self._get_sets()
         data = self.data
         
-        # Scale factor for converting hours to integer slots
-        # (We work in slots internally, convert at output)
-        
         if not data.fixed_shifts:
             # ===== Slot-based variables =====
             
@@ -171,7 +168,7 @@ class SchedulerCPSAT:
         # ===== Supply-related variables =====
         
         # Capacity per role (scaled by 100 for precision)
-        max_capacity = int(len(data.employees) * max(r.items_per_hour for r in data.roles) * data.slot_len_hour * 100)
+        max_capacity = int(len(data.employees) * max(r.items_per_hour for r in data.roles if r.producing) * data.slot_len_hour * 100) if any(r.producing for r in data.roles) else 1000
         for r in R:
             for d in D:
                 for t in T:
@@ -206,7 +203,7 @@ class SchedulerCPSAT:
         for e in E:
             self.hours_dev[e] = self.model.NewIntVar(0, max_slots, f'hours_dev_{e}')
         
-        # Fairness: max and min slots for range-based fairness (avoids integer division issues)
+        # Fairness: max and min slots for range-based fairness
         self.max_work_slots = self.model.NewIntVar(0, max_slots, 'max_work_slots')
         self.min_work_slots = self.model.NewIntVar(0, max_slots, 'min_work_slots')
         self.fairness_dev = self.model.NewIntVar(0, max_slots, 'fairness_dev')
@@ -230,7 +227,7 @@ class SchedulerCPSAT:
         for e_idx, emp in enumerate(data.employees):
             for d in D:
                 for t in T:
-                    avail = emp.availability.get((d, t), True)  # Default available
+                    avail = emp.availability.get((d, t), True)
                     if not avail:
                         self.model.Add(self.x[e_idx, d, t] == 0)
         
@@ -239,14 +236,11 @@ class SchedulerCPSAT:
             for r_idx, role in enumerate(data.roles):
                 for d in D:
                     for t in T:
-                        # y[e,r,d,t] <= role_elig[e,r]
                         if role.id not in emp.role_eligibility:
                             self.model.Add(self.y[e_idx, r_idx, d, t] == 0)
                         
-                        # y[e,r,d,t] <= x[e,d,t]
                         self.model.Add(self.y[e_idx, r_idx, d, t] <= self.x[e_idx, d, t])
             
-            # At most one role per slot: sum_r y[e,r,d,t] <= 1
             for d in D:
                 for t in T:
                     self.model.Add(sum(self.y[e_idx, r, d, t] for r in R) <= 1)
@@ -271,42 +265,34 @@ class SchedulerCPSAT:
         # ----- Constraint 6: Consecutive slots / min-max shift length -----
         for e_idx, emp in enumerate(data.employees):
             for d in D:
-                # Define start indicator
                 for t in T:
                     if t == 0:
-                        # First slot: start if working
                         self.model.Add(self.start[e_idx, d, t] >= self.x[e_idx, d, t])
                     else:
-                        # start[e,d,t] >= x[e,d,t] - x[e,d,t-1]
                         self.model.Add(
                             self.start[e_idx, d, t] >= self.x[e_idx, d, t] - self.x[e_idx, d, t - 1]
                         )
                 
-                # Minimum shift length
                 L_min = data.min_shift_length_slots
                 for t in T:
                     if t + L_min <= data.num_slots_per_day:
-                        # If start, must work at least L_min slots
                         self.model.Add(
                             sum(self.x[e_idx, d, tau] for tau in range(t, t + L_min)) 
                             >= L_min * self.start[e_idx, d, t]
                         )
                 
-                # Maximum consecutive slots
                 max_consec = emp.max_consec_slots
                 for t in T:
                     if t + max_consec + 1 <= data.num_slots_per_day:
-                        # Cannot work more than max_consec consecutive slots
                         self.model.Add(
                             sum(self.x[e_idx, d, tau] for tau in range(t, t + max_consec + 1)) 
                             <= max_consec
                         )
         
-        # ----- Constraint 7: Min rest slots (at day boundary) -----
+        # ----- Constraint 7: Min rest slots -----
         min_rest = data.min_rest_slots
         for e_idx in E:
             for d in range(data.num_days - 1):
-                # If working last slot of day d, cannot work first min_rest slots of day d+1
                 T_max = data.num_slots_per_day - 1
                 rest_slots = min(min_rest, data.num_slots_per_day)
                 self.model.Add(
@@ -319,10 +305,8 @@ class SchedulerCPSAT:
         data = self.data
         K = range(len(data.shifts))
         
-        # Shift availability
         for e_idx, emp in enumerate(data.employees):
             for k_idx, shift in enumerate(data.shifts):
-                # Check if employee is available for entire shift
                 available = all(
                     emp.availability.get((shift.day, t), True) 
                     for t in range(shift.start_slot, shift.end_slot)
@@ -330,103 +314,88 @@ class SchedulerCPSAT:
                 if not available:
                     self.model.Add(self.z[e_idx, k_idx] == 0)
         
-        # One shift per employee per day
         for e_idx in E:
             for d in D:
                 shifts_on_day = [k for k, s in enumerate(data.shifts) if s.day == d]
                 if shifts_on_day:
                     self.model.Add(sum(self.z[e_idx, k] for k in shifts_on_day) <= 1)
         
-        # Max hours per week
         for e_idx, emp in enumerate(data.employees):
             max_slots = int(emp.max_hours_per_week / data.slot_len_hour)
             self.model.Add(
                 sum(self.z[e_idx, k] * data.shifts[k].length_slots for k in K) <= max_slots
             )
     
-def _add_supply_constraints(self):
-    """Add production capacity and supply constraints."""
-    E, R, D, T = self._get_sets()
-    data = self.data
-    
-    # Scale factor for floating point -> integer (x100)
-    SCALE = 100
-    
-    # ----- Step 4a: Compute capacity per role -----
-    for r_idx, role in enumerate(data.roles):
-        items_scaled = int(role.items_per_hour * data.slot_len_hour * SCALE)
+    def _add_supply_constraints(self):
+        """Add production capacity and supply constraints."""
+        E, R, D, T = self._get_sets()
+        data = self.data
+        
+        SCALE = 100
+        
+        # ----- Compute capacity per role -----
+        for r_idx, role in enumerate(data.roles):
+            items_scaled = int(role.items_per_hour * data.slot_len_hour * SCALE)
+            for d in D:
+                for t in T:
+                    if not data.fixed_shifts:
+                        self.model.Add(
+                            self.capacity[r_idx, d, t] == 
+                            sum(self.y[e, r_idx, d, t] * items_scaled for e in E)
+                        )
+                    else:
+                        overlapping_shifts = [
+                            k for k, s in enumerate(data.shifts) 
+                            if s.day == d and s.start_slot <= t < s.end_slot
+                        ]
+                        eligible = [e for e, emp in enumerate(data.employees) if role.id in emp.role_eligibility]
+                        self.model.Add(
+                            self.capacity[r_idx, d, t] == 
+                            sum(self.z[e, k] * items_scaled for e in eligible for k in overlapping_shifts)
+                        )
+        
+        # ----- Supply from independent roles and chains -----
+        independent_roles = [r for r, role in enumerate(data.roles) if role.is_independent]
+        
         for d in D:
             for t in T:
-                if not data.fixed_shifts:
-                    # capacity = sum_e y[e,r,d,t] * items_r * slot_len
-                    self.model.Add(
-                        self.capacity[r_idx, d, t] == 
-                        sum(self.y[e, r_idx, d, t] * items_scaled for e in E)
-                    )
+                supply_terms = []
+                
+                for r_idx in independent_roles:
+                    supply_terms.append(self.capacity[r_idx, d, t])
+                
+                for c_idx, chain in enumerate(data.chains):
+                    chain_role_indices = [self.role_idx[rid] for rid in chain.roles if rid in self.role_idx]
+                    
+                    if len(chain_role_indices) == 0:
+                        continue
+                    
+                    capacity_vars = [self.capacity[r_idx, d, t] for r_idx in chain_role_indices]
+                    self.model.AddMinEquality(self.chain_output[c_idx, d, t], capacity_vars)
+                    
+                    contrib_scaled = int(chain.contrib_factor * SCALE)
+                    supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // SCALE)
+                
+                if supply_terms:
+                    self.model.Add(self.supply[d, t] == sum(supply_terms))
                 else:
-                    # For fixed shifts, capacity is based on z variables
-                    overlapping_shifts = [
-                        k for k, s in enumerate(data.shifts) 
-                        if s.day == d and s.start_slot <= t < s.end_slot
-                    ]
-                    eligible = [e for e, emp in enumerate(data.employees) if role.id in emp.role_eligibility]
-                    self.model.Add(
-                        self.capacity[r_idx, d, t] == 
-                        sum(self.z[e, k] * items_scaled for e in eligible for k in overlapping_shifts)
-                    )
+                    self.model.Add(self.supply[d, t] == 0)
+        
+        # ----- Demand satisfaction -----
+        for d in D:
+            for t in T:
+                demand_scaled = int(data.demand.get((d, t), 0) * SCALE)
+                if data.meet_all_demand:
+                    self.model.Add(self.supply[d, t] >= demand_scaled)
+                    self.model.Add(self.v[d, t] == 0)
+                else:
+                    self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)
     
-    # ----- Step 4b & 4c: Supply from independent roles and chains -----
-    independent_roles = [r for r, role in enumerate(data.roles) if role.is_independent]
-    
-    for d in D:
-        for t in T:
-            supply_terms = []
-            
-            # Independent roles contribute directly
-            for r_idx in independent_roles:
-                supply_terms.append(self.capacity[r_idx, d, t])
-            
-            # ===== FIX: Chain output equals bottleneck (minimum capacity) =====
-            for c_idx, chain in enumerate(data.chains):
-                chain_role_indices = [self.role_idx[rid] for rid in chain.roles if rid in self.role_idx]
-                
-                if len(chain_role_indices) == 0:
-                    continue
-                
-                # Use AddMinEquality to set chain output to minimum capacity
-                capacity_vars = [self.capacity[r_idx, d, t] for r_idx in chain_role_indices]
-                self.model.AddMinEquality(self.chain_output[c_idx, d, t], capacity_vars)
-                
-                # Add to supply with contribution factor (keep scaling consistent)
-                contrib_scaled = int(chain.contrib_factor * SCALE)
-                # Don't divide - keep everything scaled
-                supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // SCALE)
-            
-            # Total supply
-            if supply_terms:
-                self.model.Add(self.supply[d, t] == sum(supply_terms))
-            else:
-                self.model.Add(self.supply[d, t] == 0)
-    
-    # ----- Step 4e: Demand satisfaction -----
-    for d in D:
-        for t in T:
-            demand_scaled = int(data.demand.get((d, t), 0) * SCALE)
-            if data.meet_all_demand:
-                # Hard constraint: supply must meet demand exactly
-                self.model.Add(self.supply[d, t] >= demand_scaled)
-                # Force unmet to zero
-                self.model.Add(self.v[d, t] == 0)
-            else:
-                # Soft constraint: supply + unmet >= demand (unmet penalized in objective)
-                self.model.Add(self.supply[d, t] + self.v[d, t] >= demand_scaled)    
-                
     def _add_auxiliary_constraints(self):
         """Add auxiliary variable definitions for objective."""
         E, R, D, T = self._get_sets()
         data = self.data
         
-        # Work slots per employee
         for e_idx in E:
             if not data.fixed_shifts:
                 self.model.Add(
@@ -440,36 +409,26 @@ def _add_supply_constraints(self):
                     )
                 )
         
-        # Hours deviation (in slots)
         for e_idx, emp in enumerate(data.employees):
             pref_slots = int(emp.pref_hours / data.slot_len_hour)
-            # hours_dev >= work_slots - pref_slots
             self.model.Add(self.hours_dev[e_idx] >= self.work_slots[e_idx] - pref_slots)
-            # hours_dev >= pref_slots - work_slots
             self.model.Add(self.hours_dev[e_idx] >= pref_slots - self.work_slots[e_idx])
         
-        # Preference satisfaction (slot-based only)
         if not data.fixed_shifts:
             for e_idx, emp in enumerate(data.employees):
                 for d in D:
                     for t in T:
                         pref = 1 if emp.slot_preferences.get((d, t), False) else 0
                         if pref:
-                            # pref_sat <= x (can only be satisfied if scheduled)
                             self.model.Add(self.pref_sat[e_idx, d, t] <= self.x[e_idx, d, t])
-                            # pref_sat >= x + pref - 1 = x (since pref=1)
                             self.model.Add(self.pref_sat[e_idx, d, t] >= self.x[e_idx, d, t])
                         else:
-                            # No preference, satisfaction is 0
                             self.model.Add(self.pref_sat[e_idx, d, t] == 0)
         
-        # Fairness: range-based (max - min work slots)
-        # This avoids integer division issues with avg_slots * |E| = sum
         for e_idx in E:
             self.model.Add(self.max_work_slots >= self.work_slots[e_idx])
             self.model.Add(self.min_work_slots <= self.work_slots[e_idx])
         
-        # fairness_dev = max - min (minimizing this spreads work evenly)
         self.model.Add(self.fairness_dev >= self.max_work_slots - self.min_work_slots)
     
     def _set_objective(self):
@@ -479,34 +438,27 @@ def _add_supply_constraints(self):
         
         objective_terms = []
         
-        # W_wage * sum(wage[e] * work_hours[e])
         for e_idx, emp in enumerate(data.employees):
-            wage_per_slot = int(emp.wage * data.slot_len_hour * 100)  # Scale by 100
+            wage_per_slot = int(emp.wage * data.slot_len_hour * 100)
             objective_terms.append(data.w_wage * wage_per_slot * self.work_slots[e_idx])
         
-        # W_unmet * sum(unmet[d,t])
         for d in D:
             for t in T:
                 objective_terms.append(data.w_unmet * self.v[d, t])
         
-        # W_hours * sum(hours_dev[e])
         for e_idx in E:
             objective_terms.append(data.w_hours * self.hours_dev[e_idx])
         
-        # ===== FIX: Positive weight for preference satisfaction (reward, not penalize) =====
         if not data.fixed_shifts:
             for e_idx in E:
                 for d in D:
                     for t in T:
-                        # Positive weight = we want to MAXIMIZE satisfaction
-                        # But we're minimizing objective, so we SUBTRACT
                         objective_terms.append(-data.w_slot * self.pref_sat[e_idx, d, t])
         
-        # W_fair * fairness_dev
         objective_terms.append(data.w_fair * self.fairness_dev)
         
         self.model.Minimize(sum(objective_terms))
-        
+    
     def solve(self, time_limit_seconds: int = 60) -> Optional[Dict]:
         """Solve the model and return the solution."""
         solver = cp_model.CpSolver()
@@ -535,7 +487,6 @@ def _add_supply_constraints(self):
             'supply': {}
         }
         
-        # Extract schedule
         if not data.fixed_shifts:
             for e_idx, emp in enumerate(data.employees):
                 for d in D:
@@ -564,14 +515,12 @@ def _add_supply_constraints(self):
                             'end_slot': shift.end_slot
                         })
         
-        # Extract unmet demand
         for d in D:
             for t in T:
-                unmet = solver.Value(self.v[d, t]) / 100  # Unscale
+                unmet = solver.Value(self.v[d, t]) / 100
                 if unmet > 0:
                     solution['unmet_demand'][(d, t)] = unmet
         
-        # Extract employee stats
         for e_idx, emp in enumerate(data.employees):
             work_slots = solver.Value(self.work_slots[e_idx])
             work_hours = work_slots * data.slot_len_hour
@@ -591,10 +540,9 @@ def _add_supply_constraints(self):
                 'preferences_satisfied': pref_satisfied
             }
         
-        # Extract supply
         for d in D:
             for t in T:
-                solution['supply'][(d, t)] = solver.Value(self.supply[d, t]) / 100  # Unscale
+                solution['supply'][(d, t)] = solver.Value(self.supply[d, t]) / 100
         
         return solution
 
@@ -603,28 +551,17 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     """
     Generate management insights from the solution to help with hiring and workforce decisions.
     
-    Args:
-        solution: Solution dictionary from solve() method (can be None)
-        input_data: The original input data
-    
-    Returns:
-        Dictionary containing management insights:
-        - 'employee_utilization': Utilization rate per employee (only with solution)
-        - 'role_demand': Demand coverage and bottlenecks per role
-        - 'hiring_recommendations': Suggestions for hiring by role
-        - 'coverage_gaps': Time slots with insufficient coverage (only with solution)
-        - 'cost_analysis': Cost breakdown and opportunity costs (only with solution)
-        - 'workload_distribution': Fairness and balance metrics (only with solution)
-        - 'peak_periods': High-demand periods requiring attention
-        - 'feasibility_analysis': Why the problem might be infeasible (only without solution)
+    Returns complete insights dictionary with all 8 insight categories:
+    - has_solution, peak_periods, capacity_analysis (always)
+    - employee_utilization, role_demand, hiring_recommendations, coverage_gaps, 
+      cost_analysis, workload_distribution (with solution)
+    - feasibility_analysis (without solution)
     """
     insights = {
         'has_solution': solution is not None
     }
     
-    # === INSIGHTS AVAILABLE WITHOUT SOLUTION ===
-    
-    # === 7. PEAK PERIODS (No solution needed) ===
+    # === PEAK PERIODS (Always available) ===
     peak_periods = []
     demand_by_slot = {}
     
@@ -651,9 +588,8 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     insights['peak_periods'] = sorted(peak_periods, key=lambda x: x['average_demand'], reverse=True)
     
-    # === CAPACITY ANALYSIS (No solution needed) ===
+    # === CAPACITY ANALYSIS (Always available) ===
     total_demand = sum(input_data.demand.values())
-    total_employee_capacity = sum(emp.max_hours_per_week for emp in input_data.employees)
     
     capacity_by_role = {}
     for role in input_data.roles:
@@ -677,11 +613,10 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     insights['capacity_analysis'] = capacity_by_role
     
-    # === FEASIBILITY ANALYSIS (Only without solution) ===
+    # === WITHOUT SOLUTION: FEASIBILITY ANALYSIS ===
     if solution is None:
         feasibility_issues = []
         
-        # Check if total capacity is sufficient
         total_capacity = sum(data['potential_output'] for data in capacity_by_role.values())
         if total_capacity < total_demand:
             shortfall = total_demand - total_capacity
@@ -691,7 +626,6 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                 'severity': 'critical'
             })
         
-        # Check role-specific capacity
         for role_id, data in capacity_by_role.items():
             if not data['is_sufficient'] and data['potential_output'] > 0:
                 feasibility_issues.append({
@@ -700,7 +634,6 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                     'severity': 'high'
                 })
         
-        # Check minimum staffing requirements
         for role in input_data.roles:
             if role.min_present > 0:
                 eligible_count = sum(1 for emp in input_data.employees if role.id in emp.role_eligibility)
@@ -711,24 +644,14 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                         'severity': 'critical'
                     })
         
-        # Check if demand pattern is too restrictive
-        slots_with_high_demand = sum(1 for d in input_data.demand.values() if d > avg_total_demand * 1.5)
-        if slots_with_high_demand > len(input_data.demand) * 0.3:
-            feasibility_issues.append({
-                'issue': 'Many high-demand periods',
-                'details': f'{slots_with_high_demand} slots with >150% average demand may be difficult to staff',
-                'severity': 'medium'
-            })
-        
         insights['feasibility_analysis'] = feasibility_issues
         
-        # Generate hiring recommendations based on capacity analysis
         hiring_recommendations = []
         for role_id, data in capacity_by_role.items():
             if not data['is_sufficient'] and data['potential_output'] > 0:
                 role = next(r for r in input_data.roles if r.id == role_id)
                 shortfall = total_demand - data['potential_output']
-                recommended_hires = int(shortfall / (role.items_per_hour * 40) + 1)  # Assume 40h/week
+                recommended_hires = int(shortfall / (role.items_per_hour * 40) + 1)
                 
                 hiring_recommendations.append({
                     'role': role_id,
@@ -742,15 +665,12 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                                                    key=lambda x: x['recommended_hires'],
                                                    reverse=True)
         
-        # Return early with no-solution insights
         return insights
     
-    # === INSIGHTS REQUIRING SOLUTION ===
+    # === WITH SOLUTION: COMPREHENSIVE INSIGHTS ===
     
-    # === 1. EMPLOYEE UTILIZATION ===
+    # Employee utilization
     employee_utilization = []
-    total_capacity = input_data.num_days * input_data.num_slots_per_day * input_data.slot_len_hour
-    
     for emp in input_data.employees:
         stats = solution['employee_stats'][emp.id]
         utilization_rate = stats['work_hours'] / emp.max_hours_per_week if emp.max_hours_per_week > 0 else 0
@@ -768,34 +688,26 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     insights['employee_utilization'] = sorted(employee_utilization, key=lambda x: x['utilization_rate'], reverse=True)
     
-    # === 2. ROLE DEMAND ANALYSIS ===
+    # Role demand
     role_demand = {}
-    
     for role in input_data.roles:
-        if not role.producing:
-            continue
-            
-        total_demand = sum(input_data.demand.values())
-        total_supply_role = sum(
-            solution['supply'][(d, t)] 
-            for d in range(input_data.num_days) 
-            for t in range(input_data.num_slots_per_day)
-        ) if role.is_independent else 0
-        
-        # Count employees eligible for this role
         eligible_count = sum(1 for emp in input_data.employees if role.id in emp.role_eligibility)
-        working_count = 0
-        total_hours_role = 0
+        total_hours_role = sum(
+            input_data.slot_len_hour
+            for entry in solution['schedule']
+            if entry.get('role') == role.id
+        )
         
-        for entry in solution['schedule']:
-            if entry.get('role') == role.id:
-                working_count += 1
-                total_hours_role += input_data.slot_len_hour
+        working_employees = len(set(
+            entry['employee']
+            for entry in solution['schedule']
+            if entry.get('role') == role.id
+        ))
         
-        working_employees = len(set(entry['employee'] for entry in solution['schedule'] 
-                                   if entry.get('role') == role.id))
-        
-        capacity_utilization = (total_hours_role * role.items_per_hour) / total_demand if total_demand > 0 else 0
+        if role.producing:
+            capacity_utilization = (total_hours_role * role.items_per_hour) / total_demand if total_demand > 0 else 0
+        else:
+            capacity_utilization = 0
         
         role_demand[role.id] = {
             'eligible_employees': eligible_count,
@@ -807,15 +719,12 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     insights['role_demand'] = role_demand
     
-    # === 3. HIRING RECOMMENDATIONS ===
+    # Hiring recommendations
     hiring_recommendations = []
     
-    # Check for unmet demand patterns
     if solution['unmet_demand']:
         total_unmet = sum(solution['unmet_demand'].values())
-        avg_unmet_per_slot = total_unmet / len(solution['unmet_demand'])
         
-        # Find roles that could address unmet demand
         for role in input_data.roles:
             if role.producing:
                 potential_coverage = role.items_per_hour * input_data.slot_len_hour
@@ -830,51 +739,22 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                         'priority': 'high'
                     })
     
-    # Check for overutilized employees by role
-    for role in input_data.roles:
-        eligible = [emp for emp in input_data.employees if role.id in emp.role_eligibility]
-        if eligible:
-            overutilized = [emp for emp in eligible 
-                          if solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week > 0.85]
-            
-            if len(overutilized) / len(eligible) > 0.7:  # More than 70% overutilized
-                hiring_recommendations.append({
-                    'role': role.id,
-                    'recommended_hires': max(1, len(eligible) // 4),
-                    'reason': f'{len(overutilized)}/{len(eligible)} employees overutilized in this role',
-                    'expected_impact': 'Better workload balance and reduced burnout risk',
-                    'priority': 'medium'
-                })
+    insights['hiring_recommendations'] = hiring_recommendations
     
-    # Check for bottleneck roles
-    for role_id, stats in role_demand.items():
-        if stats['is_bottleneck']:
-            hiring_recommendations.append({
-                'role': role_id,
-                'recommended_hires': max(1, 3 - stats['eligible_employees']),
-                'reason': f'Only {stats["eligible_employees"]} eligible employees (bottleneck)',
-                'expected_impact': 'Increased flexibility and reliability',
-                'priority': 'high'
-            })
-    
-    insights['hiring_recommendations'] = sorted(hiring_recommendations, 
-                                               key=lambda x: (x['priority'] == 'high', x['recommended_hires']), 
-                                               reverse=True)
-    
-    # === 4. COVERAGE GAPS ===
+    # Coverage gaps
     coverage_gaps = []
-    
     for d in range(input_data.num_days):
         for t in range(input_data.num_slots_per_day):
-            # Count employees working this slot
-            employees_working = sum(1 for entry in solution['schedule'] 
-                                   if entry['day'] == d and entry['slot'] == t)
+            employees_working = sum(
+                1 for entry in solution['schedule']
+                if entry['day'] == d and entry.get('slot') == t
+            )
             
             demand = input_data.demand.get((d, t), 0)
             supply = solution['supply'].get((d, t), 0)
             coverage_rate = supply / demand if demand > 0 else 1.0
             
-            if coverage_rate < 0.8 or employees_working < 2:
+            if coverage_rate < 0.8:
                 coverage_gaps.append({
                     'day': d,
                     'slot': t,
@@ -887,7 +767,7 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     insights['coverage_gaps'] = sorted(coverage_gaps, key=lambda x: x['coverage_rate'])
     
-    # === 5. COST ANALYSIS ===
+    # Cost analysis
     total_wage_cost = 0
     cost_by_role = {}
     
@@ -896,7 +776,6 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
         cost = emp.wage * hours
         total_wage_cost += cost
         
-        # Breakdown by role
         for entry in solution['schedule']:
             if entry['employee'] == emp.id:
                 role = entry.get('role', 'unknown')
@@ -904,8 +783,7 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
                     cost_by_role[role] = 0
                 cost_by_role[role] += emp.wage * input_data.slot_len_hour
     
-    # Opportunity cost of unmet demand (estimated)
-    opportunity_cost = sum(solution['unmet_demand'].values()) * 10  # Assume $10 revenue per item
+    opportunity_cost = sum(solution['unmet_demand'].values()) * 10
     
     insights['cost_analysis'] = {
         'total_wage_cost': total_wage_cost,
@@ -915,13 +793,12 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
         'cost_per_item_served': total_wage_cost / sum(solution['supply'].values()) if solution['supply'] else 0
     }
     
-    # === 6. WORKLOAD DISTRIBUTION ===
+    # Workload distribution
     hours_list = [stats['work_hours'] for stats in solution['employee_stats'].values()]
     avg_hours = sum(hours_list) / len(hours_list) if hours_list else 0
     max_hours = max(hours_list) if hours_list else 0
     min_hours = min(hours_list) if hours_list else 0
     
-    # Count employees by workload category
     unused = sum(1 for h in hours_list if h == 0)
     underutilized = sum(1 for emp in input_data.employees 
                        if 0 < solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week < 0.5)
@@ -939,58 +816,14 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
         'underutilized_employees': underutilized,
         'well_utilized_employees': well_utilized,
         'overutilized_employees': overutilized,
-        'balance_score': 1 - (max_hours - min_hours) / (max_hours + 1)  # Higher is better
+        'balance_score': 1 - (max_hours - min_hours) / (max_hours + 1)
     }
-    
-    # === 7. PEAK PERIODS ===
-    peak_periods = []
-    demand_by_slot = {}
-    
-    for d in range(input_data.num_days):
-        for t in range(input_data.num_slots_per_day):
-            demand = input_data.demand.get((d, t), 0)
-            if t not in demand_by_slot:
-                demand_by_slot[t] = []
-            demand_by_slot[t].append(demand)
-    
-    insights['peak_periods'] = sorted(peak_periods, key=lambda x: x['average_demand'], reverse=True)
     
     return insights
 
 
 def solve_schedule(input_data: SchedulerInput, time_limit_seconds: int = 60, include_insights: bool = True) -> Tuple[Optional[Dict], str, Optional[Dict]]:
-    """
-    Solve the scheduling problem and return solution with description and management insights.
-    
-    This function can be called by other modules to solve a scheduling problem.
-    
-    Args:
-        input_data: The scheduling input data (SchedulerInput object)
-        time_limit_seconds: Maximum solving time in seconds (default: 60)
-        include_insights: Whether to generate management insights (default: True)
-    
-    Returns:
-        Tuple of (solution_dict, description_string, insights_dict):
-        - solution_dict: Dictionary containing:
-            - 'status': Solver status (OPTIMAL, FEASIBLE, etc.)
-            - 'objective_value': Objective function value
-            - 'schedule': List of schedule entries
-            - 'unmet_demand': Dict of unmet demand by (day, slot)
-            - 'employee_stats': Dict of employee statistics
-            - 'supply': Dict of supply by (day, slot)
-          Returns None if no solution found.
-        - description_string: Human-readable formatted description of the solution
-        - insights_dict: Management insights for hiring and workforce decisions (None if include_insights=False)
-    
-    Example:
-        >>> from scheduler_cpsat import solve_schedule, SchedulerInput
-        >>> data = create_sample_data()
-        >>> solution, description, insights = solve_schedule(data, time_limit_seconds=30)
-        >>> print(description)
-        >>> if insights:
-        >>>     for rec in insights['hiring_recommendations']:
-        >>>         print(f"Hire {rec['recommended_hires']} {rec['role']}: {rec['reason']}")
-    """
+    """Solve the scheduling problem and return solution with insights."""
     scheduler = SchedulerCPSAT(input_data)
     solution = scheduler.solve(time_limit_seconds=time_limit_seconds)
     description = format_solution_description(solution, input_data)
@@ -1000,16 +833,7 @@ def solve_schedule(input_data: SchedulerInput, time_limit_seconds: int = 60, inc
 
 
 def format_solution_description(solution: Optional[Dict], input_data: SchedulerInput) -> str:
-    """
-    Format solution into a human-readable description.
-    
-    Args:
-        solution: Solution dictionary from solve() method (or None)
-        input_data: The original input data
-    
-    Returns:
-        Formatted string describing the solution
-    """
+    """Format solution into a human-readable description."""
     lines = []
     lines.append("=" * 60)
     
@@ -1032,10 +856,10 @@ def format_solution_description(solution: Optional[Dict], input_data: SchedulerI
         )
     
     lines.append("\n--- Schedule (first 3 days) ---")
-    for entry in sorted(solution['schedule'], key=lambda x: (x['day'], x['slot'], x['employee'])):
+    for entry in sorted(solution['schedule'], key=lambda x: (x['day'], x.get('slot', 0), x['employee'])):
         if entry['day'] < 3:
             lines.append(
-                f"  Day {entry['day']}, Slot {entry['slot']}: "
+                f"  Day {entry['day']}, Slot {entry.get('slot', 'N/A')}: "
                 f"{entry['employee']} -> {entry.get('role', 'N/A')}"
             )
     

@@ -1,7 +1,9 @@
-src/__pychache__/
+src/__pycache__/
+src/__init__.py
 venv/
 .vscode/
 data/__pycache__/
-src/__pycache__/
+tests/__pycache__/
+api/__pycache__/
 .env
-__pycache__/
+load-env.ps1
