@@ -4183,9 +4183,9 @@ const renderInsights = () => {
     </div>
   </div>
 
-  {/* Toggle Switches */}
-  <div style={{ marginTop: 'var(--space-6)' }}>
-    <div className="toggle-item">
+  {/* Toggle Switches - with spacing */}
+  <div style={{ marginTop: 'var(--space-8)' }}>
+    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="toggle-content">
         <h4 className="toggle-title">Fixed Shifts</h4>
         <p className="toggle-description">
@@ -4205,16 +4205,22 @@ const renderInsights = () => {
     {shiftRulesForm.fixed_shifts && (
       <div style={{ 
         marginTop: 'var(--space-4)', 
-        padding: 'var(--space-4)', 
+        marginBottom: 'var(--space-6)',
+        padding: 'var(--space-5)', 
         background: 'var(--gray-50)', 
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--gray-200)'
       }}>
-        <h4 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-base)', fontWeight: 600 }}>
+        <h4 style={{ 
+          marginBottom: 'var(--space-4)', 
+          fontSize: 'var(--text-base)', 
+          fontWeight: 600,
+          color: 'var(--text-primary)'
+        }}>
           Fixed Shift Configuration
         </h4>
         
-        <div className="setting-item" style={{ marginBottom: 'var(--space-4)' }}>
+        <div className="setting-item" style={{ marginBottom: 'var(--space-5)' }}>
           <label className="setting-label">Number of Shifts per Day</label>
           <input 
             className="setting-input" 
@@ -4240,12 +4246,22 @@ const renderInsights = () => {
           />
         </div>
 
-        <h5 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
+        <h5 style={{ 
+          marginBottom: 'var(--space-3)', 
+          fontSize: 'var(--text-sm)', 
+          fontWeight: 600,
+          color: 'var(--text-primary)'
+        }}>
           Default Shift Times
         </h5>
         {shiftTimes.map((shift, index) => (
           <div key={index} style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', alignItems: 'center' }}>
-            <span style={{ minWidth: '80px', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
+            <span style={{ 
+              minWidth: '80px', 
+              fontSize: 'var(--text-sm)', 
+              fontWeight: 500,
+              color: 'var(--text-primary)'
+            }}>
               Shift {index + 1}:
             </span>
             <input
@@ -4274,19 +4290,28 @@ const renderInsights = () => {
           </div>
         ))}
 
-        <div style={{ marginTop: 'var(--space-4)' }}>
-          <h5 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-            Custom Day Shifts (Optional)
+        <div style={{ marginTop: 'var(--space-6)' }}>
+          <h5 style={{ 
+            marginBottom: 'var(--space-3)', 
+            fontSize: 'var(--text-sm)', 
+            fontWeight: 600,
+            color: 'var(--text-primary)'
+          }}>
+            Custom Day Shifts
           </h5>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-600)', marginBottom: 'var(--space-3)' }}>
-            Override default shifts for specific days of the week
-          </p>
           
           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-            <div key={day} style={{ marginBottom: 'var(--space-3)' }}>
-              <div className="toggle-item" style={{ padding: 'var(--space-2)', background: 'white', borderRadius: 'var(--radius-md)' }}>
+            <div key={day} style={{ marginBottom: 'var(--space-4)' }}>
+              <div className="toggle-item" style={{ 
+                padding: 'var(--space-3)', 
+                background: 'var(--bg-primary)', 
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--gray-300)'
+              }}>
                 <div className="toggle-content">
-                  <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)' }}>{day}</h4>
+                  <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+                    {day}
+                  </h4>
                   <p className="toggle-description" style={{ fontSize: 'var(--text-xs)' }}>
                     Use custom shifts for this day
                   </p>
@@ -4313,10 +4338,23 @@ const renderInsights = () => {
               </div>
               
               {customDayShifts[day] && (
-                <div style={{ marginTop: 'var(--space-2)', marginLeft: 'var(--space-4)', padding: 'var(--space-3)', background: 'white', borderRadius: 'var(--radius-md)', border: '1px solid var(--gray-200)' }}>
+                <div style={{ 
+                  marginTop: 'var(--space-3)', 
+                  marginLeft: 'var(--space-4)', 
+                  padding: 'var(--space-4)', 
+                  background: 'var(--bg-primary)', 
+                  borderRadius: 'var(--radius-md)', 
+                  border: '1px solid var(--gray-300)'
+                }}>
                   {customDayShifts[day].map((shift, idx) => (
                     <div key={idx} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'center' }}>
-                      <span style={{ minWidth: '60px', fontSize: 'var(--text-xs)' }}>Shift {idx + 1}:</span>
+                      <span style={{ 
+                        minWidth: '60px', 
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--text-primary)'
+                      }}>
+                        Shift {idx + 1}:
+                      </span>
                       <input
                         type="time"
                         className="setting-input"
@@ -4328,7 +4366,7 @@ const renderInsights = () => {
                           setCustomDayShifts(newCustom)
                         }}
                       />
-                      <span style={{ fontSize: 'var(--text-xs)' }}>to</span>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)' }}>to</span>
                       <input
                         type="time"
                         className="setting-input"
@@ -4350,7 +4388,7 @@ const renderInsights = () => {
       </div>
     )}
 
-    <div className="toggle-item">
+    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="toggle-content">
         <h4 className="toggle-title">Meet All Demand</h4>
         <p className="toggle-description">
@@ -4367,7 +4405,7 @@ const renderInsights = () => {
       </label>
     </div>
 
-    <div className="toggle-item">
+    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="toggle-content">
         <h4 className="toggle-title">Receiving Phone Orders</h4>
         <p className="toggle-description">
@@ -4384,7 +4422,7 @@ const renderInsights = () => {
       </label>
     </div>
 
-    <div className="toggle-item">
+    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="toggle-content">
         <h4 className="toggle-title">Delivery Service</h4>
         <p className="toggle-description">
@@ -4401,7 +4439,7 @@ const renderInsights = () => {
       </label>
     </div>
 
-    <div className="toggle-item">
+    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="toggle-content">
         <h4 className="toggle-title">Accepting Orders</h4>
         <p className="toggle-description">
@@ -4420,8 +4458,13 @@ const renderInsights = () => {
   </div>
 
   {/* Operating Hours */}
-  <div style={{ marginTop: 'var(--space-6)' }}>
-    <h4 style={{ marginBottom: 'var(--space-3)', fontSize: 'var(--text-lg)', fontWeight: 600 }}>
+  <div style={{ marginTop: 'var(--space-8)' }}>
+    <h4 style={{ 
+      marginBottom: 'var(--space-4)', 
+      fontSize: 'var(--text-lg)', 
+      fontWeight: 600,
+      color: 'var(--text-primary)'
+    }}>
       Operating Hours
     </h4>
     <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
@@ -4430,12 +4473,18 @@ const renderInsights = () => {
           display: 'flex', 
           gap: 'var(--space-3)', 
           alignItems: 'center',
-          padding: 'var(--space-3)',
+          padding: 'var(--space-4)',
           background: 'var(--gray-50)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--gray-200)'
         }}>
-          <span style={{ minWidth: '100px', fontWeight: 500 }}>{day.weekday}</span>
+          <span style={{ 
+            minWidth: '100px', 
+            fontWeight: 500,
+            color: 'var(--text-primary)'
+          }}>
+            {day.weekday}
+          </span>
           <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <input
               type="checkbox"
@@ -4450,7 +4499,7 @@ const renderInsights = () => {
                 setOperatingHours(newHours)
               }}
             />
-            <span style={{ fontSize: 'var(--text-sm)' }}>Closed</span>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>Closed</span>
           </label>
           {!day.closed && (
             <>
@@ -4484,7 +4533,7 @@ const renderInsights = () => {
     </div>
   </div>
 
-  <div className="settings-footer" style={{ marginTop: 'var(--space-6)' }}>
+  <div className="settings-footer" style={{ marginTop: 'var(--space-8)' }}>
     <button 
       className="btn-secondary"
       onClick={() => {
