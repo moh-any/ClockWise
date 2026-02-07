@@ -163,7 +163,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		Delivery:           organization_rules.Delivery,
 		OpeningHours:       operating_hours,
 		FixedShifts:        organization_rules.FixedShifts,
-		NumberShiftsPerDay: *organization_rules.NumberOfShiftsPerDay,
+		NumberShiftsPerDay: organization_rules.NumberOfShiftsPerDay,
 		ShiftTimes:         organization_rules.ShiftTimes,
 		Rating:             organization.Rating,
 		AcceptingOrders:    organization_rules.AcceptingOrders,

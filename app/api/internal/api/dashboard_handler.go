@@ -66,7 +66,7 @@ type Place struct {
 	Delivery           bool                      `json:"delivery"`
 	OpeningHours       []database.OperatingHours `json:"opening_hours"`
 	FixedShifts        bool                      `json:"fixed_shifts"`
-	NumberShiftsPerDay int                       `json:"number_of_shifts_per_day"`
+	NumberShiftsPerDay *int                      `json:"number_of_shifts_per_day,omitempty"`
 	ShiftTimes         []database.ShiftTime      `json:"shift_time"`
 	Rating             *float64                  `json:"rating,omitempty"`
 	AcceptingOrders    bool                      `json:"accepting_orders"`
@@ -152,11 +152,6 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
-	if organization_rules.NumberOfShiftsPerDay == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "number of shifts per day not configured"})
-		return
-	}
-
 	Place := Place{
 		ID:                 organization.ID,
 		Name:               organization.Name,
@@ -168,7 +163,7 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		Delivery:           organization_rules.Delivery,
 		OpeningHours:       operating_hours,
 		FixedShifts:        organization_rules.FixedShifts,
-		NumberShiftsPerDay: *organization_rules.NumberOfShiftsPerDay,
+		NumberShiftsPerDay: organization_rules.NumberOfShiftsPerDay,
 		ShiftTimes:         organization_rules.ShiftTimes,
 		Rating:             organization.Rating,
 		AcceptingOrders:    organization_rules.AcceptingOrders,
@@ -266,6 +261,7 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
+	
 	// Return the successfully decoded response
 	c.JSON(http.StatusOK, gin.H{"message": "demand prediction retrieved successfuly from API", "data": demandResponse})
 }

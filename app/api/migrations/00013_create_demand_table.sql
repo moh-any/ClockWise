@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS demand (
     hour INTEGER CHECK(hour >= 0 AND hour <= 23),
     order_count INTEGER CHECK(order_count >= 0),
     item_count INTEGER CHECK(item_count >= 0),
-    PRIMARY KEY (organization_id, demand_date, hour)
+    PRIMARY KEY (organization_id, demand_date, day, hour)
 );
 -- +goose StatementEnd
 
