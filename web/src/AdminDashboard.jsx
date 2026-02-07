@@ -5194,8 +5194,25 @@ const renderAdminProfile = () => {
               </div>
             )}
           </div>
-          {!sidebarCollapsed && <button className="logout-btn">Logout</button>}
-        </div>
+            {!sidebarCollapsed && (
+              <button 
+                className="logout-btn"
+                onClick={async () => {
+                  try {
+                    await api.auth.logout()
+                    // Redirect to login page
+                    window.location.href = "/"
+                  } catch (err) {
+                    console.error("Logout failed:", err)
+                    // Still redirect even if API call fails
+                    window.location.href = "/"
+                  }
+                }}
+              >
+                Logout
+              </button>
+            )}
+                    </div>
       </aside>
 
       {/* Main Content */}
