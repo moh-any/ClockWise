@@ -4,6 +4,12 @@
 
 The `scheduler_cpsat` module provides a reusable API for solving employee scheduling problems using Google OR-Tools CP-SAT solver. It includes comprehensive management insights to help with hiring decisions and workforce planning.
 
+**📚 Looking for REST API endpoints?** See:
+- **[Documentation.md](Documentation.md)** - Section 4: "Schedule Generation" (full REST API reference)
+- **[data.md](../data.md)** - Section 4: "Generate Schedule" (API examples with cURL)
+
+This guide covers the **Python API** for direct module usage.
+
 ## Main Function
 
 ### `solve_schedule(input_data, time_limit_seconds=60, include_insights=True)`
@@ -278,8 +284,64 @@ solution, description, insights = solve_schedule(data, include_insights=True)
 - `min_shift_length_slots`: Minimum consecutive slots per shift
 - `slot_len_hour`: Length of each time slot in hours
 
+## REST API Endpoints
+
+For HTTP API usage, the scheduler is exposed through FastAPI endpoints:
+
+### Available Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/predict/schedule` | POST | Generate schedule from demand predictions |
+| `/predict/demand-and-schedule` | POST | Combined demand prediction + scheduling |
+
+**Full API Documentation:**
+- **[Documentation.md](Documentation.md)** - Complete request/response schemas and examples
+- **[data.md](../data.md)** - cURL examples and integration guides
+
+### Quick REST API Example
+
+```bash
+# Generate schedule with demand predictions
+curl -X POST "http://localhost:8000/predict/schedule" \
+  -H "Content-Type: application/json" \
+  -d @schedule_request.json
+```
+
+**Request Structure:**
+```json
+{
+  "place": { /* venue details */ },
+  "schedule_input": {
+    "roles": [ /* role definitions */ ],
+    "employees": [ /* employee data */ ],
+    "production_chains": [ /* optional chains */ ],
+    "scheduler_config": { /* optimization settings */ }
+  },
+  "demand_predictions": [ /* hourly demand by day */ ],
+  "prediction_start_date": "2026-02-07"
+}
+```
+
+**Response:**
+```json
+{
+  "schedule_output": { /* shifts by day */ },
+  "schedule_status": "optimal",
+  "schedule_message": "Schedule generated successfully",
+  "objective_value": 12543.75,
+  "management_insights": { /* 7 insight categories */ }
+}
+```
+
+See [Documentation.md](Documentation.md) for complete schemas.
+
+---
+
 ## See Also
 
 - Full implementation: [scheduler_cpsat.py](../src/scheduler_cpsat.py)
 - Example usage: [example_usage.py](../src/example_usage.py)
-- Mathematical model: [scheduler_mathematical_model.md](src\scheduler_mathematical_model.md)
+- Mathematical model: [scheduler_mathematical_model.md](scheduler_mathematical_model.md)
+- **REST API Reference**: [Documentation.md](Documentation.md) Section 4
+- **API Integration Guide**: [data.md](../data.md) Section 4
