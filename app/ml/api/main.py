@@ -36,6 +36,15 @@ logger = logging.getLogger(__name__)
 # IMPORT EXTERNAL MODULES WITH FALLBACKS
 # ============================================================================
 
+# API Feature Engineering
+try:
+    from src.api_feature_engineering import apply_all_api_features
+    API_FEATURES_AVAILABLE = True
+    logger.info("API feature engineering module imported successfully")
+except ImportError as e:
+    API_FEATURES_AVAILABLE = False
+    logger.warning(f"API feature engineering not available: {e}")
+
 # Weather API
 try:
     from src.weather_api import get_weather_for_demand_data, WeatherAPI
@@ -817,17 +826,28 @@ def prepare_features_for_prediction(
     
     prediction_df = prediction_df.drop(['latitude', 'longitude'], axis=1, errors='ignore')
     
+    # Apply v6 model additional features (55 new features)
+    if API_FEATURES_AVAILABLE:
+        logger.info("Applying v6 model feature engineering...")
+        prediction_df = apply_all_api_features(
+            df=prediction_df,
+            historical_df=combined[combined['datetime'] < prediction_start_ts]
+        )
+        logger.info(f"✓ V6 features added")
+    else:
+        logger.warning("API feature engineering not available - predictions may be inaccurate")
+    
     # Ensure date column is preserved for response formatting
     if 'date' not in prediction_df.columns:
         prediction_df['date'] = prediction_df['datetime'].dt.date
     
     logger.info(f"✓ Feature preparation complete. Shape: {prediction_df.shape}")
-    logger.info(f"✓ Columns: {list(prediction_df.columns)}")
+    logger.info(f"✓ Columns: {list(prediction_df.columns)[:10]}... (showing first 10)")
     return prediction_df
 
 
 def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
-    """Ensure feature set matches model expectations"""
+    """Ensure feature set matches v6 model expectations (69 features)"""
     df = df.copy()
     
     if df['place_id'].dtype == 'object' or df['place_id'].dtype == 'string':
@@ -839,17 +859,53 @@ def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
     
     df['place_id'] = df['place_id'].astype('float64')
     
+    # V6 Model expects 69 features
     expected_features = [
+        # Basic features (13)
         'place_id', 'hour', 'day_of_week', 'month', 'week_of_year',
         'type_id', 'waiting_time', 'rating', 'delivery', 'accepting_orders',
-        'total_campaigns', 'avg_discount',
+        'total_campaigns', 'avg_discount', 'is_holiday',
+        
+        # Basic lag features (5)
         'prev_hour_items', 'prev_day_items', 'prev_week_items', 'prev_month_items',
         'rolling_7d_avg_items',
+        
+        # Basic weather features (16)
         'temperature_2m', 'relative_humidity_2m', 'precipitation', 'rain',
         'snowfall', 'weather_code', 'cloud_cover', 'wind_speed_10m',
         'is_rainy', 'is_snowy', 'is_cold', 'is_hot', 'is_cloudy', 'is_windy',
         'good_weather', 'weather_severity',
-        'is_holiday'
+        
+        # Cyclical time features (6)
+        'hour_sin', 'hour_cos', 'day_of_week_sin', 'day_of_week_cos',
+        'month_sin', 'month_cos',
+        
+        # Time context indicators (21)
+        'is_breakfast_rush', 'is_lunch_rush', 'is_peak_lunch', 'is_dinner_rush',
+        'is_peak_dinner', 'is_late_night', 'is_midnight_zone', 'is_early_morning',
+        'is_afternoon', 'is_evening', 'is_weekend', 'is_friday', 'is_saturday',
+        'is_sunday', 'friday_evening', 'saturday_evening', 'weekend_lunch',
+        'weekend_dinner', 'weekday_lunch', 'weekday_dinner', 'is_month_start',
+        'is_month_end',
+        
+        # Additional lag features (7)
+        'rolling_3d_avg_items', 'rolling_14d_avg_items', 'rolling_30d_avg_items',
+        'rolling_7d_std_items', 'demand_trend_7d',
+        'lag_same_hour_last_week', 'lag_same_hour_2_weeks',
+        
+        # Venue-specific features (7)
+        'venue_hour_avg', 'venue_dow_avg', 'venue_volatility',
+        'venue_total_items', 'venue_growth_recent_vs_historical',
+        'venue_peak_hour', 'is_venue_peak_hour',
+        
+        # Weekend-specific features (6)
+        'venue_weekend_avg', 'venue_weekday_avg', 'venue_weekend_lift',
+        'last_weekend_same_hour', 'venue_weekend_volatility', 'weekend_day_position',
+        
+        # Weather interaction features (8)
+        'feels_like_temp', 'bad_weather_score', 'temp_change_1h', 'temp_change_3h',
+        'weather_getting_worse', 'weekend_good_weather', 'rush_bad_weather',
+        'cold_evening'
     ]
     
     for col in expected_features:

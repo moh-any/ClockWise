@@ -265,33 +265,55 @@ Once running, access:
     "receiving_phone": true,
     "delivery": true,
     "opening_hours": {
-      "monday": {"from": "10:00", "to": "23:00"},
-      "tuesday": {"from": "10:00", "to": "23:00"},
-      "wednesday": {"from": "10:00", "to": "23:00"},
-      "thursday": {"from": "10:00", "to": "23:00"},
-      "friday": {"from": "10:00", "to": "23:00"},
-      "saturday": {"from": "10:00", "to": "23:00"},
-      "sunday": {"closed": true}
+      "monday": {"weekday": "monday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "tuesday": {"weekday": "tuesday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "wednesday": {"weekday": "wednesday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "thursday": {"weekday": "thursday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "friday": {"weekday": "friday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "saturday": {"weekday": "saturday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+      "sunday": {"weekday": "sunday", "closed": true}
     },
     "fixed_shifts": true,
     "number_of_shifts_per_day": 3,
-    "shift_times": ["06:00-14:00", "14:00-22:00", "22:00-06:00"],
+    "shift_times": [
+      {"from": "06:00", "to": "14:00"},
+      {"from": "14:00", "to": "22:00"},
+      {"from": "22:00", "to": "06:00"}
+    ],
     "rating": 4.5,
     "accepting_orders": true
   },
   "orders": [
     {
-      "time": "2024-01-01T12:30:00",
+      "order_id": "ord_001",
+      "user_id": "user_123",
+      "time": "2024-01-01T12:30:00Z",
+      "order_type": "dine-in",
       "items": 3,
       "status": "completed",
       "total_amount": 45.5,
-      "discount_amount": 5.0
+      "discount_amount": 5.0,
+      "rating": 4.5
+    },
+    {
+      "order_id": "ord_002",
+      "user_id": "user_456",
+      "time": "2024-01-01T13:15:00Z",
+      "order_type": "delivery",
+      "items": 5,
+      "status": "completed",
+      "total_amount": 67.80,
+      "discount_amount": 0.0,
+      "rating": 5.0
     }
   ],
   "campaigns": [
     {
-      "start_time": "2024-01-01T00:00:00",
-      "end_time": "2024-01-07T23:59:59",
+      "id": "camp_001",
+      "name": "Lunch Special",
+      "status": "active",
+      "start_time": "2024-01-01T00:00:00Z",
+      "end_time": "2024-01-07T23:59:59Z",
       "items_included": ["pizza_margherita", "pizza_pepperoni"],
       "discount": 15.0
     }
@@ -313,20 +335,62 @@ Once running, access:
         "day_name": "monday",
         "date": "2024-01-15",
         "hours": [
-          {
-            "hour": 0,
-            "order_count": 2,
-            "item_count": 5
-          },
-          {
-            "hour": 1,
-            "order_count": 1,
-            "item_count": 3
-          },
-          ...
+          {"hour": 0, "order_count": 2, "item_count": 5},
+          {"hour": 1, "order_count": 1, "item_count": 3},
+          {"hour": 2, "order_count": 0, "item_count": 0},
+          {"hour": 3, "order_count": 1, "item_count": 2},
+          {"hour": 4, "order_count": 1, "item_count": 2},
+          {"hour": 5, "order_count": 2, "item_count": 4},
+          {"hour": 6, "order_count": 3, "item_count": 8},
+          {"hour": 7, "order_count": 5, "item_count": 12},
+          {"hour": 8, "order_count": 7, "item_count": 15},
+          {"hour": 9, "order_count": 8, "item_count": 18},
+          {"hour": 10, "order_count": 12, "item_count": 28},
+          {"hour": 11, "order_count": 18, "item_count": 42},
+          {"hour": 12, "order_count": 25, "item_count": 58},
+          {"hour": 13, "order_count": 22, "item_count": 51},
+          {"hour": 14, "order_count": 15, "item_count": 35},
+          {"hour": 15, "order_count": 10, "item_count": 23},
+          {"hour": 16, "order_count": 12, "item_count": 28},
+          {"hour": 17, "order_count": 20, "item_count": 46},
+          {"hour": 18, "order_count": 28, "item_count": 65},
+          {"hour": 19, "order_count": 32, "item_count": 74},
+          {"hour": 20, "order_count": 26, "item_count": 60},
+          {"hour": 21, "order_count": 18, "item_count": 42},
+          {"hour": 22, "order_count": 12, "item_count": 28},
+          {"hour": 23, "order_count": 8, "item_count": 18}
         ]
       },
-      ...
+      {
+        "day_name": "tuesday",
+        "date": "2024-01-16",
+        "hours": [
+          {"hour": 0, "order_count": 2, "item_count": 5},
+          {"hour": 1, "order_count": 1, "item_count": 3},
+          {"hour": 2, "order_count": 0, "item_count": 0},
+          {"hour": 3, "order_count": 1, "item_count": 2},
+          {"hour": 4, "order_count": 1, "item_count": 2},
+          {"hour": 5, "order_count": 2, "item_count": 4},
+          {"hour": 6, "order_count": 3, "item_count": 8},
+          {"hour": 7, "order_count": 5, "item_count": 12},
+          {"hour": 8, "order_count": 7, "item_count": 15},
+          {"hour": 9, "order_count": 8, "item_count": 18},
+          {"hour": 10, "order_count": 12, "item_count": 28},
+          {"hour": 11, "order_count": 18, "item_count": 42},
+          {"hour": 12, "order_count": 25, "item_count": 58},
+          {"hour": 13, "order_count": 22, "item_count": 51},
+          {"hour": 14, "order_count": 15, "item_count": 35},
+          {"hour": 15, "order_count": 10, "item_count": 23},
+          {"hour": 16, "order_count": 12, "item_count": 28},
+          {"hour": 17, "order_count": 20, "item_count": 46},
+          {"hour": 18, "order_count": 28, "item_count": 65},
+          {"hour": 19, "order_count": 32, "item_count": 74},
+          {"hour": 20, "order_count": 26, "item_count": 60},
+          {"hour": 21, "order_count": 18, "item_count": 42},
+          {"hour": 22, "order_count": 12, "item_count": 28},
+          {"hour": 23, "order_count": 8, "item_count": 18}
+        ]
+      }
     ]
   }
 }
@@ -387,28 +451,79 @@ Once running, access:
       {
         "employee_id": "emp_001",
         "role_ids": ["chef", "server"],
-        "available_days": ["monday", "tuesday", "wednesday"],
-        "preferred_days": ["monday", "wednesday"],
+        "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        "preferred_days": ["monday", "wednesday", "friday"],
         "available_hours": {
           "monday": {"from": "10:00", "to": "22:00"},
           "tuesday": {"from": "10:00", "to": "22:00"},
-          "wednesday": {"from": "10:00", "to": "22:00"}
+          "wednesday": {"from": "10:00", "to": "22:00"},
+          "thursday": {"from": "10:00", "to": "22:00"},
+          "friday": {"from": "10:00", "to": "22:00"}
         },
         "preferred_hours": {
           "monday": {"from": "14:00", "to": "22:00"},
-          "wednesday": {"from": "14:00", "to": "22:00"}
+          "wednesday": {"from": "14:00", "to": "22:00"},
+          "friday": {"from": "14:00", "to": "22:00"}
         },
         "hourly_wage": 25.5,
         "max_hours_per_week": 40.0,
         "max_consec_slots": 8,
         "pref_hours": 32.0
+      },
+      {
+        "employee_id": "emp_002",
+        "role_ids": ["chef"],
+        "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+        "preferred_days": ["saturday", "sunday"],
+        "available_hours": {
+          "monday": {"from": "06:00", "to": "23:00"},
+          "tuesday": {"from": "06:00", "to": "23:00"},
+          "wednesday": {"from": "06:00", "to": "23:00"},
+          "thursday": {"from": "06:00", "to": "23:00"},
+          "friday": {"from": "06:00", "to": "23:00"},
+          "saturday": {"from": "06:00", "to": "23:00"},
+          "sunday": {"from": "06:00", "to": "23:00"}
+        },
+        "preferred_hours": {
+          "saturday": {"from": "10:00", "to": "18:00"},
+          "sunday": {"from": "10:00", "to": "18:00"}
+        },
+        "hourly_wage": 28.0,
+        "max_hours_per_week": 40.0,
+        "max_consec_slots": 8,
+        "pref_hours": 35.0
+      },
+      {
+        "employee_id": "emp_003",
+        "role_ids": ["server"],
+        "available_days": ["thursday", "friday", "saturday", "sunday"],
+        "preferred_days": ["friday", "saturday"],
+        "available_hours": {
+          "thursday": {"from": "12:00", "to": "23:00"},
+          "friday": {"from": "12:00", "to": "23:00"},
+          "saturday": {"from": "12:00", "to": "23:00"},
+          "sunday": {"from": "12:00", "to": "23:00"}
+        },
+        "preferred_hours": {
+          "friday": {"from": "18:00", "to": "23:00"},
+          "saturday": {"from": "18:00", "to": "23:00"}
+        },
+        "hourly_wage": 22.0,
+        "max_hours_per_week": 30.0,
+        "max_consec_slots": 6,
+        "pref_hours": 25.0
       }
     ],
     "production_chains": [
       {
         "chain_id": "kitchen_chain",
-        "role_ids": ["prep", "chef", "server"],
+        "role_ids": ["prep_cook", "chef", "expediter"],
         "contrib_factor": 1.0
+      },
+      {
+        "chain_id": "front_chain",
+        "role_ids": ["host", "server", "bartender"],
+        "contrib_factor": 0.8
       }
     ],
     "scheduler_config": {
@@ -425,7 +540,58 @@ Once running, access:
       "hours": [
         {"hour": 0, "order_count": 2, "item_count": 5},
         {"hour": 1, "order_count": 1, "item_count": 3},
-        ...
+        {"hour": 2, "order_count": 0, "item_count": 0},
+        {"hour": 3, "order_count": 1, "item_count": 2},
+        {"hour": 4, "order_count": 1, "item_count": 2},
+        {"hour": 5, "order_count": 2, "item_count": 4},
+        {"hour": 6, "order_count": 3, "item_count": 8},
+        {"hour": 7, "order_count": 5, "item_count": 12},
+        {"hour": 8, "order_count": 7, "item_count": 15},
+        {"hour": 9, "order_count": 8, "item_count": 18},
+        {"hour": 10, "order_count": 12, "item_count": 28},
+        {"hour": 11, "order_count": 18, "item_count": 42},
+        {"hour": 12, "order_count": 25, "item_count": 58},
+        {"hour": 13, "order_count": 22, "item_count": 51},
+        {"hour": 14, "order_count": 15, "item_count": 35},
+        {"hour": 15, "order_count": 10, "item_count": 23},
+        {"hour": 16, "order_count": 12, "item_count": 28},
+        {"hour": 17, "order_count": 20, "item_count": 46},
+        {"hour": 18, "order_count": 28, "item_count": 65},
+        {"hour": 19, "order_count": 32, "item_count": 74},
+        {"hour": 20, "order_count": 26, "item_count": 60},
+        {"hour": 21, "order_count": 18, "item_count": 42},
+        {"hour": 22, "order_count": 12, "item_count": 28},
+        {"hour": 23, "order_count": 8, "item_count": 18}
+      ]
+    },
+    {
+      "day_name": "tuesday",
+      "date": "2024-01-16",
+      "hours": [
+        {"hour": 0, "order_count": 2, "item_count": 5},
+        {"hour": 1, "order_count": 1, "item_count": 3},
+        {"hour": 2, "order_count": 0, "item_count": 0},
+        {"hour": 3, "order_count": 1, "item_count": 2},
+        {"hour": 4, "order_count": 1, "item_count": 2},
+        {"hour": 5, "order_count": 2, "item_count": 4},
+        {"hour": 6, "order_count": 3, "item_count": 8},
+        {"hour": 7, "order_count": 5, "item_count": 12},
+        {"hour": 8, "order_count": 7, "item_count": 15},
+        {"hour": 9, "order_count": 8, "item_count": 18},
+        {"hour": 10, "order_count": 12, "item_count": 28},
+        {"hour": 11, "order_count": 18, "item_count": 42},
+        {"hour": 12, "order_count": 25, "item_count": 58},
+        {"hour": 13, "order_count": 22, "item_count": 51},
+        {"hour": 14, "order_count": 15, "item_count": 35},
+        {"hour": 15, "order_count": 10, "item_count": 23},
+        {"hour": 16, "order_count": 12, "item_count": 28},
+        {"hour": 17, "order_count": 20, "item_count": 46},
+        {"hour": 18, "order_count": 28, "item_count": 65},
+        {"hour": 19, "order_count": 32, "item_count": 74},
+        {"hour": 20, "order_count": 26, "item_count": 60},
+        {"hour": 21, "order_count": 18, "item_count": 42},
+        {"hour": 22, "order_count": 12, "item_count": 28},
+        {"hour": 23, "order_count": 8, "item_count": 18}
       ]
     }
   ],
@@ -440,18 +606,113 @@ Once running, access:
   "schedule_output": {
     "monday": [
       {
-        "06:00-14:00": ["emp_001", "emp_003"]
-      },
-      {
-        "14:00-22:00": ["emp_001", "emp_002"]
+        "06:00-14:00": ["emp_001", "emp_003"],
+        "14:00-22:00": ["emp_001", "emp_002"],
+        "22:00-06:00": ["emp_002"]
       }
     ],
-    "tuesday": [ ... ],
-    ...
+    "tuesday": [
+      {
+        "06:00-14:00": ["emp_002", "emp_003"],
+        "14:00-22:00": ["emp_001", "emp_002"],
+        "22:00-06:00": []
+      }
+    ],
+    "wednesday": [
+      {
+        "06:00-14:00": ["emp_001"],
+        "14:00-22:00": ["emp_001", "emp_003"],
+        "22:00-06:00": []
+      }
+    ],
+    "thursday": [
+      {
+        "06:00-14:00": ["emp_002"],
+        "14:00-22:00": ["emp_002", "emp_003"],
+        "22:00-06:00": []
+      }
+    ],
+    "friday": [
+      {
+        "06:00-14:00": ["emp_001", "emp_002"],
+        "14:00-22:00": ["emp_001", "emp_002", "emp_003"],
+        "22:00-06:00": ["emp_002"]
+      }
+    ],
+    "saturday": [
+      {
+        "06:00-14:00": ["emp_002", "emp_003"],
+        "14:00-22:00": ["emp_002", "emp_003"],
+        "22:00-06:00": ["emp_002"]
+      }
+    ],
+    "sunday": [
+      {
+        "06:00-14:00": ["emp_002"],
+        "14:00-22:00": ["emp_002", "emp_003"],
+        "22:00-06:00": []
+      }
+    ]
   },
   "schedule_status": "optimal",
   "schedule_message": "Schedule generated successfully",
-  "objective_value": 12543.75
+  "objective_value": 12543.75,
+  "management_insights": {
+    "employee_utilization": {
+      "emp_001": {"total_hours": 32.0, "utilization": 80.0, "preferred_hours_met": 28.0},
+      "emp_002": {"total_hours": 38.0, "utilization": 95.0, "preferred_hours_met": 35.0},
+      "emp_003": {"total_hours": 24.0, "utilization": 80.0, "preferred_hours_met": 20.0}
+    },
+    "role_demand": {
+      "chef": {"required_hours": 168, "available_hours": 140, "deficit": 28},
+      "server": {"required_hours": 112, "available_hours": 120, "deficit": 0}
+    },
+    "hiring_recommendations": [
+      {
+        "role": "chef",
+        "reason": "Insufficient coverage during peak hours (12:00-14:00 weekdays)",
+        "priority": "high",
+        "suggested_availability": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+        "suggested_hours": {"from": "10:00", "to": "16:00"}
+      }
+    ],
+    "coverage_gaps": [
+      {
+        "day": "monday",
+        "time_slot": "12:00-13:00",
+        "role": "chef",
+        "demand": 58,
+        "coverage": 30,
+        "gap": 28
+      },
+      {
+        "day": "friday",
+        "time_slot": "19:00-20:00",
+        "role": "chef",
+        "demand": 74,
+        "coverage": 45,
+        "gap": 29
+      }
+    ],
+    "cost_analysis": {
+      "total_labor_cost": 2450.0,
+      "cost_per_item": 1.85,
+      "overtime_cost": 0.0,
+      "average_hourly_rate": 25.16
+    },
+    "workload_distribution": {
+      "peak_hours": ["12:00-13:00", "18:00-20:00"],
+      "understaffed_periods": 12,
+      "adequately_staffed_periods": 156,
+      "overstaffed_periods": 0
+    },
+    "feasibility_analysis": {
+      "demand_coverage": 85.7,
+      "preference_satisfaction": 82.5,
+      "constraint_violations": 0,
+      "schedule_quality": "good"
+    }
+  }
 }
 ```
 
@@ -479,10 +740,106 @@ Once running, access:
 ```json
 {
   "demand_input": { 
-    /* Same as /predict/demand request */
+    "place": {
+      "place_id": "pl_12345",
+      "place_name": "Pizza Paradise",
+      "type": "restaurant",
+      "latitude": 55.6761,
+      "longitude": 12.5683,
+      "waiting_time": 30,
+      "receiving_phone": true,
+      "delivery": true,
+      "opening_hours": {
+        "monday": {"weekday": "monday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "tuesday": {"weekday": "tuesday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "wednesday": {"weekday": "wednesday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "thursday": {"weekday": "thursday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "friday": {"weekday": "friday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "saturday": {"weekday": "saturday", "opening_time": "10:00", "closing_time": "23:00", "closed": false},
+        "sunday": {"weekday": "sunday", "closed": true}
+      },
+      "fixed_shifts": true,
+      "number_of_shifts_per_day": 3,
+      "shift_times": [
+        {"from": "06:00", "to": "14:00"},
+        {"from": "14:00", "to": "22:00"},
+        {"from": "22:00", "to": "06:00"}
+      ],
+      "rating": 4.5,
+      "accepting_orders": true
+    },
+    "orders": [
+      {
+        "order_id": "ord_001",
+        "user_id": "user_123",
+        "time": "2024-01-01T12:30:00Z",
+        "order_type": "dine-in",
+        "items": 3,
+        "status": "completed",
+        "total_amount": 45.5,
+        "discount_amount": 5.0,
+        "rating": 4.5
+      }
+    ],
+    "campaigns": [
+      {
+        "id": "camp_001",
+        "name": "Lunch Special",
+        "status": "active",
+        "start_time": "2024-01-01T00:00:00Z",
+        "end_time": "2024-01-07T23:59:59Z",
+        "items_included": ["pizza_margherita", "pizza_pepperoni"],
+        "discount": 15.0
+      }
+    ],
+    "prediction_start_date": "2024-01-15",
+    "prediction_days": 7
   },
   "schedule_input": {
-    /* Same as /predict/schedule schedule_input */
+    "roles": [
+      {
+        "role_id": "chef",
+        "role_name": "Chef",
+        "producing": true,
+        "items_per_employee_per_hour": 15.0,
+        "min_present": 2,
+        "is_independent": false
+      }
+    ],
+    "employees": [
+      {
+        "employee_id": "emp_001",
+        "role_ids": ["chef"],
+        "available_days": ["monday", "tuesday", "wednesday"],
+        "preferred_days": ["monday", "wednesday"],
+        "available_hours": {
+          "monday": {"from": "10:00", "to": "22:00"},
+          "tuesday": {"from": "10:00", "to": "22:00"},
+          "wednesday": {"from": "10:00", "to": "22:00"}
+        },
+        "preferred_hours": {
+          "monday": {"from": "14:00", "to": "22:00"},
+          "wednesday": {"from": "14:00", "to": "22:00"}
+        },
+        "hourly_wage": 25.5,
+        "max_hours_per_week": 40.0,
+        "max_consec_slots": 8,
+        "pref_hours": 32.0
+      }
+    ],
+    "production_chains": [
+      {
+        "chain_id": "kitchen_chain",
+        "role_ids": ["prep_cook", "chef", "expediter"],
+        "contrib_factor": 1.0
+      }
+    ],
+    "scheduler_config": {
+      "slot_len_hour": 1.0,
+      "min_rest_slots": 2,
+      "min_shift_length_slots": 2,
+      "meet_all_demand": false
+    }
   }
 }
 ```
@@ -491,8 +848,61 @@ Once running, access:
 
 ```json
 {
-  "demand_output": { /* Demand predictions */ },
-  "schedule_output": { /* Staff schedule */ }
+  "demand_output": {
+    "restaurant_name": "Pizza Paradise",
+    "prediction_period": "2024-01-15 to 2024-01-21",
+    "days": [
+      {
+        "day_name": "monday",
+        "date": "2024-01-15",
+        "hours": [
+          {"hour": 0, "order_count": 2, "item_count": 5},
+          {"hour": 1, "order_count": 1, "item_count": 3},
+          {"hour": 2, "order_count": 0, "item_count": 0},
+          {"hour": 3, "order_count": 1, "item_count": 2},
+          {"hour": 4, "order_count": 1, "item_count": 2},
+          {"hour": 5, "order_count": 2, "item_count": 4},
+          {"hour": 6, "order_count": 3, "item_count": 8},
+          {"hour": 7, "order_count": 5, "item_count": 12},
+          {"hour": 8, "order_count": 7, "item_count": 15},
+          {"hour": 9, "order_count": 8, "item_count": 18},
+          {"hour": 10, "order_count": 12, "item_count": 28},
+          {"hour": 11, "order_count": 18, "item_count": 42},
+          {"hour": 12, "order_count": 25, "item_count": 58},
+          {"hour": 13, "order_count": 22, "item_count": 51},
+          {"hour": 14, "order_count": 15, "item_count": 35},
+          {"hour": 15, "order_count": 10, "item_count": 23},
+          {"hour": 16, "order_count": 12, "item_count": 28},
+          {"hour": 17, "order_count": 20, "item_count": 46},
+          {"hour": 18, "order_count": 28, "item_count": 65},
+          {"hour": 19, "order_count": 32, "item_count": 74},
+          {"hour": 20, "order_count": 26, "item_count": 60},
+          {"hour": 21, "order_count": 18, "item_count": 42},
+          {"hour": 22, "order_count": 12, "item_count": 28},
+          {"hour": 23, "order_count": 8, "item_count": 18}
+        ]
+      }
+    ]
+  },
+  "schedule_output": {
+    "monday": [
+      {
+        "06:00-14:00": ["emp_001"],
+        "14:00-22:00": ["emp_001"],
+        "22:00-06:00": []
+      }
+    ],
+    "tuesday": [
+      {
+        "06:00-14:00": ["emp_001"],
+        "14:00-22:00": ["emp_001"],
+        "22:00-06:00": []
+      }
+    ]
+  },
+  "schedule_status": "optimal",
+  "schedule_message": "Schedule generated successfully",
+  "objective_value": 8240.0
 }
 ```
 
