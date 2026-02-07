@@ -162,7 +162,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		Logger,
 	)
 	scheduleHandler := api.NewScheduleHandler(Logger)
-	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, Logger)
+	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, orderStore, orgStore, operatingHoursStore, rulesStore, Logger)
 	alertHandler := api.NewAlertHandler(alertStore, Logger)
 
 	NewServer := &Server{
