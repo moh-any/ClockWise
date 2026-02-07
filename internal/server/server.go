@@ -41,7 +41,7 @@ type Server struct {
 	rolesStore       database.RolesStore
 	orderStore       database.OrderStore
 	campaignStore    database.CampaignStore
-	demandStore      database.DemandStore
+	// demandStore      database.DemandStore
 
 	Logger *slog.Logger
 }
@@ -71,7 +71,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	insightStore := &database.PostgresInsightStore{DB: dbService.GetDB(), Logger: Logger}
 	orderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
 	campaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
-	demandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
+	// demandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
@@ -102,7 +102,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rulesStore:       rulesStore,
 		rolesStore:       rolesStore,
 		campaignStore:    campaignStore,
-		demandStore:      demandStore,
+		// demandStore:      demandStore,
 
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
