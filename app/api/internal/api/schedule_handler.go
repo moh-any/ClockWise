@@ -10,7 +10,13 @@ type ScheduleHandler struct {
 	Logger *slog.Logger
 }
 
-type ScheduleRefreshRequest struct {
+type SchedulePredictRequest struct {
+	Place Place `json:"place"`
+	ScheduleInput 
+}
+
+type ScheduleInput struct {
+	
 }
 
 func NewScheduleHandler(logger *slog.Logger) *ScheduleHandler {

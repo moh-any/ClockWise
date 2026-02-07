@@ -29,8 +29,18 @@ services:
     env_file: 
       - .env
     restart: always
+    depends_on:
+      - cw-app
   #Add FrontendService
+  cw-web: 
+    container_name: "ClockwiseFrontend"
+    build: ./web
+    env_file:
+      - .env
+    ports: 
+      - "${WEB_PORT}:3000"
+    depends_on:
+      - cw-app
   #Add Redis Service
-  #Add Nginx Service 
 volumes:
   postgres-data:
