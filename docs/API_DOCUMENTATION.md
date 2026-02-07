@@ -35,6 +35,7 @@ Authorization: Bearer <access_token>
 11. [Deliveries](#deliveries-endpoints)
 12. [Items](#items-endpoints)
 13. [Campaigns](#campaigns-endpoints)
+14. [Alerts](#alerts-endpoints)
 
 ---
 
@@ -79,6 +80,8 @@ Content-Type: application/json
 {
   "org_name": "string (required)",
   "org_address": "string (optional)",
+  "org_type": "string (required - restaurant|cafe|bar|lounge|pub)",
+  "org_phone": "string (required)",
   "latitude": "number (optional)",
   "longitude": "number (optional)",
   "admin_full_name": "string (required)",
@@ -95,6 +98,8 @@ Content-Type: application/json
 {
   "org_name": "TestOrg",
   "org_address": "123 Main St",
+  "org_type": "restaurant",
+  "org_phone": "+1234567890",
   "admin_full_name": "Admin User",
   "admin_email": "admin@testorg.com",
   "admin_password": "password123",
@@ -625,6 +630,10 @@ Authorization: Bearer <access_token>
     "min_rest_slots": 2,
     "slot_len_hour": 0.5,
     "min_shift_length_slots": 4,
+    "receiving_phone": true,
+    "delivery": true,
+    "waiting_time": 15,
+    "accepting_orders": true,
     "operating_hours": [
       {
         "organization_id": "uuid",
@@ -679,6 +688,10 @@ Content-Type: application/json
   "min_rest_slots": "integer (required)",
   "slot_len_hour": "decimal (required)",
   "min_shift_length_slots": "integer (required)",
+  "receiving_phone": "boolean (optional, defaults to true)",
+  "delivery": "boolean (optional, defaults to true)",
+  "waiting_time": "integer (required - minutes)",
+  "accepting_orders": "boolean (optional, defaults to true)",
   "operating_hours": [
     {
       "weekday": "string (required - Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)",
@@ -701,6 +714,10 @@ Content-Type: application/json
   "min_rest_slots": 2,
   "slot_len_hour": 0.5,
   "min_shift_length_slots": 4,
+  "receiving_phone": true,
+  "delivery": true,
+  "waiting_time": 15,
+  "accepting_orders": true,
   "operating_hours": [
     {
       "weekday": "Monday",
@@ -732,6 +749,10 @@ Content-Type: application/json
     "min_rest_slots": 2,
     "slot_len_hour": 0.5,
     "min_shift_length_slots": 4,
+    "receiving_phone": true,
+    "delivery": true,
+    "waiting_time": 15,
+    "accepting_orders": true,
     "operating_hours": [...]
   }
 }
@@ -2518,6 +2539,154 @@ Authorization: Bearer <access_token>
 - **401 Unauthorized**: Missing or invalid authentication token
 - **403 Forbidden**: User is not an admin or manager
 - **500 Internal Server Error**: Server error retrieving campaigns
+
+---
+
+## Alerts Endpoints
+
+### GET /api/:org/dashboard/surge
+
+Get alert insights for the organization (analytics).
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/dashboard/surge
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Alert insights retrieved successfully",
+  "data": [
+    {
+      "title": "Total Alerts",
+      "statistic": "45"
+    },
+    {
+      "title": "Critical Alerts",
+      "statistic": "5"
+    },
+    {
+      "title": "High Severity Alerts",
+      "statistic": "12"
+    },
+    {
+      "title": "Most Common Severity",
+      "statistic": "high"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin or manager)
+- `500 Internal Server Error` - Failed to retrieve insights
+
+---
+
+### GET /api/:org/dashboard/surge/all
+
+Get all alerts for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/dashboard/surge/all
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Alerts retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
+      "severity": "critical",
+      "subject": "High Order Volume Alert",
+      "message": "Order volume has exceeded normal threshold by 40%"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
+      "severity": "high",
+      "subject": "Staff Shortage Warning",
+      "message": "Current staffing level is 30% below recommended minimum"
+    }
+  ]
+}
+```
+
+**Severity Levels:**
+- `critical` - Urgent action required
+- `high` - Immediate attention needed
+- `moderate` - Monitor the situation
+
+**Response Order:** Alerts are ordered by ID (newest first)
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin or manager)
+- `500 Internal Server Error` - Failed to retrieve alerts
+
+---
+
+### GET /api/:org/dashboard/surge/week
+
+Get all alerts from the last 7 days for the organization.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/{org_id}/dashboard/surge/week
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Response (200 OK):**
+```json
+{
+  "message": "Alerts for last week retrieved successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
+      "severity": "high",
+      "subject": "Peak Hour Alert",
+      "message": "System detected peak traffic during 7-9 PM window"
+    }
+  ]
+}
+```
+
+**Filter Criteria:**
+- Returns alerts generated within the last 7 days
+- Ordered by ID (newest first)
+- Only alerts belonging to the specified organization
+
+**Notes:**
+- "Last week" means the last 7 days from the current timestamp
+- Returns empty array if no alerts were generated in the last 7 days
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid token
+- `403 Forbidden` - Access denied (not admin or manager)
+- `500 Internal Server Error` - Failed to retrieve alerts
 
 ---
 
