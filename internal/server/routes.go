@@ -120,7 +120,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
-	// TODO: Dashboard which includes schedule, demands, insights, general info
+	// TODO: Dashboard which includes, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("", s.dashboardHandler.GetDashboardHandler) // Change according to the current user
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
@@ -141,10 +141,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// TODO: Campaigns Management & Insights
 	campaigns := organization.Group("/campaigns")
-	campaigns.GET("")         // Campaign insights
-	campaigns.POST("/upload") // Upload Campaigns CSV
-	campaigns.GET("/all")     // Get All Campaigns
-	campaigns.GET("/week")    // Get All Campaigns for last week
+	campaigns.GET("",s.campaignHandler.GetCampaignsInsightsHandler)         // Campaign insights
+	campaigns.POST("/upload",s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
+	campaigns.POST("/upload/items",s.campaignHandler.UploadCampaignsItemsCSVHandlers)
+	campaigns.GET("/all",s.campaignHandler.GetAllCampaignsHandler)     // Get All Campaigns
+	campaigns.GET("/week",s.campaignHandler.GetAllCampaignsForLastWeekHandler)    // Get All Campaigns for last week
+
+	// TODO Add connection to campaign model routes
 
 	// TODO: Offers management to those on call and in the shift in the current shift
 	offers := organization.Group("/offers")
