@@ -2280,3 +2280,311 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ============================================
+   TABLE STYLES
+   ============================================ */
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--mgr-radius-lg);
+  border: 1px solid var(--mgr-gray-200);
+  background: var(--mgr-bg-primary);
+  box-shadow: var(--mgr-shadow-sm);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--mgr-text-sm);
+}
+
+.data-table thead {
+  background: var(--mgr-gray-50);
+  border-bottom: 2px solid var(--mgr-gray-200);
+}
+
+.data-table thead tr th {
+  padding: var(--mgr-space-4) var(--mgr-space-3);
+  text-align: left;
+  font-weight: 600;
+  font-size: var(--mgr-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mgr-gray-600);
+  white-space: nowrap;
+  border-bottom: 2px solid var(--mgr-gray-200);
+}
+
+.data-table thead tr th:first-child {
+  padding-left: var(--mgr-space-6);
+  border-top-left-radius: var(--mgr-radius-lg);
+}
+
+.data-table thead tr th:last-child {
+  padding-right: var(--mgr-space-6);
+  border-top-right-radius: var(--mgr-radius-lg);
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--mgr-gray-200);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.data-table tbody tr:hover {
+  background: var(--mgr-gray-50);
+  transform: scale(1.001);
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table tbody tr:last-child td:first-child {
+  border-bottom-left-radius: var(--mgr-radius-lg);
+}
+
+.data-table tbody tr:last-child td:last-child {
+  border-bottom-right-radius: var(--mgr-radius-lg);
+}
+
+.data-table tbody tr td {
+  padding: var(--mgr-space-4) var(--mgr-space-3);
+  color: var(--mgr-text-primary);
+  font-size: var(--mgr-text-sm);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--mgr-gray-200);
+}
+
+.data-table tbody tr td:first-child {
+  padding-left: var(--mgr-space-6);
+  font-weight: 600;
+  color: var(--mgr-text-primary);
+}
+
+.data-table tbody tr td:last-child {
+  padding-right: var(--mgr-space-6);
+}
+
+/* Badge Styling in Tables */
+.data-table .badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--mgr-radius-full);
+  font-size: var(--mgr-text-xs);
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.data-table .badge-primary {
+  background: var(--mgr-primary-100);
+  color: var(--mgr-color-primary);
+}
+
+.data-table .badge-secondary {
+  background: var(--mgr-secondary-100);
+  color: var(--mgr-color-secondary);
+}
+
+.data-table .badge-success {
+  background: var(--mgr-success-100);
+  color: var(--mgr-success-600);
+}
+
+.data-table .badge-warning {
+  background: var(--mgr-warning-100);
+  color: var(--mgr-warning-600);
+}
+
+.data-table .badge-error {
+  background: var(--mgr-error-100);
+  color: var(--mgr-error-600);
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+  .table-wrapper {
+    border-radius: var(--mgr-radius-md);
+  }
+
+  .data-table {
+    font-size: var(--mgr-text-xs);
+  }
+
+  .data-table thead tr th,
+  .data-table tbody tr td {
+    padding: var(--mgr-space-3) var(--mgr-space-2);
+  }
+
+  .data-table thead tr th:first-child,
+  .data-table tbody tr td:first-child {
+    padding-left: var(--mgr-space-4);
+  }
+
+  .data-table thead tr th:last-child,
+  .data-table tbody tr td:last-child {
+    padding-right: var(--mgr-space-4);
+  }
+
+  .data-table .badge {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Dark Mode Table Styles */
+.manager-dashboard-wrapper.dark-mode .table-wrapper {
+  background: var(--mgr-card-bg);
+  border: 1px solid var(--mgr-border-color);
+  box-shadow: var(--mgr-shadow-md);
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table {
+  background: transparent;
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table thead {
+  background: rgba(26, 31, 40, 0.5);
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table thead th {
+  color: var(--mgr-text-secondary);
+  border-bottom: 1px solid var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table tbody tr {
+  border-bottom: 1px solid var(--mgr-border-color);
+  background: transparent;
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table tbody tr:hover {
+  background: rgba(74, 144, 226, 0.08);
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table tbody td {
+  color: var(--mgr-text-primary);
+  border-bottom-color: var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper.dark-mode .data-table tbody td[style*="color"] {
+  color: var(--mgr-text-secondary) !important;
+}
+
+/* Dark Mode Badge Styles */
+.manager-dashboard-wrapper.dark-mode .badge {
+  background: rgba(74, 144, 226, 0.15);
+  color: var(--mgr-text-primary);
+  border: 1px solid var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper.dark-mode .badge-primary {
+  background: rgba(74, 144, 226, 0.2);
+  color: var(--mgr-color-primary);
+  border: 1px solid rgba(74, 144, 226, 0.3);
+}
+
+.manager-dashboard-wrapper.dark-mode .badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.manager-dashboard-wrapper.dark-mode .badge-secondary {
+  background: rgba(123, 104, 238, 0.15);
+  color: var(--mgr-color-secondary);
+  border: 1px solid rgba(123, 104, 238, 0.3);
+}
+.data-table .table-action-btn {
+  padding: 6px 12px;
+  font-size: var(--mgr-text-xs);
+  font-weight: 500;
+  border-radius: var(--mgr-radius-md);
+  border: 1px solid var(--mgr-gray-300);
+  background: var(--mgr-bg-primary);
+  color: var(--mgr-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.data-table .table-action-btn:hover {
+  background: var(--mgr-gray-100);
+  border-color: var(--mgr-gray-400);
+  transform: translateY(-1px);
+}
+
+.dark-mode .data-table .table-action-btn {
+  border-color: var(--mgr-gray-600);
+  background: var(--mgr-gray-700);
+  color: var(--mgr-gray-200);
+}
+
+.dark-mode .data-table .table-action-btn:hover {
+  background: var(--mgr-gray-600);
+  border-color: var(--mgr-gray-500);
+}
+
+/* Table Cell Alignment Helpers */
+.data-table .text-right {
+  text-align: right;
+}
+
+.data-table .text-center {
+  text-align: center;
+}
+
+.data-table .text-nowrap {
+  white-space: nowrap;
+}
+
+
+/* Base Table Styles (if not already present) */
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--mgr-radius-lg, 12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table tbody td {
+  padding: 16px;
+  font-size: 14px;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Badge Styles */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}

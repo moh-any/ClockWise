@@ -66,7 +66,7 @@ func TestGetCurrentEmployeePreferences(t *testing.T) {
 	userID := uuid.New()
 	user := &database.User{ID: userID, OrganizationID: orgID, UserRole: "employee"}
 
-	// FIX: Register Route ONCE outside the loop
+	// Register Route
 	env.Router.GET("/:org/preferences", authMiddleware(user), env.Handler.GetCurrentEmployeePreferences)
 
 	t.Run("Success", func(t *testing.T) {
@@ -119,41 +119,76 @@ func TestUpdateCurrentEmployeePreferences(t *testing.T) {
 	userID := uuid.New()
 	user := &database.User{ID: userID, OrganizationID: orgID, UserRole: "employee"}
 
-	// FIX: Register Route ONCE here
+	// Register Route
 	env.Router.POST("/:org/preferences", authMiddleware(user), env.Handler.UpdateCurrentEmployeePreferences)
 
 	t.Run("Success_UpdateAll", func(t *testing.T) {
 		env.ResetMocks()
 
+		// Helper vars for pointers
+		maxHours := 30
+		prefHours := 25
+		maxConsec := 4
+		onCall := true
+
 		prefRequest := api.PreferencesRequest{
 			Preferences: []api.DayPreferenceRequest{
-				{Day: "Monday"},
+				{Day: "monday"},
 			},
-			UserRoles:       []string{"Server"},
-			MaxHoursPerWeek: func(i int) *int { return &i }(30),
+			UserRoles:             []string{"Server"},
+			MaxHoursPerWeek:       &maxHours,
+			PreferredHoursPerWeek: &prefHours,
+			MaxConsecSlots:        &maxConsec,
+			OnCall:                &onCall,
 		}
 
 		orgRoles := []*database.OrganizationRole{{Role: "Server"}}
 		fullUser := &database.User{ID: userID}
 
+		// 1. Upsert Preferences
 		env.PreferencesStore.On("UpsertPreferences", userID, mock.Anything).Return(nil).Once()
+
+		// 2. Validate Roles (GetRoles)
 		env.RolesStore.On("GetRolesByOrganizationID", orgID).Return(orgRoles, nil).Once()
+
+		// 3. Set User Roles
 		env.UserRolesStore.On("SetUserRoles", userID, orgID, prefRequest.UserRoles).Return(nil).Once()
+
+		// 4. Update User Settings (Get User -> Update User)
 		env.UserStore.On("GetUserByID", userID).Return(fullUser, nil).Once()
 		env.UserStore.On("UpdateUser", mock.MatchedBy(func(u *database.User) bool {
-			return *u.MaxHoursPerWeek == 30
+			if u.MaxHoursPerWeek == nil || *u.MaxHoursPerWeek != 30 {
+				return false
+			}
+			if u.PreferredHoursPerWeek == nil || *u.PreferredHoursPerWeek != 25 {
+				return false
+			}
+			if u.MaxConsecSlots == nil || *u.MaxConsecSlots != 4 {
+				return false
+			}
+			if u.OnCall == nil || *u.OnCall != true {
+				return false
+			}
+			return true
 		})).Return(nil).Once()
 
 		jsonBytes, _ := json.Marshal(prefRequest)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/"+orgID.String()+"/preferences", bytes.NewBuffer(jsonBytes))
-		req.Header.Set("Content-Type", "application/json") // FIX: Content-Type required for binding
+		req.Header.Set("Content-Type", "application/json")
 
 		env.Router.ServeHTTP(w, req)
+
+		// Debugging: Print body if test fails
+		if w.Code != http.StatusOK {
+			t.Logf("Response Status: %d", w.Code)
+			t.Logf("Response Body: %s", w.Body.String())
+		}
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		env.PreferencesStore.AssertExpectations(t)
 		env.UserRolesStore.AssertExpectations(t)
+		env.RolesStore.AssertExpectations(t)
 		env.UserStore.AssertExpectations(t)
 	})
 
@@ -175,7 +210,7 @@ func TestUpdateCurrentEmployeePreferences(t *testing.T) {
 	t.Run("Failure_DuplicateDay", func(t *testing.T) {
 		env.ResetMocks()
 
-		reqBody := `{"preferences": [{"day": "Monday"}, {"day": "Monday"}]}`
+		reqBody := `{"preferences": [{"day": "monday"}, {"day": "monday"}]}`
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/"+orgID.String()+"/preferences", bytes.NewBufferString(reqBody))
@@ -191,7 +226,7 @@ func TestUpdateCurrentEmployeePreferences(t *testing.T) {
 		env.ResetMocks()
 
 		prefRequest := api.PreferencesRequest{
-			Preferences: []api.DayPreferenceRequest{{Day: "Friday"}},
+			Preferences: []api.DayPreferenceRequest{{Day: "friday"}},
 			UserRoles:   []string{"Wizard"},
 		}
 

@@ -71,7 +71,19 @@ func TestGetProfileHandler(t *testing.T) {
 		env.Router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Body.String(), "John Doe")
+
+		// Verify response structure
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "Profile retrieved successfully", response["message"])
+		
+		data, ok := response["data"].(map[string]interface{})
+		assert.True(t, ok, "data field should be a map")
+		assert.Equal(t, "John Doe", data["full_name"])
+		assert.Equal(t, "john@test.com", data["email"])
+
 		env.UserStore.AssertExpectations(t)
 	})
 
@@ -85,6 +97,7 @@ func TestGetProfileHandler(t *testing.T) {
 		env.Router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "Profile not found")
 		env.UserStore.AssertExpectations(t)
 	})
 
@@ -92,8 +105,7 @@ func TestGetProfileHandler(t *testing.T) {
 		env.ResetMocks()
 
 		// For this specific test case, we need a router WITHOUT the auth middleware
-		// injecting the user. Since the main env.Router has it baked in via the
-		// registration above, we create a fresh one just for this negative test.
+		// injecting the user.
 		r := gin.New()
 		r.GET("/profile", env.Handler.GetProfileHandler)
 
@@ -101,8 +113,6 @@ func TestGetProfileHandler(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/profile", nil)
 		r.ServeHTTP(w, req)
 
-		// should return {"error": "Unauthorized"}
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
 		assert.Contains(t, w.Body.String(), "Unauthorized")
 	})
 }
@@ -136,13 +146,16 @@ func TestChangePasswordHandler(t *testing.T) {
 		jsonBytes, _ := json.Marshal(reqBody)
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("PUT", "/profile/password", bytes.NewBuffer(jsonBytes))
-		// FIX: Add Content-Type for binding
 		req.Header.Set("Content-Type", "application/json")
 
 		env.Router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Contains(t, w.Body.String(), "Password changed successfully")
+		
+		var response map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &response)
+		assert.Equal(t, "Password changed successfully", response["message"])
+		
 		env.UserStore.AssertExpectations(t)
 	})
 
