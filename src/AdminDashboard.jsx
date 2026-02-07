@@ -1165,43 +1165,25 @@ function AdminDashboard() {
           </div>
         )}
 
-{/* Upload Campaigns Modal - Enhanced Version with Examples */}
+{/* Upload Campaigns Modal */}
 {showUploadCampaigns && (
   <div className="modal-overlay" onClick={() => setShowUploadCampaigns(false)}>
-    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
       <div className="modal-header">
         <h2 className="section-title">Upload Campaigns CSV</h2>
         <button className="collapse-btn" onClick={() => setShowUploadCampaigns(false)}>×</button>
       </div>
-      
-      {/* Campaigns Upload */}
       <div className="upload-card" onClick={() => campaignsFileInput.current?.click()}>
         <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
         <h3 className="upload-title">Campaigns Data</h3>
         <p className="upload-description">Upload marketing campaigns history</p>
         <ul className="upload-specs">
-          <li><strong>Required Columns:</strong></li>
-          <li style={{ marginLeft: '20px' }}>• <code>id</code> (UUID) - Campaign unique identifier</li>
-          <li style={{ marginLeft: '20px' }}>• <code>name</code> (String) - Campaign name</li>
-          <li style={{ marginLeft: '20px' }}>• <code>status</code> (String) - active or inactive</li>
-          <li style={{ marginLeft: '20px' }}>• <code>start_time</code> (Timestamp) - Campaign start date/time</li>
-          <li style={{ marginLeft: '20px' }}>• <code>end_time</code> (Timestamp) - Campaign end date/time</li>
-          <li><strong>Optional:</strong> discount_percent (Float)</li>
-          <li><strong>Timestamp Formats:</strong> RFC3339 (2024-06-01T00:00:00Z) or DateTime (2024-06-01 00:00:00)</li>
+          <li><strong>Required:</strong> id (UUID), name, status, start_time, end_time</li>
+          <li><strong>Optional:</strong> discount_percent</li>
+          <li><strong>Status values:</strong> active, inactive</li>
+          <li><strong>Timestamp formats:</strong> RFC3339 (2024-06-01T00:00:00Z) or DateTime (2024-06-01 00:00:00)</li>
+          <li>Discount percentage is optional (e.g., 15.50)</li>
         </ul>
-        <div style={{ 
-          background: 'var(--gray-100)', 
-          padding: 'var(--space-3)', 
-          borderRadius: 'var(--radius-md)', 
-          marginTop: 'var(--space-3)',
-          fontSize: 'var(--text-xs)',
-          fontFamily: 'monospace'
-        }}>
-          <strong>Example CSV:</strong><br/>
-          id,name,status,start_time,end_time,discount_percent<br/>
-          550e8400-...,Summer Sale,active,2024-06-01T00:00:00Z,2024-08-31T23:59:59Z,15.00<br/>
-          660e8400-...,Holiday Promo,inactive,2023-12-01T00:00:00Z,2023-12-31T23:59:59Z,25.00
-        </div>
         <input
           ref={campaignsFileInput}
           type="file"
@@ -1210,35 +1192,17 @@ function AdminDashboard() {
           onChange={handleCampaignsUpload}
         />
       </div>
-      
-      {/* Campaign Items Upload */}
       <div style={{ marginTop: 'var(--space-4)' }}>
         <div className="upload-card" onClick={() => campaignItemsFileInput.current?.click()}>
           <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
           <h3 className="upload-title">Campaign Items Data</h3>
-          <p className="upload-description">Associate items with existing campaigns</p>
+          <p className="upload-description">Link items to campaigns</p>
           <ul className="upload-specs">
-            <li><strong>Required Columns:</strong></li>
-            <li style={{ marginLeft: '20px' }}>• <code>campaign_id</code> (UUID) - Campaign identifier</li>
-            <li style={{ marginLeft: '20px' }}>• <code>item_id</code> (UUID) - Item identifier</li>
-            <li><strong>Prerequisites:</strong> Campaigns and Items must already exist in the system</li>
-            <li>Multiple items can be linked to the same campaign</li>
-            <li>Duplicate campaign-item pairs are automatically ignored</li>
+            <li><strong>Required:</strong> campaign_id (UUID), item_id (UUID)</li>
+            <li><strong>Prerequisites:</strong> Campaigns and Items must already exist</li>
+            <li>Multiple items can be associated with the same campaign</li>
+            <li>Duplicate campaign-item pairs are ignored</li>
           </ul>
-          <div style={{ 
-            background: 'var(--gray-100)', 
-            padding: 'var(--space-3)', 
-            borderRadius: 'var(--radius-md)', 
-            marginTop: 'var(--space-3)',
-            fontSize: 'var(--text-xs)',
-            fontFamily: 'monospace'
-          }}>
-            <strong>Example CSV:</strong><br/>
-            campaign_id,item_id<br/>
-            550e8400-e29b-41d4-a716-446655440000,770e8400-e29b-41d4-a716-446655440001<br/>
-            550e8400-e29b-41d4-a716-446655440000,880e8400-e29b-41d4-a716-446655440002<br/>
-            660e8400-e29b-41d4-a716-446655440001,770e8400-e29b-41d4-a716-446655440001
-          </div>
           <input
             ref={campaignItemsFileInput}
             type="file"
@@ -1247,18 +1211,6 @@ function AdminDashboard() {
             onChange={handleCampaignItemsUpload}
           />
         </div>
-      </div>
-
-      <div style={{ 
-        marginTop: 'var(--space-4)', 
-        padding: 'var(--space-3)', 
-        background: 'var(--primary-50)', 
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--primary-200)'
-      }}>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-700)', margin: 0 }}>
-          <strong>💡 Tip:</strong> Upload campaigns first, then upload campaign items to link them together.
-        </p>
       </div>
     </div>
   </div>
