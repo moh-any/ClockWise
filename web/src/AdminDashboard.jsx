@@ -6112,14 +6112,14 @@ const renderInfo = () => (
             {!sidebarCollapsed && (
               <div className="user-info">
                 <div className="user-name">
-                  {currentUser?.full_name || "Loading..."}
+                  {currentUser?.full_name || "Admin"}
                 </div>
                 <div className="user-role">
-                  {currentUser?.role || "Loading..."}
+                  {currentUser?.user_role || "Administrator"}
                 </div>
               </div>
-            )}
-          </div>
+            )}          
+            </div>
           {!sidebarCollapsed && (
             <button
               className="logout-btn"
