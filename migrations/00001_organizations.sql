@@ -20,12 +20,22 @@ CREATE TABLE IF NOT EXISTS organizations(
 CREATE TABLE IF NOT EXISTS organizations_roles (
     organization_id UUID,
     role VARCHAR(50),
-    min_needed_per_shift INTEGER CHECK ((role != 'manager' AND role != 'admin' AND min_needed_per_shift>=0 ) OR (role = 'manager' AND min_needed_per_shift = 1) OR (role = 'admin' AND min_needed_per_shift = 0)),
-    items_per_role_per_hour INTEGER CHECK ((need_for_demand = true AND items_per_role_per_hour >= 0) OR (need_for_demand = false AND items_per_role_per_hour IS NULL)),
-    need_for_demand BOOLEAN NOT NULL CHECK (((role = 'manager' OR role = 'admin') AND need_for_demand = false) OR (role != 'manager' AND role != 'admin')),
-    independent BOOLEAN CHECK ((role = 'manager' AND independent = true) OR (role = 'admin' AND independent = true) OR ((role != 'manager' AND role != 'admin') AND independent IS NOT NULL)),
-    PRIMARY KEY (organization_id,role),
-    FOREIGN KEY (organization_id) REFERENCES organizations(id)
+    min_needed_per_shift INTEGER,
+    items_per_role_per_hour INTEGER,
+    need_for_demand BOOLEAN NOT NULL,
+    independent BOOLEAN,
+    PRIMARY KEY (organization_id, role),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CHECK ((role != 'manager' AND role != 'admin' AND min_needed_per_shift >= 0) OR 
+           (role = 'manager' AND min_needed_per_shift = 1) OR 
+           (role = 'admin' AND min_needed_per_shift = 0)),
+    CHECK ((need_for_demand = true AND items_per_role_per_hour >= 0) OR 
+           (need_for_demand = false AND items_per_role_per_hour IS NULL)),
+    CHECK (((role = 'manager' OR role = 'admin') AND need_for_demand = false) OR 
+           (role != 'manager' AND role != 'admin')),
+    CHECK ((role = 'manager' AND independent = true) OR 
+           (role = 'admin' AND independent = true) OR 
+           ((role != 'manager' AND role != 'admin') AND independent IS NOT NULL))
 );
 
 CREATE TABLE IF NOT EXISTS organizations_rules (
