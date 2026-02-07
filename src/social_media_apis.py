@@ -10,7 +10,11 @@ from typing import Dict, Optional
 from datetime import datetime, timedelta
 from functools import lru_cache
 
+from dotenv import load_dotenv
+import os
 
+# Load environment variables from .env file
+load_dotenv()
 class SocialMediaAggregator:
     """
     Aggregates signals from multiple social media APIs.
