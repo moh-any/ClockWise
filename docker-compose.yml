@@ -35,8 +35,10 @@ services:
   cw-web: 
     container_name: "ClockwiseFrontend"
     build: ./web
-    ports: 
-      - "${WEB_PORT}:3000"
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:${NGINX_PORT}
     depends_on:
       - cw-app
   nginx:
@@ -47,6 +49,7 @@ services:
     restart: always
     depends_on:
       - cw-app
+      - cw-web
   #Add Redis Service
 volumes:
   postgres-data:
