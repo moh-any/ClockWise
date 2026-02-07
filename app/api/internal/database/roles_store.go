@@ -11,17 +11,17 @@ import (
 // OrganizationRole represents a role within an organization
 type OrganizationRole struct {
 	OrganizationID      uuid.UUID `json:"organization_id"`
-	Role                string    `json:"role"`
-	MinNeededPerShift   int       `json:"min_needed_per_shift"`
-	ItemsPerRolePerHour *int      `json:"items_per_role_per_hour"`
-	NeedForDemand       bool      `json:"need_for_demand"`
-	Independent         *bool     `json:"independent"`
+	Role                string    `json:"role_id"`
+	MinNeededPerShift   int       `json:"min_present"`
+	ItemsPerRolePerHour *int      `json:"items_per_employee_per_hour"`
+	NeedForDemand       bool      `json:"producing"`
+	Independent         *bool     `json:"is_independent"`
 }
 
 // RolesStore defines the interface for organization roles data operations
 type RolesStore interface {
 	CreateRole(role *OrganizationRole) error
-	GetRolesByOrganizationID(orgID uuid.UUID) ([]*OrganizationRole, error)
+	GetRolesByOrganizationID(orgID uuid.UUID) ([]OrganizationRole, error)
 	GetRoleByName(orgID uuid.UUID, roleName string) (*OrganizationRole, error)
 	UpdateRole(role *OrganizationRole) error
 	DeleteRole(orgID uuid.UUID, roleName string) error
@@ -65,7 +65,7 @@ func (s *PostgresRolesStore) CreateRole(role *OrganizationRole) error {
 }
 
 // GetRolesByOrganizationID retrieves all roles for a specific organization
-func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*OrganizationRole, error) {
+func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]OrganizationRole, error) {
 	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent 
 		FROM organizations_roles WHERE organization_id = $1 ORDER BY role`
 
@@ -76,7 +76,7 @@ func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*Organ
 	}
 	defer rows.Close()
 
-	var roles []*OrganizationRole
+	var roles []OrganizationRole
 	for rows.Next() {
 		var r OrganizationRole
 		if err := rows.Scan(
@@ -90,7 +90,7 @@ func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*Organ
 			s.Logger.Error("failed to scan role", "error", err)
 			return nil, err
 		}
-		roles = append(roles, &r)
+		roles = append(roles, r)
 	}
 
 	if err := rows.Err(); err != nil {

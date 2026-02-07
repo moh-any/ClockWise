@@ -75,6 +75,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	campaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	demandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
 	alertStore := database.NewPostgresAlertStore(dbService.GetDB(), Logger)
+	scheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
@@ -99,7 +100,20 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		demandStore,
 		Logger,
 	)
-	scheduleHandler := api.NewScheduleHandler(Logger)
+	scheduleHandler := api.NewScheduleHandler(
+		userStore,
+		scheduleStore,
+		Logger,
+		orgStore,
+		rulesStore,
+		userRolesStore,
+		operatingHoursStore,
+		orderStore,
+		campaignStore,
+		demandStore,
+		rolesStore,
+		preferencesStore,
+	)
 	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, Logger)
 	alertHandler := api.NewAlertHandler(alertStore, Logger)
 

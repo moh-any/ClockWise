@@ -52,13 +52,13 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]Oper
 	query := `SELECT organization_id, weekday, opening_time, closing_time
 		FROM organizations_operating_hours WHERE organization_id = $1 ORDER BY 
 		CASE weekday 
-			WHEN 'Sunday' THEN 0 
-			WHEN 'Monday' THEN 1 
-			WHEN 'Tuesday' THEN 2 
-			WHEN 'Wednesday' THEN 3 
-			WHEN 'Thursday' THEN 4 
-			WHEN 'Friday' THEN 5 
-			WHEN 'Saturday' THEN 6 
+			WHEN 'sunday' THEN 0 
+			WHEN 'monday' THEN 1 
+			WHEN 'tuesday' THEN 2 
+			WHEN 'wednesday' THEN 3 
+			WHEN 'thursday' THEN 4 
+			WHEN 'friday' THEN 5 
+			WHEN 'saturday' THEN 6 
 		END`
 
 	rows, err := s.db.Query(query, orgID)
@@ -85,7 +85,7 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]Oper
 	}
 
 	// Define all weekdays in order
-	allWeekdays := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
+	allWeekdays := []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
 
 	// Build the complete result with all 7 days
 	var hours []OperatingHours

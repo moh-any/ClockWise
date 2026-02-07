@@ -490,8 +490,8 @@ Currently, the API does not require authentication. For production deployment, i
         "is_bottleneck": false
       }
     },
-    "hiring_recommendations": [],
-    "coverage_gaps": [],
+    "hiring_recommendations": ["",""],
+    "coverage_gaps": ["",""],
     "cost_analysis": {
       "total_wage_cost": 1304.0,
       "cost_by_role": {
@@ -513,7 +513,18 @@ Currently, the API does not require authentication. For production deployment, i
       "overutilized_employees": 0,
       "balance_score": 0.88
     },
-    "feasibility_analysis": null
+    "feasibility_analysis": [
+      {
+        "issue": "Not enough employees for {role.id}",
+        "details": "Requires {role.min_present} minimum, only {eligible_count} eligible",
+        "severity": "critical"
+      },
+      {
+        "issue": "Insufficient {role_id} capacity",
+        "details": "Only {eligible_employees} eligible employees, can produce {potential_output:.1f} items",
+        "severity": "high"
+      }
+    ]
   }
 }
 ```

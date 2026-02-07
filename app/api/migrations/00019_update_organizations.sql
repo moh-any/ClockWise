@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE organizations ADD COLUMN type VARCHAR(50) CHECK (type IN ('restaurant','cafe','bar','lounge','pub'));
-ALTER TABLE organizations ADD COLUMN phone VARCHAR(20) NOT NULL;
+ALTER TABLE organizations ADD COLUMN phone VARCHAR(20) UNIQUE NOT NULL;
 
 ALTER TABLE organizations_rules ADD COLUMN receiving_phone BOOLEAN DEFAULT true;
 ALTER TABLE organizations_rules ADD COLUMN delivery BOOLEAN DEFAULT true;
