@@ -308,8 +308,6 @@ func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 		return
 	}
 
-	// TODO Add existing items and orders to Redis Cache
-
 	// Get the file from the request
 	file, _, err := c.Request.FormFile("file")
 	if err != nil {
@@ -539,8 +537,6 @@ func (oh *OrderHandler) UploadAllPastDeliveriesCSV(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "You must import at least one order before uploading deliveries"})
 		return
 	}
-
-	// TODO Add to cache
 
 	// Get the file from the request
 	file, _, err := c.Request.FormFile("file")

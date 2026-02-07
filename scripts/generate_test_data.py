@@ -18,6 +18,7 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Tuple
+import json
 import math
 
 # Configuration
@@ -274,6 +275,75 @@ def generate_campaign_items(campaigns: List[Dict], items: List[Dict]) -> List[Di
                 })
     
     return campaign_items
+
+
+# ============================================================================
+# EMPLOYEES
+# ============================================================================
+
+
+def generate_employees(num_employees: int = 30) -> List[Dict]:
+    """Generate employees with system role and job-role arrays."""
+    first_names = [
+        "Lukas", "Emma", "Noah", "Sofia", "William", "Olivia", "Mason", "Ava",
+        "Lucas", "Mia", "Ethan", "Isabella", "Liam", "Amelia", "Oliver", "Harper",
+        "Logan", "Evelyn", "James", "Abigail",
+    ]
+    last_names = [
+        "Jensen", "Hansen", "Nielsen", "Kristensen", "Larsen", "Andersen", "Pedersen",
+        "Madsen", "Olsen", "Mortensen", "Sørensen", "Rasmussen",
+    ]
+
+    job_roles = ["cook", "waiter", "bartender", "host", "cleaner", "delivery"]
+
+    role_pool = []
+    # 2 admins, ~10% managers, rest staff
+    role_pool.extend(["admin"] * 2)
+    num_managers = max(1, int(num_employees * 0.1))
+    role_pool.extend(["manager"] * num_managers)
+    role_pool.extend(["employee"] * (num_employees - len(role_pool)))
+
+    employees = []
+    for i in range(1, num_employees + 1):
+        fn = random.choice(first_names)
+        ln = random.choice(last_names)
+        full_name = f"{fn} {ln}"
+        email_local = f"{fn.lower()}.{ln.lower()}{i}@example.com"
+
+        # system role (admin/manager/staff)
+        sys_role = role_pool[i - 1]
+
+        # assign 1-2 job roles (from job_roles)
+        num_job_roles = random.choices([1, 2], weights=[0.7, 0.3])[0]
+        jobs = random.sample(job_roles, num_job_roles)
+
+        # salary by primary job role, bump for managers/admins
+        base_role = jobs[0]
+        salary_map = {
+            "cook": (18, 25),
+            "waiter": (12, 18),
+            "bartender": (15, 22),
+            "host": (12, 16),
+            "cleaner": (11, 14),
+            "delivery": (13, 18),
+        }
+        low, high = salary_map.get(base_role, (12, 18))
+        hourly = round(random.uniform(low, high), 2)
+        if sys_role == "manager":
+            hourly = round(hourly * 1.25, 2)
+        elif sys_role == "admin":
+            hourly = round(hourly * 1.5, 2)
+
+        employees.append({
+            "full_name": full_name,
+            "email": email_local,
+            "role": sys_role,
+            "hourly_salary": hourly,
+            # store job roles as JSON array string to keep CSV cell readable
+            "roles": json.dumps(jobs),
+        })
+
+    return employees
 
 
 # ============================================================================
@@ -614,6 +684,11 @@ def main():
     print("Generating campaign-item links...")
     campaign_items = generate_campaign_items(campaigns, items)
     save_csv(campaign_items, "campaign_items.csv", ["campaign_id", "item_id"])
+
+    # Generate employees
+    print("Generating employees...")
+    employees = generate_employees(num_employees=30)
+    save_csv(employees, "employees.csv", ["full_name", "email", "role", "hourly_salary", "roles"])
     
     # Generate orders, order items, and deliveries
     print("Generating orders (this may take a moment)...")
