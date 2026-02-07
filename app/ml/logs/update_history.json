@@ -1,0 +1,20 @@
+[
+  {
+    "status": "success",
+    "type": "fine_tune",
+    "duration_seconds": 8.574059,
+    "samples_used": 38389,
+    "metrics": {
+      "item_count": {
+        "mae": 4.172,
+        "r2": 0.4356
+      },
+      "order_count": {
+        "mae": 2.7604,
+        "r2": 0.3099
+      }
+    },
+    "message": "Fine-tuning completed successfully",
+    "timestamp": "2026-02-07T19:15:56.585654"
+  }
+]
