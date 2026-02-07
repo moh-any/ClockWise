@@ -41,18 +41,6 @@ type UpdateRoleRequest struct {
 }
 
 // GetAllRoles godoc
-// @Summary      Get all organization roles
-// @Description  Returns all roles for the organization. Only admins and managers can access this.
-// @Tags         Roles
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of roles"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/roles [get]
 func (h *RolesHandler) GetAllRoles(c *gin.Context) {
 	h.Logger.Info("get all roles request received")
 
@@ -80,21 +68,6 @@ func (h *RolesHandler) GetAllRoles(c *gin.Context) {
 }
 
 // CreateRole godoc
-// @Summary      Create a new role
-// @Description  Creates a new role for the organization. 
-// @Tags         Roles
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        role body CreateRoleRequest true "Role data"
-// @Success      201 {object} map[string]interface{} "Role created successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied - admins only"
-// @Failure      409 {object} map[string]string "Role already exists"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/roles [post]
 func (h *RolesHandler) CreateRole(c *gin.Context) {
 	h.Logger.Info("create role request received")
 
@@ -177,20 +150,6 @@ func (h *RolesHandler) CreateRole(c *gin.Context) {
 }
 
 // GetRole godoc
-// @Summary      Get a specific role
-// @Description  Returns details of a specific role. 
-// @Tags         Roles
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        role path string true "Role name"
-// @Success      200 {object} map[string]interface{} "Role details"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      404 {object} map[string]string "Role not found"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/roles/{role} [get]
 func (h *RolesHandler) GetRole(c *gin.Context) {
 	h.Logger.Info("get role request received")
 
@@ -227,22 +186,6 @@ func (h *RolesHandler) GetRole(c *gin.Context) {
 }
 
 // UpdateRole godoc
-// @Summary      Update a role
-// @Description  Updates an existing role. Only admins can update roles. Admin and manager roles cannot be modified.
-// @Tags         Roles
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        role path string true "Role name"
-// @Param        roleData body UpdateRoleRequest true "Role data"
-// @Success      200 {object} map[string]interface{} "Role updated successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied - admins only"
-// @Failure      404 {object} map[string]string "Role not found"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/roles/{role} [put]
 func (h *RolesHandler) UpdateRole(c *gin.Context) {
 	h.Logger.Info("update role request received")
 
@@ -332,20 +275,6 @@ func (h *RolesHandler) UpdateRole(c *gin.Context) {
 }
 
 // DeleteRole godoc
-// @Summary      Delete a role
-// @Description  Deletes a role from the organization. Only admins can delete roles. Admin and manager roles cannot be deleted.
-// @Tags         Roles
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        role path string true "Role name"
-// @Success      200 {object} map[string]interface{} "Role deleted successfully"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied - admins only or protected role"
-// @Failure      404 {object} map[string]string "Role not found"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/roles/{role} [delete]
 func (h *RolesHandler) DeleteRole(c *gin.Context) {
 	h.Logger.Info("delete role request received")
 

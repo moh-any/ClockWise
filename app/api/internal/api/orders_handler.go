@@ -28,17 +28,6 @@ func NewOrderHandler(orderStore database.OrderStore, uploadservice service.Uploa
 }
 
 // GetAllOrders godoc
-// @Summary      Get all orders
-// @Description  Returns all orders for the organization
-// @Tags         Orders
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of orders"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders [get]
 func (oh *OrderHandler) GetAllOrders(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -66,17 +55,6 @@ func (oh *OrderHandler) GetAllOrders(c *gin.Context) {
 }
 
 // GetAllOrdersForLastWeek godoc
-// @Summary      Get orders from last week
-// @Description  Returns all orders from the last 7 days for the organization
-// @Tags         Orders
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of orders from last week"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders/last-week [get]
 func (oh *OrderHandler) GetAllOrdersForLastWeek(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -104,17 +82,6 @@ func (oh *OrderHandler) GetAllOrdersForLastWeek(c *gin.Context) {
 }
 
 // GetAllOrdersToday godoc
-// @Summary      Get today's orders
-// @Description  Returns all orders from today for the organization
-// @Tags         Orders
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of today's orders"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders/today [get]
 func (oh *OrderHandler) GetAllOrdersToday(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -142,17 +109,6 @@ func (oh *OrderHandler) GetAllOrdersToday(c *gin.Context) {
 }
 
 // GetOrdersInsights godoc
-// @Summary      Get orders insights
-// @Description  Returns insights/analytics for orders
-// @Tags         Orders
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "Order insights"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders/insights [get]
 func (oh *OrderHandler) GetOrdersInsights(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -180,19 +136,6 @@ func (oh *OrderHandler) GetOrdersInsights(c *gin.Context) {
 }
 
 // UploadAllPastOrdersCSV godoc
-// @Summary      Upload past orders CSV
-// @Description  Upload a CSV file containing past orders data
-// @Tags         Orders
-// @Accept       multipart/form-data
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        file formData file true "CSV file with orders data"
-// @Success      200 {object} map[string]interface{} "Upload successful with parsed data"
-// @Failure      400 {object} map[string]string "Bad request"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders/upload [post]
 func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -329,19 +272,6 @@ func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 }
 
 // UploadOrderItemsCSV godoc
-// @Summary      Upload order items CSV
-// @Description  Upload a CSV file containing order items data
-// @Tags         Orders
-// @Accept       multipart/form-data
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        file formData file true "CSV file with order items data"
-// @Success      200 {object} map[string]interface{} "Upload successful with parsed data"
-// @Failure      400 {object} map[string]string "Bad request"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/orders/items/upload [post]
 func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -477,17 +407,6 @@ func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 }
 
 // GetAllDeliveries godoc
-// @Summary      Get all deliveries
-// @Description  Returns all deliveries for the organization
-// @Tags         Deliveries
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of deliveries"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/deliveries [get]
 func (oh *OrderHandler) GetAllDeliveries(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -515,17 +434,6 @@ func (oh *OrderHandler) GetAllDeliveries(c *gin.Context) {
 }
 
 // GetAllDeliveriesForLastWeek godoc
-// @Summary      Get deliveries from last week
-// @Description  Returns all deliveries from the last 7 days for the organization
-// @Tags         Deliveries
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of deliveries from last week"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/deliveries/last-week [get]
 func (oh *OrderHandler) GetAllDeliveriesForLastWeek(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -553,17 +461,6 @@ func (oh *OrderHandler) GetAllDeliveriesForLastWeek(c *gin.Context) {
 }
 
 // GetAllDeliveriesToday godoc
-// @Summary      Get today's deliveries
-// @Description  Returns all deliveries from today for the organization
-// @Tags         Deliveries
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of today's deliveries"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/deliveries/today [get]
 func (oh *OrderHandler) GetAllDeliveriesToday(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -591,17 +488,6 @@ func (oh *OrderHandler) GetAllDeliveriesToday(c *gin.Context) {
 }
 
 // GetDeliveryInsights godoc
-// @Summary      Get delivery insights
-// @Description  Returns insights/analytics for deliveries
-// @Tags         Deliveries
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "Delivery insights"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/deliveries/insights [get]
 func (oh *OrderHandler) GetDeliveryInsights(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -629,19 +515,6 @@ func (oh *OrderHandler) GetDeliveryInsights(c *gin.Context) {
 }
 
 // UploadAllPastDeliveriesCSV godoc
-// @Summary      Upload past deliveries CSV
-// @Description  Upload a CSV file containing past deliveries data
-// @Tags         Deliveries
-// @Accept       multipart/form-data
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        file formData file true "CSV file with deliveries data"
-// @Success      200 {object} map[string]interface{} "Upload successful with parsed data"
-// @Failure      400 {object} map[string]string "Bad request"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/deliveries/upload [post]
 func (oh *OrderHandler) UploadAllPastDeliveriesCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -792,17 +665,6 @@ func (oh *OrderHandler) UploadAllPastDeliveriesCSV(c *gin.Context) {
 }
 
 // GetItemsInsights godoc
-// @Summary      Get items insights
-// @Description  Returns insights/analytics for items
-// @Tags         Items
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "Item insights"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/items/insights [get]
 func (oh *OrderHandler) GetItemsInsights(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -830,19 +692,6 @@ func (oh *OrderHandler) GetItemsInsights(c *gin.Context) {
 }
 
 // UploadItemsCSV godoc
-// @Summary      Upload items CSV
-// @Description  Upload a CSV file containing items data
-// @Tags         Items
-// @Accept       multipart/form-data
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        file formData file true "CSV file with items data"
-// @Success      200 {object} map[string]interface{} "Upload successful"
-// @Failure      400 {object} map[string]string "Bad request"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/items/upload [post]
 func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -945,17 +794,6 @@ func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 }
 
 // GetAllItems godoc
-// @Summary      Get all items
-// @Description  Returns all items for the organization
-// @Tags         Items
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of items"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/items [get]
 func (oh *OrderHandler) GetAllItems(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {

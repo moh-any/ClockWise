@@ -22,18 +22,6 @@ func NewInsightHandler(insightStore database.InsightStore, logger *slog.Logger) 
 	}
 }
 // GetInsightsHandler godoc
-// @Summary      Get dashboard insights
-// @Description  Returns insights based on the current user's role (admin, manager, or employee)
-// @Tags         Insights
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {array} database.Insight "List of insights"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/insights [get]
 func (ih *InsightHandler) GetInsightsHandler(c *gin.Context) {
 	// Get The insights depending on the current user role admin, manager or anyone else (employee)
 	user := middleware.ValidateOrgAccess(c)

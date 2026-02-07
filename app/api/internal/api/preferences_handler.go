@@ -59,18 +59,6 @@ type PreferencesResponse struct {
 }
 
 // GetCurrentEmployeePreferences godoc
-// @Summary      Get current employee preferences
-// @Description  Returns the work preferences of the currently authenticated employee for all days
-// @Tags         Preferences
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "Employee preferences"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/preferences [get]
 func (h *PreferencesHandler) GetCurrentEmployeePreferences(c *gin.Context) {
 	h.Logger.Info("get current employee preferences request received")
 
@@ -126,20 +114,6 @@ func (h *PreferencesHandler) GetCurrentEmployeePreferences(c *gin.Context) {
 }
 
 // UpdateCurrentEmployeePreferences godoc
-// @Summary      Update current employee preferences
-// @Description  Creates or updates the work preferences of the currently authenticated employee for multiple days
-// @Tags         Preferences
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        preferences body PreferencesRequest true "Preferences data with array of day preferences"
-// @Success      200 {object} map[string]interface{} "Preferences updated successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/preferences [post]
 func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 	h.Logger.Info("update current employee preferences request received")
 

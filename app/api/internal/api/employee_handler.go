@@ -38,20 +38,6 @@ type RequestActionBody struct {
 }
 
 // GetEmployeeDetails godoc
-// @Summary      Get employee details
-// @Description  Returns detailed information about a specific employee
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        id path string true "Employee UUID"
-// @Success      200 {object} map[string]interface{} "Employee details"
-// @Failure      400 {object} map[string]string "Invalid employee ID"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      404 {object} map[string]string "Employee not found"
-// @Router       /{org}/staffing/employees/{id} [get]
 func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 	h.Logger.Info("get employee details request received")
 
@@ -92,22 +78,6 @@ func (h *EmployeeHandler) GetEmployeeDetails(c *gin.Context) {
 }
 
 // LayoffEmployee godoc
-// @Summary      Layoff an employee
-// @Description  Marks an employee as laid off. Only admins and managers can perform this action. Managers cannot layoff admins.
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        id path string true "Employee UUID"
-// @Param        request body LayoffRequest false "Layoff reason (optional)"
-// @Success      200 {object} map[string]interface{} "Employee laid off successfully"
-// @Failure      400 {object} map[string]string "Invalid employee ID or cannot layoff yourself"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Permission denied"
-// @Failure      404 {object} map[string]string "Employee not found"
-// @Failure      500 {object} map[string]string "Failed to layoff employee"
-// @Router       /{org}/staffing/employees/{id}/layoff [delete]
 func (h *EmployeeHandler) LayoffEmployee(c *gin.Context) {
 	h.Logger.Info("layoff employee request received")
 
@@ -184,21 +154,6 @@ func (h *EmployeeHandler) LayoffEmployee(c *gin.Context) {
 }
 
 // GetEmployeeRequests godoc
-// @Summary      Get employee requests
-// @Description  Returns all requests (time-off, call-off, etc.) for a specific employee. Employees can only view their own requests unless they are admin/manager.
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        id path string true "Employee UUID"
-// @Success      200 {object} map[string]interface{} "List of employee requests"
-// @Failure      400 {object} map[string]string "Invalid employee ID"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      404 {object} map[string]string "Employee not found"
-// @Failure      500 {object} map[string]string "Failed to retrieve requests"
-// @Router       /{org}/staffing/employees/{id}/requests [get]
 func (h *EmployeeHandler) GetEmployeeRequests(c *gin.Context) {
 	h.Logger.Info("get employee requests received")
 
@@ -252,22 +207,6 @@ func (h *EmployeeHandler) GetEmployeeRequests(c *gin.Context) {
 }
 
 // ApproveRequest godoc
-// @Summary      Approve an employee request
-// @Description  Approves a pending employee request. Only admins and managers can approve requests.
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        id path string true "Employee UUID"
-// @Param        request body RequestActionBody true "Request ID to approve"
-// @Success      200 {object} map[string]interface{} "Request approved successfully"
-// @Failure      400 {object} map[string]string "Invalid request body or request ID"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Permission denied"
-// @Failure      404 {object} map[string]string "Request not found"
-// @Failure      500 {object} map[string]string "Failed to approve request"
-// @Router       /{org}/staffing/employees/{id}/requests/approve [post]
 func (h *EmployeeHandler) ApproveRequest(c *gin.Context) {
 	h.Logger.Info("approve request received")
 
@@ -344,22 +283,6 @@ func (h *EmployeeHandler) ApproveRequest(c *gin.Context) {
 }
 
 // DeclineRequest godoc
-// @Summary      Decline an employee request
-// @Description  Declines a pending employee request. Only admins and managers can decline requests.
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        id path string true "Employee UUID"
-// @Param        request body RequestActionBody true "Request ID to decline"
-// @Success      200 {object} map[string]interface{} "Request declined successfully"
-// @Failure      400 {object} map[string]string "Invalid request body or request ID"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Permission denied"
-// @Failure      404 {object} map[string]string "Request not found"
-// @Failure      500 {object} map[string]string "Failed to decline request"
-// @Router       /{org}/staffing/employees/{id}/requests/decline [post]
 func (h *EmployeeHandler) DeclineRequest(c *gin.Context) {
 	h.Logger.Info("decline request received")
 
@@ -429,19 +352,6 @@ type CalloffRequest struct {
 }
 
 // RequestCalloffHandlerForEmployee godoc
-// @Summary      Submit a calloff/holiday/resign request
-// @Description  Allows an employee to submit a calloff, holiday, or resign request to their organization
-// @Tags         Employees
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        request body CalloffRequest true "Request details"
-// @Success      201 {object} map[string]interface{} "Request submitted successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Failed to submit request"
-// @Router       /{org}/request [post]
 func (h *EmployeeHandler) RequestHandlerForEmployee(c *gin.Context) {
 	h.Logger.Info("employee request received")
 

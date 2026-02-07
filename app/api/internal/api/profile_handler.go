@@ -27,17 +27,6 @@ type ChangePasswordRequest struct {
 }
 
 // GetProfileHandler godoc
-// @Summary      Get user profile
-// @Description  Returns the current user's profile information
-// @Tags         Profile
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200 {object} database.UserProfile "User profile"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      404 {object} map[string]string "Profile not found"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /profile [get]
 func (ph *ProfileHandler) GetProfileHandler(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {
@@ -60,18 +49,6 @@ func (ph *ProfileHandler) GetProfileHandler(c *gin.Context) {
 }
 
 // ChangePasswordHandler godoc
-// @Summary      Change password
-// @Description  Changes the current user's password
-// @Tags         Profile
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        request body ChangePasswordRequest true "Password change request"
-// @Success      200 {object} map[string]string "Password changed successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized or incorrect old password"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /profile/password [put]
 func (ph *ProfileHandler) ChangePasswordHandler(c *gin.Context) {
 	user := middleware.ValidateOrgAccess(c)
 	if user == nil {

@@ -60,19 +60,6 @@ type RulesResponse struct {
 }
 
 // GetOrganizationRules godoc
-// @Summary      Get organization rules
-// @Description  Returns the scheduling rules for the organization. Only admins and managers can access this.
-// @Tags         Rules
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} database.OrganizationRules "Organization rules"
-// @Success      204 "No rules set"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/rules [get]
 func (h *RulesHandler) GetOrganizationRules(c *gin.Context) {
 	h.Logger.Info("get organization rules request received")
 
@@ -131,20 +118,6 @@ func (h *RulesHandler) GetOrganizationRules(c *gin.Context) {
 }
 
 // UpdateOrganizationRules godoc
-// @Summary      Update organization rules
-// @Description  Creates or updates the scheduling rules for the organization. Only admins can modify rules.
-// @Tags         Rules
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        rules body RulesRequest true "Rules data"
-// @Success      200 {object} map[string]interface{} "Rules updated successfully"
-// @Failure      400 {object} map[string]string "Invalid request body"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Access denied - admins only"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/rules [post]
 func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 	h.Logger.Info("update organization rules request received")
 

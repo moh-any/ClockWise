@@ -44,17 +44,6 @@ type StaffingSummary struct {
 }
 
 // GetStaffingSummary godoc
-// @Summary      Get staffing summary
-// @Description  Returns staffing overview including total employees and breakdown by role
-// @Tags         Staffing
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} StaffingSummary "Staffing summary"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Failed to retrieve employees"
-// @Router       /{org}/staffing [get]
 func (h *StaffingHandler) GetStaffingSummary(c *gin.Context) {
 	h.Logger.Info("get staffing summary request received")
 
@@ -90,20 +79,6 @@ func (h *StaffingHandler) GetStaffingSummary(c *gin.Context) {
 }
 
 // UploadEmployeesCSV godoc
-// @Summary      Bulk upload employees via CSV
-// @Description  Upload a CSV file to create multiple employees at once. Required headers: full_name, email, role
-// @Tags         Staffing
-// @Accept       multipart/form-data
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Param        file formData file true "CSV file with employee data"
-// @Success      200 {object} map[string]interface{} "Bulk upload completed"
-// @Failure      400 {object} map[string]string "No file uploaded or invalid CSV format"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      403 {object} map[string]string "Permission denied"
-// @Failure      500 {object} map[string]string "Internal server error"
-// @Router       /{org}/staffing/upload [post]
 func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 	h.Logger.Info("upload employees CSV request received")
 
@@ -246,17 +221,6 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 }
 
 // GetAllEmployees godoc
-// @Summary      Get all employees
-// @Description  Returns a list of all employees in the organization
-// @Tags         Staffing
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        org path string true "Organization ID"
-// @Success      200 {object} map[string]interface{} "List of employees"
-// @Failure      401 {object} map[string]string "Unauthorized"
-// @Failure      500 {object} map[string]string "Failed to retrieve employees"
-// @Router       /{org}/staffing/employees [get]
 func (h *StaffingHandler) GetAllEmployees(c *gin.Context) {
 	h.Logger.Info("get all employees request received")
 

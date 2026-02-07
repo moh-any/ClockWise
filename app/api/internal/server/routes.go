@@ -16,26 +16,11 @@ import (
 // TODO: Add Caching
 // TODO: Add Nginx for rate limiting
 
-// @title           ClockWise API
-// @version         1.0.0
-// @description     ClockWise is a workforce management and scheduling platform for organizations.
-// @termsOfService  http://swagger.io/terms/
 
-// @contact.name   ClockWise API Support
-// @contact.email  ziadeliwa@aucegypt.edu
 
-// @license.name  MIT License
-// @license.url   https://opensource.org/license/mit
 
-// @host      localhost:8080
-// @BasePath  /api
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
 
-// @externalDocs.description  OpenAPI
-// @externalDocs.url          https://swagger.io/resources/open-api/
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 	gin.SetMode(gin.DebugMode)
@@ -122,7 +107,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
-	// TODO: Dashboard which includes, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
 	dashboard.POST("/demand/predict", s.dashboardHandler.PredictDemandHeatMapHandler) // Send data and fetch demand from demand service
@@ -137,32 +121,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
 	api.POST("/:org/surge/alert")      // Send alert from the ml model
 
-	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
-	schedule := dashboard.Group("/schedule")
-	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
-	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
-
-	// TODO: Campaigns Management & Insights
-	campaigns := organization.Group("/campaigns")
-	campaigns.GET("", s.campaignHandler.GetCampaignsInsightsHandler)       // Campaign insights
-	campaigns.POST("/upload", s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
-	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
-	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)             // Get All Campaigns
-	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler) // Get All Campaigns for last week
-
-	// TODO Add connection to campaign model routes
-
-	// TODO: Offers management to those on call and in the shift in the current shift
-	offers := organization.Group("/offers")
-	offers.GET("")          // Get all offers that start_time is before now
-	offers.POST("/accept")  // Accept an offer
-	offers.POST("/decline") // Decline an offer
-
-	// Insights that change from a user to another about general statistics & analytics
-	insights := organization.Group("/insights")
-	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
-
-	// Staffing Management Done by Managers and admins
 	staffing := organization.Group("/staffing")
 	staffing.GET("", s.staffingHandler.GetStaffingSummary)
 	staffing.POST("", s.orgHandler.DelegateUser)
@@ -175,14 +133,42 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-	// TODO Handle Get Employee Schedule
-	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 
 	// TODO: Handle offers after accepting the request
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
+	
+	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
+	schedule := dashboard.Group("/schedule")
+	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
+	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
+	
+	// TODO Handle Get Employee Schedule
+	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
+
+	// TODO: Campaigns Management & Insights
+	campaigns := organization.Group("/campaigns")
+	campaigns.GET("", s.campaignHandler.GetCampaignsInsightsHandler)       // Campaign insights
+	campaigns.POST("/upload", s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
+	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
+	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)             // Get All Campaigns
+	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler) // Get All Campaigns for last week
+
+	// TODO Add connection to campaign model routes
+	
+	// TODO: Offers management to those on call and in the shift in the current shift
+	offers := organization.Group("/offers")
+	offers.GET("")          // Get all offers that start_time is before now
+	offers.POST("/accept")  // Accept an offer
+	offers.POST("/decline") // Decline an offer
+
+	// Insights that change from a user to another about general statistics & analytics
+	insights := organization.Group("/insights")
+	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
+
+	// Staffing Management Done by Managers and admins
 
 	// Preferences set by managers and employees
 	preferences := organization.Group("/preferences")                           // Employees only
@@ -200,25 +186,11 @@ func (s *Server) RegisterRoutes() http.Handler {
 }
 
 // healthHandler godoc
-// @Summary      Health check
-// @Description  Returns the health status of the API and database connection
-// @Tags         Health
-// @Accept       json
-// @Produce      json
-// @Success      200 {object} map[string]interface{} "API is healthy"
-// @Router       /health [get]
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
 }
 
 // healthHandler godoc
-// @Summary      Not found Handling
-// @Description  Returns 404 not found
-// @Tags         Health
-// @Accept       json
-// @Produce      json
-// @Success      404 {object} map[string]interface{} "404 Not Found"
-// @Router       any
 func (s *Server) notFoundHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
 }
