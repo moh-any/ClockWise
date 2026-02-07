@@ -457,22 +457,174 @@ function EmployeeDashboard() {
     </div>
   )
 
-  const renderSchedule = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">My Schedule</h1>
-          <p className="page-subtitle">View your upcoming shifts</p>
+  // Hardcoded personal schedule data - Employee's shifts for the week
+  const personalScheduleData = [
+    { day: 0, startHour: 9, endHour: 17, role: "Waiter" }, // Monday
+    { day: 2, startHour: 9, endHour: 17, role: "Waiter" }, // Wednesday
+    { day: 4, startHour: 10, endHour: 18, role: "Waiter" }, // Friday
+    { day: 5, startHour: 11, endHour: 19, role: "Waiter" }, // Saturday
+  ]
+
+  const calculateTotalHours = () => {
+    return personalScheduleData.reduce((total, shift) => {
+      return total + (shift.endHour - shift.startHour)
+    }, 0)
+  }
+
+  const formatHour = (hour) => {
+    if (hour === 0) return "12 AM"
+    if (hour === 12) return "12 PM"
+    if (hour < 12) return `${hour} AM`
+    return `${hour - 12} PM`
+  }
+
+  const renderSchedule = () => {
+    const headerGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+    const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
+    const totalHours = calculateTotalHours()
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Schedule</h1>
+            <p className="page-subtitle">Your weekly work schedule</p>
+          </div>
+          <div className="schedule-summary">
+            <div className="summary-card">
+              <span className="summary-label">Total Hours</span>
+              <span className="summary-value">{totalHours}h</span>
+            </div>
+            <div className="summary-card">
+              <span className="summary-label">Shifts</span>
+              <span className="summary-value">
+                {personalScheduleData.length}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="personal-schedule-alert">
+          <div className="alert-icon">ℹ️</div>
+          <div className="alert-content">
+            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
+            demonstrate your personal work shifts.
+          </div>
+        </div>
+
+        <div className="personal-schedule-view">
+          <div className="schedule-grid">
+            <div
+              className="schedule-header-cell schedule-corner-cell"
+              style={{
+                background: cornerGradient,
+                gridRow: 1,
+                gridColumn: 1,
+              }}
+            >
+              <div className="corner-label">Time / Day</div>
+            </div>
+            {daysShort.map((day, dayIndex) => (
+              <div
+                key={dayIndex}
+                className="schedule-header-cell"
+                style={{
+                  background: headerGradient,
+                  gridRow: 1,
+                  gridColumn: dayIndex + 2,
+                }}
+              >
+                <span className="day-name">{day}</span>
+              </div>
+            ))}
+
+            {/* Hour Labels */}
+            {Array.from({ length: 24 }).map((_, hour) => (
+              <div
+                key={`hour-${hour}`}
+                className="schedule-hour-label"
+                style={{
+                  gridRow: hour + 2,
+                  gridColumn: 1,
+                }}
+              >
+                <span className="hour-time">{formatHour(hour)}</span>
+              </div>
+            ))}
+
+            {/* Shift Blocks - spanning multiple hours */}
+            {personalScheduleData.map((shift, idx) => {
+              const dayIndex = daysShort.findIndex((d) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                return dayMap[d] === shift.day
+              })
+
+              return (
+                <div
+                  key={`shift-${idx}`}
+                  className="shift-block"
+                  style={{
+                    gridRow: `${shift.startHour + 2} / ${shift.endHour + 2}`,
+                    gridColumn: dayIndex + 2,
+                    backgroundColor: primaryColor,
+                    borderColor: primaryColor,
+                  }}
+                >
+                  <div className="shift-info">
+                    <div className="shift-role">{shift.role}</div>
+                    <div className="shift-hours">
+                      {formatHour(shift.startHour)} -{" "}
+                      {formatHour(shift.endHour)}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Background cells for empty slots */}
+            {Array.from({ length: 24 }).map((_, hour) =>
+              daysShort.map((_, dayIndex) => {
+                const dayMap = {
+                  Mon: 1,
+                  Tue: 2,
+                  Wed: 3,
+                  Thu: 4,
+                  Fri: 5,
+                  Sat: 6,
+                  Sun: 0,
+                }
+                const actualDay = dayMap[daysShort[dayIndex]]
+                const hasShift = personalScheduleData.some(
+                  (s) =>
+                    s.day === actualDay &&
+                    hour >= s.startHour &&
+                    hour < s.endHour,
+                )
+                return hasShift ? null : (
+                  <div
+                    key={`cell-${hour}-${dayIndex}`}
+                    className="schedule-cell empty-cell"
+                    style={{
+                      gridRow: hour + 2,
+                      gridColumn: dayIndex + 2,
+                    }}
+                  />
+                )
+              }),
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="empty-state">
-        <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-        <h3>Schedule View Coming Soon</h3>
-        <p>View your assigned shifts and work calendar</p>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const renderPreferences = () => (
     <div className="premium-content fade-in">

@@ -2281,7 +2281,6 @@ button:focus-visible {
   }
 }
 
-
 /* ============================================
    TABLE STYLES
    ============================================ */
@@ -2331,7 +2330,9 @@ button:focus-visible {
 
 .data-table tbody tr {
   border-bottom: 1px solid var(--mgr-gray-200);
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
 }
 
 .data-table tbody tr:hover {
@@ -2540,7 +2541,6 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-
 /* Base Table Styles (if not already present) */
 .table-wrapper {
   overflow-x: auto;
@@ -2587,4 +2587,264 @@ button:focus-visible {
   font-size: 12px;
   font-weight: 600;
   text-transform: capitalize;
+}
+
+/* ========================================
+   PERSONAL SCHEDULE VIEW
+   ======================================== */
+
+/* Schedule Summary Cards */
+.manager-dashboard-wrapper .schedule-summary {
+  display: flex;
+  gap: 1rem;
+}
+
+.manager-dashboard-wrapper .summary-card {
+  background: var(--mgr-card-bg);
+  border: 1px solid var(--mgr-border-color);
+  border-radius: var(--mgr-radius-md);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: var(--mgr-shadow-sm);
+}
+
+.manager-dashboard-wrapper .summary-label {
+  font-size: var(--mgr-text-sm);
+  color: var(--mgr-text-secondary);
+  font-weight: 500;
+}
+
+.manager-dashboard-wrapper .summary-value {
+  font-size: var(--mgr-text-2xl);
+  font-weight: 700;
+  color: var(--mgr-text-primary);
+  background: var(--mgr-gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Personal Schedule Alert */
+.manager-dashboard-wrapper .personal-schedule-alert {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 2px solid #fbbf24;
+  border-radius: var(--mgr-radius-lg);
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+}
+
+.manager-dashboard-wrapper .personal-schedule-alert .alert-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.manager-dashboard-wrapper .personal-schedule-alert .alert-content {
+  flex: 1;
+  color: #78350f;
+  font-size: var(--mgr-text-sm);
+  line-height: 1.5;
+}
+
+.manager-dashboard-wrapper .personal-schedule-alert .alert-content strong {
+  font-weight: 700;
+  color: #92400e;
+}
+
+/* Personal Schedule Grid */
+.manager-dashboard-wrapper .personal-schedule-view {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+  background: var(--mgr-card-bg);
+  border-radius: var(--mgr-radius-lg);
+  padding: 2rem;
+  box-shadow: var(--mgr-shadow-md);
+  border: 1px solid var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper .schedule-grid {
+  display: grid;
+  grid-template-columns: 100px repeat(7, minmax(80px, 1fr));
+  gap: 2px;
+  background: var(--mgr-border-color);
+  border: 1px solid var(--mgr-border-color);
+  border-radius: var(--mgr-radius-md);
+  overflow: hidden;
+  min-width: 800px;
+}
+
+.manager-dashboard-wrapper .schedule-header-cell {
+  color: white;
+  padding: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  font-size: var(--mgr-text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.manager-dashboard-wrapper .schedule-corner-cell {
+  font-size: var(--mgr-text-xs);
+  font-weight: 500;
+}
+
+.manager-dashboard-wrapper .corner-label {
+  opacity: 0.95;
+  font-size: 0.7rem;
+}
+
+.manager-dashboard-wrapper .day-name {
+  font-size: var(--mgr-text-base);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.manager-dashboard-wrapper .schedule-hour-label {
+  background: var(--mgr-card-bg);
+  padding: 0.75rem;
+  font-weight: 600;
+  font-size: var(--mgr-text-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mgr-text-primary);
+  border-right: 2px solid var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper .hour-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.manager-dashboard-wrapper .schedule-cell {
+  background: var(--mgr-card-bg);
+  padding: 0.5rem;
+  min-height: 50px;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.manager-dashboard-wrapper .schedule-cell.empty-cell {
+  background: var(--mgr-bg-secondary);
+  opacity: 0.3;
+}
+
+/* Shift Block Spanning Multiple Hours */
+.manager-dashboard-wrapper .shift-block {
+  background: var(--mgr-card-bg);
+  padding: 1rem;
+  border: 3px solid;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.manager-dashboard-wrapper .shift-block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: currentColor;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.manager-dashboard-wrapper .shift-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 1;
+  position: relative;
+}
+
+.manager-dashboard-wrapper .shift-role {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--mgr-text-primary);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.manager-dashboard-wrapper .shift-hours {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--mgr-text-secondary);
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* Dark Mode for Personal Schedule */
+.manager-dashboard-wrapper.dark-mode .personal-schedule-alert {
+  background: linear-gradient(135deg, #422006, #78350f);
+  border-color: #92400e;
+}
+
+.manager-dashboard-wrapper.dark-mode .personal-schedule-alert .alert-content {
+  color: #fde68a;
+}
+
+.manager-dashboard-wrapper.dark-mode
+  .personal-schedule-alert
+  .alert-content
+  strong {
+  color: #fef3c7;
+}
+
+.manager-dashboard-wrapper.dark-mode .personal-schedule-view {
+  background: #1a1d24;
+  border-color: var(--mgr-border-color);
+}
+
+.manager-dashboard-wrapper.dark-mode .schedule-cell {
+  background: #1e2430;
+}
+
+.manager-dashboard-wrapper.dark-mode .schedule-cell.empty-cell {
+  background: #151820;
+}
+
+.manager-dashboard-wrapper.dark-mode .shift-block {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.manager-dashboard-wrapper.dark-mode .schedule-hour-label {
+  background: #1e2430;
+  color: var(--mgr-text-primary);
+}
+
+.manager-dashboard-wrapper.dark-mode .summary-card {
+  background: #1a1d24;
+  border-color: var(--mgr-border-color);
+}
+
+/* Responsive for Personal Schedule */
+@media (max-width: 768px) {
+  .manager-dashboard-wrapper .schedule-summary {
+    flex-direction: column;
+  }
+
+  .manager-dashboard-wrapper .personal-schedule-view {
+    padding: 1rem;
+  }
+
+  .manager-dashboard-wrapper .schedule-grid {
+    grid-template-columns: 70px repeat(7, minmax(60px, 1fr));
+    font-size: 0.75rem;
+  }
 }
