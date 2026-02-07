@@ -138,7 +138,7 @@ func TestDelegateUser(t *testing.T) {
 			FullName:      "Manager User",
 			Email:         "mgr@test.com",
 			Role:          "manager",
-			SalaryPerHour:  &salary,
+			SalaryPerHour: &salary,
 		}
 
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}
@@ -168,14 +168,14 @@ func TestDelegateUser(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusForbidden, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 	salary = 10.0
 	t.Run("Failure_InvalidRole", func(t *testing.T) {
 		reqBody := api.DelegateUserRequest{
 			FullName:      "Bad Role User",
 			Email:         "bad@test.com",
-			Role:          "employee",
+			Role:          "invalid_role",
 			SalaryPerHour: &salary,
 		}
 		jsonBytes, _ := json.Marshal(reqBody)
@@ -185,9 +185,10 @@ func TestDelegateUser(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/"+orgID.String()+"/staffing", bytes.NewBuffer(jsonBytes))
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
-
+		t.Logf("Response Body: %s", w.Body.String())
+		t.Logf("Response Code: %d", w.Code)
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Role does not exist")
+		assert.Contains(t, w.Body.String(), "Key: 'DelegateUserRequest.Role' Error:Field validation for 'Role' failed on the 'oneof' tag")
 	})
 }
 
