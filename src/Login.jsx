@@ -64,11 +64,14 @@ function Login({ onClose, onSwitchToSignup, isClosing }) {
 
       console.log("Detected role:", role)
 
-      if (role === "admin" || role === "manager") {
+      if (role === "admin") {
         console.log("✅ Navigating to /admin")
         navigate("/admin")
+      } else if (role === "manager") {
+        console.log("✅ Navigating to /manager")
+        navigate("/manager")
       } else {
-        console.log("Navigating to /employee")
+        console.log("✅ Navigating to /employee")
         navigate("/employee")
       }
     } catch (err) {

@@ -5,6 +5,7 @@ import "./index.css"
 import App from "./App"
 import AdminDashboard from "./AdminDashboard"
 import EmployeeDashboard from "./EmployeeDashboard"
+import ManagerDashboard from "./ManagerDashboard"
 import ProtectedRoute from "./ProtectedRoute"
 
 const root = ReactDOM.createRoot(document.getElementById("root"))
@@ -26,6 +27,14 @@ root.render(
           element={
             <ProtectedRoute>
               <EmployeeDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager"
+          element={
+            <ProtectedRoute>
+              <ManagerDashboard />
             </ProtectedRoute>
           }
         />

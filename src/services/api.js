@@ -580,6 +580,90 @@ export const rulesAPI = {
 }
 
 // ============================================================================
+// ORDERS API
+// ============================================================================
+
+export const ordersAPI = {
+  /**
+   * Get order insights and analytics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getOrderInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/orders`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get all orders for the organization
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllOrders: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/orders/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get orders from the last 7 days
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getOrdersWeek: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/orders/week`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get orders from today
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getOrdersToday: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/orders/today`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Upload orders CSV file
+   * @param {File} file - CSV file with orders data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadOrdersCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/orders/upload/orders`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+
+  /**
+   * Upload order items CSV file
+   * @param {File} file - CSV file with order items data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadOrderItemsCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/orders/upload/items`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+}
+
+// ============================================================================
 // PREFERENCES API
 // ============================================================================
 
@@ -679,6 +763,7 @@ const api = {
   rules: rulesAPI,
   preferences: preferencesAPI,
   insights: insightsAPI,
+  orders: ordersAPI,
   health: healthAPI,
 }
 
