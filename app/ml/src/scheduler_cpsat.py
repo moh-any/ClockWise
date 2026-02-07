@@ -651,7 +651,10 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
             if not data['is_sufficient'] and data['potential_output'] > 0:
                 role = next(r for r in input_data.roles if r.id == role_id)
                 shortfall = total_demand - data['potential_output']
-                recommended_hires = int(shortfall / (role.items_per_hour * 40) + 1)
+                if role.items_per_hour > 0:
+                    recommended_hires = int(shortfall / (role.items_per_hour * 40) + 1)
+                else:
+                    recommended_hires = 1
                 
                 hiring_recommendations.append({
                     'role': role_id,
@@ -728,7 +731,10 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
         for role in input_data.roles:
             if role.producing:
                 potential_coverage = role.items_per_hour * input_data.slot_len_hour
-                recommended_hires = int(total_unmet / (potential_coverage * input_data.num_days) + 0.5)
+                if potential_coverage > 0 and input_data.num_days > 0:
+                    recommended_hires = int(total_unmet / (potential_coverage * input_data.num_days) + 0.5)
+                else:
+                    recommended_hires = 1
                 
                 if recommended_hires > 0:
                     hiring_recommendations.append({
@@ -801,11 +807,11 @@ def generate_management_insights(solution: Optional[Dict], input_data: Scheduler
     
     unused = sum(1 for h in hours_list if h == 0)
     underutilized = sum(1 for emp in input_data.employees 
-                       if 0 < solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week < 0.5)
+                       if emp.max_hours_per_week > 0 and 0 < solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week < 0.5)
     well_utilized = sum(1 for emp in input_data.employees 
-                       if 0.5 <= solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week <= 0.85)
+                       if emp.max_hours_per_week > 0 and 0.5 <= solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week <= 0.85)
     overutilized = sum(1 for emp in input_data.employees 
-                      if solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week > 0.85)
+                      if emp.max_hours_per_week > 0 and solution['employee_stats'][emp.id]['work_hours'] / emp.max_hours_per_week > 0.85)
     
     insights['workload_distribution'] = {
         'average_hours': avg_hours,
