@@ -133,16 +133,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
-	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("/",s.scheduleHandler.GetCurrentUserScheduleHandler) // Show schedule for manager and employee
 	schedule.GET("/all", s.scheduleHandler.GetScheduleHandler)         // If admin or manager show full schedule, if employee do not allow
 	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
 
-	// TODO Handle Get Employee Schedule
 	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
-	// TODO: Campaigns Management & Insights
 	campaigns := organization.Group("/campaigns")
 	campaigns.GET("", s.campaignHandler.GetCampaignsInsightsHandler)       // Campaign insights
 	campaigns.POST("/upload", s.campaignHandler.UploadCampaignsCSVHandler) // Upload Campaigns CSV
@@ -163,8 +160,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
 	insights.GET("", s.insightHandler.GetInsightsHandler) // Get All insights
-
-	// Staffing Management Done by Managers and admins
 
 	// Preferences set by managers and employees
 	preferences := organization.Group("/preferences")                           // Employees only

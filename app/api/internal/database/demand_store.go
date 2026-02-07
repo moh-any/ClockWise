@@ -58,6 +58,7 @@ func (pd *PredictionDay) UnmarshalJSON(data []byte) error {
 type DemandStore interface {
 	StoreDemandHeatMap(org_id uuid.UUID, demand DemandPredictResponse) error
 	GetLatestDemandHeatMap(org_id uuid.UUID) (*DemandPredictResponse, error)
+	DeleteDemandByOrganization(org_id uuid.UUID) (int64, error)
 }
 
 type PostgresDemandStore struct {
@@ -85,17 +86,27 @@ func (pgds *PostgresDemandStore) StoreDemandHeatMap(org_id uuid.UUID, demand Dem
 	}
 	defer tx.Rollback()
 
-	// Delete existing demand data for the organization (keep only latest 7 days)
-	deleteQuery := `DELETE FROM demand WHERE organization_id = $1`
-	_, err = tx.Exec(deleteQuery, org_id)
+	// Delete existing demand data within the same transaction for atomicity
+	// If inserts fail, the delete is also rolled back
+	deleteQuery := "DELETE FROM demand WHERE organization_id = $1"
+	deleteResult, err := tx.Exec(deleteQuery, org_id)
 	if err != nil {
-		pgds.Logger.Error("failed to delete existing demand data", "error", err, "organization_id", org_id)
+		pgds.Logger.Error("failed to delete old demand data in transaction",
+			"error", err,
+			"organization_id", org_id)
 		return err
 	}
+	rowsDeleted, _ := deleteResult.RowsAffected()
+	pgds.Logger.Info("deleted old demand data in transaction",
+		"organization_id", org_id,
+		"rows_deleted", rowsDeleted)
 
-	// Insert new demand predictions
+	// Insert new demand predictions using ON CONFLICT to handle any duplicate entries
+	// The ML response may contain overlapping date+hour combinations
 	insertQuery := `INSERT INTO demand (organization_id, demand_date, day, hour, order_count, item_count) 
-		VALUES ($1, $2, $3, $4, $5, $6)`
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (organization_id, demand_date, day, hour) 
+		DO UPDATE SET order_count = EXCLUDED.order_count, item_count = EXCLUDED.item_count`
 
 	for _, day := range demand.Days {
 		for _, hour := range day.Hours {
@@ -208,4 +219,31 @@ func (pgds *PostgresDemandStore) GetLatestDemandHeatMap(org_id uuid.UUID) (*Dema
 		"days_count", len(days))
 
 	return response, nil
+}
+
+// DeleteDemandByOrganization deletes all demand records for an organization
+func (pgds *PostgresDemandStore) DeleteDemandByOrganization(org_id uuid.UUID) (int64, error) {
+	query := "DELETE FROM demand WHERE organization_id = $1"
+
+	result, err := pgds.DB.Exec(query, org_id)
+	if err != nil {
+		pgds.Logger.Error("failed to delete demand data",
+			"organization_id", org_id,
+			"error", err)
+		return 0, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		pgds.Logger.Error("failed to get rows affected",
+			"organization_id", org_id,
+			"error", err)
+		return 0, err
+	}
+
+	pgds.Logger.Info("deleted old demand data",
+		"organization_id", org_id,
+		"rows_deleted", rowsAffected)
+
+	return rowsAffected, nil
 }

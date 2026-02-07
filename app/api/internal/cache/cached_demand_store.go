@@ -68,3 +68,18 @@ func (cds *CachedDemandStore) GetLatestDemandHeatMap(org_id uuid.UUID) (*databas
 
 	return responsePtr, nil
 }
+
+// DeleteDemandByOrganization deletes demand data and invalidates cache
+func (cds *CachedDemandStore) DeleteDemandByOrganization(org_id uuid.UUID) (int64, error) {
+	// Delete from database
+	rowsDeleted, err := cds.store.DeleteDemandByOrganization(org_id)
+	if err != nil {
+		return 0, err
+	}
+
+	// Invalidate the heatmap cache for this organization
+	key := fmt.Sprintf("org:%s:demand_heatmap", org_id)
+	_ = cds.cache.Delete(key)
+
+	return rowsDeleted, nil
+}

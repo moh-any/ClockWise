@@ -51,7 +51,7 @@ type DemandPredictionRequest struct {
 	Place                Place               `json:"place"`
 	Orders               []database.Order    `json:"orders"`
 	Campaigns            []database.Campaign `json:"campaigns"`
-	PredicationStartDate time.Time           `json:"prediction_start_date"`
+	PredicationStartDate string              `json:"prediction_start_date"`
 	PredictionDays       *int                `json:"prediction_days,omitempty"`
 }
 
@@ -194,11 +194,12 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 	}
 	days := 7
 
+	date := time.Now().Format(time.DateOnly)
 	request := DemandPredictionRequest{
 		Place:                Place,
 		Orders:               orders,
 		Campaigns:            campaigns,
-		PredicationStartDate: time.Now(),
+		PredicationStartDate: date,
 		PredictionDays:       &days,
 	}
 
@@ -253,15 +254,15 @@ func (dh *DashboardHandler) PredictDemandHeatMapHandler(c *gin.Context) {
 		return
 	}
 
-	// Store in Demand Store
+	// Store in Demand Store (handles deletion + insertion atomically in a single transaction)
 	err = dh.DemandStore.StoreDemandHeatMap(user.OrganizationID, demandResponse)
 
 	if err != nil {
+		dh.Logger.Error("failed to store demand heatmap", "error", err, "org_id", user.OrganizationID)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
 
-	
 	// Return the successfully decoded response
 	c.JSON(http.StatusOK, gin.H{"message": "demand prediction retrieved successfuly from API", "data": demandResponse})
 }
