@@ -7,7 +7,7 @@ import HomeIcon from "./Icons/Home_Icon.svg"
 import ScheduleIcon from "./Icons/Schedule_Icon.svg"
 import AnalyticsIcon from "./Icons/Analytics_Icon.svg"
 import PlanningIcon from "./Icons/Planning_Icon.svg"
-import SettingsIcon from "./Icons/Settings_Icon.svg"
+import OrdersIcon from "./Icons/Orders-Icon.svg"
 import InfoIcon from "./Icons/Info_Icon.svg"
 import ChartUpIcon from "./Icons/Chart-Up-Icon.svg"
 import ChartDownIcon from "./Icons/Chart-down-Icon.svg"
@@ -58,6 +58,19 @@ function AdminDashboard() {
   const mapInstance = useRef(null)
   const configFileInput = useRef(null)
   const rosterFileInput = useRef(null)
+
+  // Orders state
+  const [ordersData, setOrdersData] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [ordersFilter, setOrdersFilter] = useState('all')
+  const [ordersDataType, setOrdersDataType] = useState('orders') // orders, items, deliveries
+  const [ordersInsights, setOrdersInsights] = useState([])
+  const [showUploadOrders, setShowUploadOrders] = useState(false)
+  const [showUploadItems, setShowUploadItems] = useState(false)
+  const [showUploadDeliveries, setShowUploadDeliveries] = useState(false)
+  const ordersFileInput = useRef(null)
+  const itemsFileInput = useRef(null)
+  const deliveriesFileInput = useRef(null)
 
   // Staffing state
   const [employees, setEmployees] = useState([])
@@ -118,10 +131,10 @@ function AdminDashboard() {
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
-    { id: "analytics", label: "Analytics", icon: AnalyticsIcon },
+    { id: "insights", label: "Insights", icon: AnalyticsIcon },
     { id: "planning", label: "Planning", icon: PlanningIcon },
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
-    { id: "settings", label: "Settings", icon: SettingsIcon },
+    { id: "orders", label: "Orders", icon: OrdersIcon },
     { id: "info", label: "Setup", icon: InfoIcon },
   ]
 
@@ -247,10 +260,28 @@ function AdminDashboard() {
         setCurrentUser(parsedUser)
       }
 
-      // Fetch fresh data from API
-      const userData = await api.auth.getCurrentUser()
-      console.log("Fetched fresh user data from API:", userData)
-      setCurrentUser(userData)
+      // Fetch fresh data from API - use profile endpoint for more detailed info
+      const profileData = await api.profile.getProfile()
+      console.log("Fetched profile data from API:", profileData)
+      
+      // The profile data comes with a nested structure
+      const userData = profileData.data || profileData
+      
+      // Also get basic user info to ensure we have all fields
+      const authData = await api.auth.getCurrentUser()
+      
+      // Merge both sources for complete user info
+      const completeUser = {
+        ...authData,
+        ...userData,
+        organization_name: userData.organization,
+      }
+      
+      console.log("Complete user data:", completeUser)
+      setCurrentUser(completeUser)
+      
+      // Update cache
+      localStorage.setItem("current_user", JSON.stringify(completeUser))
     } catch (err) {
       console.error("Error fetching user data:", err)
       // Still try to use cached data
@@ -406,6 +437,55 @@ function AdminDashboard() {
       fetchRoles()
     }
   }, [activeTab])
+
+  // Fetch orders when orders tab is active or filter/type changes
+  useEffect(() => {
+    if (activeTab === "orders") {
+      const fetchOrdersData = async () => {
+        try {
+          setOrdersLoading(true)
+          let data
+          let insights
+          if (ordersDataType === 'items') {
+            // Items don't have time filters, always get all
+            data = await api.items.getAllItems()
+            insights = await api.items.getItemInsights()
+          } else if (ordersDataType === 'deliveries') {
+            insights = await api.deliveries.getDeliveryInsights()
+            switch (ordersFilter) {
+              case 'today':
+                data = await api.deliveries.getDeliveriesToday()
+                break
+              case 'week':
+                data = await api.deliveries.getDeliveriesWeek()
+                break
+              default:
+                data = await api.deliveries.getAllDeliveries()
+            }
+          } else {
+            insights = await api.orders.getOrderInsights()
+            switch (ordersFilter) {
+              case 'today':
+                data = await api.orders.getOrdersToday()
+                break
+              case 'week':
+                data = await api.orders.getOrdersWeek()
+                break
+              default:
+                data = await api.orders.getAllOrders()
+            }
+          }
+          setOrdersData(data.data || [])
+          setOrdersInsights(insights.data || [])
+        } catch (err) {
+          console.error('Failed to fetch orders:', err)
+        } finally {
+          setOrdersLoading(false)
+        }
+      }
+      fetchOrdersData()
+    }
+  }, [activeTab, ordersFilter, ordersDataType])
 
   const initializeMap = () => {
     if (typeof window.mapboxgl === "undefined") {
@@ -594,65 +674,6 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Insights Data Grid */}
-      {insights && insights.length > 0 && (
-        <div className="section-wrapper">
-          <div className="section-header">
-            <h2 className="section-title">
-              <img
-                src={AnalyticsIcon}
-                alt="Insights"
-                className="title-icon-svg"
-              />
-              Organization Insights
-            </h2>
-          </div>
-          <div
-            className="insights-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-              gap: "var(--space-4)",
-              marginTop: "var(--space-4)",
-            }}
-          >
-            {insights.map((insight, index) => (
-              <div
-                key={index}
-                className="insight-card"
-                style={{
-                  padding: "var(--space-4)",
-                  borderRadius: "var(--radius-lg)",
-                  background: "var(--card-bg)",
-                  border: "1px solid var(--border-color)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <h4
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 500,
-                    color: "var(--gray-600)",
-                    marginBottom: "var(--space-2)",
-                  }}
-                >
-                  {insight.title}
-                </h4>
-                <p
-                  style={{
-                    fontSize: "var(--text-2xl)",
-                    fontWeight: 700,
-                    color: "var(--color-primary)",
-                  }}
-                >
-                  {insight.statistic}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* AI Alerts Section */}
       {aiAlerts && aiAlerts.filter((a) => !a.dismissed).length > 0 && (
         <div className="section-wrapper">
@@ -787,94 +808,80 @@ function AdminDashboard() {
     </div>
   )
 
-  const renderAnalytics = () => (
+  const renderInsights = () => (
     <div className="premium-content fade-in">
       <div className="content-header">
         <div>
-          <h1 className="page-title">Analytics & Reports</h1>
-          <p className="page-subtitle">Data-driven workforce insights</p>
+          <h1 className="page-title">Organization Insights</h1>
+          <p className="page-subtitle">Real-time metrics and analytics</p>
         </div>
-        <button className="btn-primary">Generate Report</button>
+        <button className="btn-primary" onClick={() => fetchDashboardData()}>
+          <svg
+            style={{ width: '20px', height: '20px', marginRight: '8px' }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          Refresh Data
+        </button>
       </div>
 
-      <div className="analytics-grid">
-        <div className="chart-card">
-          <h3 className="chart-title">Labor Cost Trends</h3>
-          <div className="chart-placeholder">
-            <svg
-              className="chart-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
+      {insights && insights.length > 0 ? (
+        <div
+          className="insights-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "var(--space-6)",
+          }}
+        >
+          {insights.map((insight, index) => (
+            <div
+              key={index}
+              className="kpi-card kpi-card-primary"
+              data-animation="slide-up"
+              style={{
+                animationDelay: `${index * 0.05}s`,
+              }}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-              />
-            </svg>
-            <p>Chart visualization</p>
-          </div>
+              <div className="kpi-icon-wrapper">
+                <svg
+                  className="kpi-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div className="kpi-content">
+                <h3 className="kpi-label">{insight.title}</h3>
+                <div className="kpi-value-wrapper">
+                  <div className="kpi-value">{insight.statistic}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="chart-card">
-          <h3 className="chart-title">Attendance Patterns</h3>
-          <div className="chart-placeholder">
-            <svg
-              className="chart-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-            <p>Chart visualization</p>
-          </div>
+      ) : (
+        <div className="empty-state">
+          <img src={AnalyticsIcon} alt="Insights" className="empty-icon-svg" />
+          <h3>No Insights Available</h3>
+          <p>Insights data will appear here once you have sufficient activity</p>
         </div>
-        <div className="chart-card">
-          <h3 className="chart-title">Department Performance</h3>
-          <div className="chart-placeholder">
-            <svg
-              className="chart-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            <p>Chart visualization</p>
-          </div>
-        </div>
-        <div className="chart-card">
-          <h3 className="chart-title">Revenue vs Labor Cost</h3>
-          <div className="chart-placeholder">
-            <svg
-              className="chart-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-              />
-            </svg>
-            <p>Chart visualization</p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 
@@ -953,139 +960,502 @@ function AdminDashboard() {
     </div>
   )
 
-  const renderOrgSettings = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Organization Settings</h1>
-          <p className="page-subtitle">Configure system parameters</p>
-        </div>
-      </div>
+  const renderOrders = () => {
+    const fetchOrders = async (filter = 'all', dataType = 'orders') => {
+      try {
+        setOrdersLoading(true)
+        let data
+        let insights
+        if (dataType === 'items') {
+          // Items don't have time filters
+          data = await api.items.getAllItems()
+          insights = await api.items.getItemInsights()
+        } else if (dataType === 'deliveries') {
+          insights = await api.deliveries.getDeliveryInsights()
+          switch (filter) {
+            case 'today':
+              data = await api.deliveries.getDeliveriesToday()
+              break
+            case 'week':
+              data = await api.deliveries.getDeliveriesWeek()
+              break
+            default:
+              data = await api.deliveries.getAllDeliveries()
+          }
+        } else {
+          insights = await api.orders.getOrderInsights()
+          switch (filter) {
+            case 'today':
+              data = await api.orders.getOrdersToday()
+              break
+            case 'week':
+              data = await api.orders.getOrdersWeek()
+              break
+            default:
+              data = await api.orders.getAllOrders()
+          }
+        }
+        setOrdersData(data.data || [])
+        setOrdersInsights(insights.data || [])
+      } catch (err) {
+        console.error('Failed to fetch data:', err)
+        setActionMessage({ type: 'error', text: err.message || 'Failed to load data' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+      }
+    }
 
-      <div className="settings-section">
-        <h2 className="section-title">Hourly Rates</h2>
-        <div className="settings-grid">
-          <div className="setting-item">
-            <label className="setting-label">Base Rate</label>
-            <input
-              type="number"
-              className="setting-input"
-              placeholder="$15.00"
-            />
+    const handleOrdersUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setOrdersLoading(true)
+        const response = await api.orders.uploadOrdersCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Orders uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchOrders(ordersFilter)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload orders' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+        setShowUploadOrders(false)
+        if (ordersFileInput.current) ordersFileInput.current.value = ''
+      }
+    }
+
+    const handleItemsUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setOrdersLoading(true)
+        const response = await api.items.uploadItemsCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Items uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchOrders(ordersFilter, ordersDataType)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload items' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+        setShowUploadItems(false)
+        if (itemsFileInput.current) itemsFileInput.current.value = ''
+      }
+    }
+
+    const handleDeliveriesUpload = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        setOrdersLoading(true)
+        const response = await api.deliveries.uploadDeliveriesCSV(file)
+        setActionMessage({
+          type: 'success',
+          text: `Deliveries uploaded: ${response.success_count} successful, ${response.error_count} failed`
+        })
+        setTimeout(() => setActionMessage(null), 5000)
+        fetchOrders(ordersFilter, ordersDataType)
+      } catch (err) {
+        setActionMessage({ type: 'error', text: err.message || 'Failed to upload deliveries' })
+        setTimeout(() => setActionMessage(null), 4000)
+      } finally {
+        setOrdersLoading(false)
+        setShowUploadDeliveries(false)
+        if (deliveriesFileInput.current) deliveriesFileInput.current.value = ''
+      }
+    }
+
+    const getOrderTypeColor = (type) => {
+      switch (type) {
+        case 'dine_in': return 'var(--color-primary)'
+        case 'delivery': return 'var(--color-secondary)'
+        case 'takeaway': return 'var(--color-accent)'
+        default: return 'var(--gray-500)'
+      }
+    }
+
+    const getStatusBadge = (status) => {
+      const colors = {
+        completed: 'var(--color-primary)',
+        in_progress: 'var(--secondary-500)',
+        cancelled: 'var(--accent-500)',
+        pending: 'var(--gray-500)'
+      }
+      return colors[status] || 'var(--gray-500)'
+    }
+
+    const downloadCSV = () => {
+      if (!ordersData || ordersData.length === 0) {
+        setActionMessage({ type: 'error', text: 'No data to download' })
+        setTimeout(() => setActionMessage(null), 3000)
+        return
+      }
+
+      let csvContent = ''
+      let filename = ''
+
+      if (ordersDataType === 'orders') {
+        csvContent = 'Order ID,Type,Status,Amount,Discount,Item Count,Rating,Date\n'
+        ordersData.forEach(order => {
+          csvContent += `${order.order_id},${order.order_type},${order.order_status},${order.total_amount || 0},${order.discount_amount || 0},${order.item_count || 0},${order.rating || ''},${new Date(order.create_time).toISOString()}\n`
+        })
+        filename = `orders_${ordersFilter}_${new Date().toISOString().split('T')[0]}.csv`
+      } else if (ordersDataType === 'items') {
+        csvContent = 'Item ID,Name,Needed Employees,Price\n'
+        ordersData.forEach(item => {
+          csvContent += `${item.item_id},${item.name},${item.needed_employees},${item.price}\n`
+        })
+        filename = `items_${new Date().toISOString().split('T')[0]}.csv`
+      } else {
+        csvContent = 'Order ID,Driver ID,Status,Latitude,Longitude,Out for Delivery,Delivered\n'
+        ordersData.forEach(delivery => {
+          const lat = delivery.location?.latitude || ''
+          const lon = delivery.location?.longitude || ''
+          csvContent += `${delivery.order_id},${delivery.driver_id || ''},${delivery.status},${lat},${lon},${delivery.out_for_delivery_time || ''},${delivery.delivered_time || ''}\n`
+        })
+        filename = `deliveries_${ordersFilter}_${new Date().toISOString().split('T')[0]}.csv`
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      setActionMessage({ type: 'success', text: 'CSV downloaded successfully' })
+      setTimeout(() => setActionMessage(null), 3000)
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">Orders Management</h1>
+            <p className="page-subtitle">View and manage organization orders</p>
           </div>
-          <div className="setting-item">
-            <label className="setting-label">Overtime Rate</label>
-            <input
-              type="number"
-              className="setting-input"
-              placeholder="$22.50"
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Weekend Premium</label>
-            <input
-              type="number"
-              className="setting-input"
-              placeholder="$18.00"
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Holiday Rate</label>
-            <input
-              type="number"
-              className="setting-input"
-              placeholder="$30.00"
-            />
+          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            {ordersDataType === 'orders' ? (
+              <>
+                <button className="btn-secondary" onClick={() => setShowUploadOrders(true)}>
+                  <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Upload Orders
+                </button>
+              </>
+            ) : ordersDataType === 'items' ? (
+              <button className="btn-secondary" onClick={() => setShowUploadItems(true)}>
+                <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Items
+              </button>
+            ) : (
+              <button className="btn-secondary" onClick={() => setShowUploadDeliveries(true)}>
+                <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Deliveries
+              </button>
+            )}
+            <button className="btn-primary" onClick={() => fetchOrders(ordersFilter, ordersDataType)}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button className="btn-secondary" onClick={downloadCSV}>
+              <svg style={{ width: '18px', height: '18px', marginRight: '8px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download CSV
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="settings-section">
-        <h2 className="section-title">Shift Rules</h2>
-        <div className="settings-grid">
-          <div className="setting-item">
-            <label className="setting-label">Minimum Shift Length</label>
-            <select className="setting-input">
-              <option>4 hours</option>
-              <option>6 hours</option>
-              <option>8 hours</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Maximum Shift Length</label>
-            <select className="setting-input">
-              <option>8 hours</option>
-              <option>10 hours</option>
-              <option>12 hours</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Break Duration</label>
-            <select className="setting-input">
-              <option>15 minutes</option>
-              <option>30 minutes</option>
-              <option>60 minutes</option>
-            </select>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Grace Period</label>
-            <select className="setting-input">
-              <option>5 minutes</option>
-              <option>10 minutes</option>
-              <option>15 minutes</option>
-            </select>
-          </div>
+        <div className="filter-bar" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+          <select 
+            className="filter-select" 
+            value={ordersDataType}
+            onChange={(e) => setOrdersDataType(e.target.value)}
+            style={{ padding: '8px 12px', minWidth: '150px' }}
+          >
+            <option value="orders">Orders</option>
+            <option value="items">Items</option>
+            <option value="deliveries">Deliveries</option>
+          </select>
+          {ordersDataType !== 'items' && (
+            <>
+              <button 
+                className={ordersFilter === 'all' ? 'btn-primary' : 'btn-secondary'}
+                onClick={() => setOrdersFilter('all')}
+              >
+                All Time
+              </button>
+              <button 
+                className={ordersFilter === 'today' ? 'btn-primary' : 'btn-secondary'}
+                onClick={() => setOrdersFilter('today')}
+              >
+                Today
+              </button>
+              <button 
+                className={ordersFilter === 'week' ? 'btn-primary' : 'btn-secondary'}
+                onClick={() => setOrdersFilter('week')}
+              >
+                This Week
+              </button>
+            </>
+          )}
         </div>
-      </div>
 
-      <div className="settings-section">
-        <h2 className="section-title">System Logic</h2>
-        <div className="settings-toggles">
-          <div className="toggle-item">
-            <div className="toggle-content">
-              <h4 className="toggle-title">Auto-Approve Shifts</h4>
-              <p className="toggle-description">
-                Automatically approve all shift requests
-              </p>
+        {/* Insights Boxes */}
+        {ordersInsights.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-4)' }}>
+            {ordersInsights.map((insight, index) => (
+              <div key={index} className="stat-card" style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-4)' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-600)', marginBottom: 'var(--space-2)' }}>{insight.title}</p>
+                <h3 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--primary-600)' }}>{insight.statistic}</h3>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {ordersLoading ? (
+          <div className="empty-state">
+            <h3>Loading {ordersDataType}...</h3>
+          </div>
+        ) : ordersData && ordersData.length > 0 ? (
+          <div className="section-wrapper">
+            <div style={{ overflowX: 'auto' }}>
+              {ordersDataType === 'orders' ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Type</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Amount</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Discount</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item Count</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Rating</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordersData.map((order) => (
+                      <tr key={order.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                          {order.order_id.slice(0, 8)}...
+                        </td>
+                        <td style={{ padding: 'var(--space-4)' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getOrderTypeColor(order.order_type) + '20', color: getOrderTypeColor(order.order_type) }}>
+                            {order.order_type}
+                          </span>
+                        </td>
+                        <td style={{ padding: 'var(--space-4)' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(order.order_status) + '20', color: getStatusBadge(order.order_status) }}>
+                            {order.order_status}
+                          </span>
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
+                          ${order.total_amount?.toFixed(2) || '0.00'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--accent-500)' }}>
+                          ${order.discount_amount?.toFixed(2) || '0.00'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', textAlign: 'center' }}>
+                          {order.item_count || 0}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)' }}>
+                          {order.rating ? `⭐ ${order.rating}` : '—'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                          {new Date(order.create_time).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : ordersDataType === 'items' ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Item ID</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Name</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Needed Employees</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordersData.map((item) => (
+                      <tr key={item.item_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                          {item.item_id ? item.item_id.slice(0, 8) + '...' : '—'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', fontWeight: 600 }}>
+                          {item.name}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--gray-700)', textAlign: 'center' }}>
+                          {item.needed_employees}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-base)', color: 'var(--primary-600)', fontWeight: 600 }}>
+                          ${item.price?.toFixed(2) || '0.00'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--gray-200)' }}>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Order ID</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Driver ID</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Location</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Out for Delivery</th>
+                      <th style={{ textAlign: 'left', padding: 'var(--space-4)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--gray-600)', textTransform: 'uppercase' }}>Delivered</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ordersData.map((delivery) => (
+                      <tr key={delivery.order_id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                          {delivery.order_id.slice(0, 8)}...
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                          {delivery.driver_id ? delivery.driver_id.slice(0, 8) + '...' : '—'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)' }}>
+                          <span style={{ padding: '4px 12px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 600, backgroundColor: getStatusBadge(delivery.status) + '20', color: getStatusBadge(delivery.status) }}>
+                            {delivery.status}
+                          </span>
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-700)' }}>
+                          {delivery.location ? `${delivery.location.latitude.toFixed(4)}, ${delivery.location.longitude.toFixed(4)}` : '—'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                          {delivery.out_for_delivery_time ? new Date(delivery.out_for_delivery_time).toLocaleString() : '—'}
+                        </td>
+                        <td style={{ padding: 'var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>
+                          {delivery.delivered_time ? new Date(delivery.delivered_time).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            <label className="toggle-switch">
-              <input type="checkbox" />
-              <span className="toggle-slider"></span>
-            </label>
           </div>
-          <div className="toggle-item">
-            <div className="toggle-content">
-              <h4 className="toggle-title">Overtime Alerts</h4>
-              <p className="toggle-description">
-                Notify managers when overtime is approaching
-              </p>
-            </div>
-            <label className="toggle-switch">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
+        ) : (
+          <div className="empty-state">
+            <img src={OrdersIcon} alt="Orders" className="empty-icon-svg" />
+            <h3>No {ordersDataType === 'orders' ? 'Orders' : ordersDataType === 'items' ? 'Items' : 'Deliveries'} Found</h3>
+            <p>Upload {ordersDataType} data to get started</p>
           </div>
-          <div className="toggle-item">
-            <div className="toggle-content">
-              <h4 className="toggle-title">AI Recommendations</h4>
-              <p className="toggle-description">
-                Enable intelligent scheduling suggestions
-              </p>
-            </div>
-            <label className="toggle-switch">
-              <input type="checkbox" defaultChecked />
-              <span className="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
+        )}
 
-      <div className="settings-footer">
-        <button className="btn-secondary">Reset to Defaults</button>
-        <button className="btn-primary">Save All Changes</button>
+        {/* Upload Orders Modal */}
+        {showUploadOrders && (
+          <div className="modal-overlay" onClick={() => setShowUploadOrders(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Orders CSV</h2>
+                <button className="collapse-btn" onClick={() => setShowUploadOrders(false)}>×</button>
+              </div>
+              <div className="upload-card" onClick={() => ordersFileInput.current?.click()}>
+                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+                <h3 className="upload-title">Orders Data</h3>
+                <p className="upload-description">Upload past orders history</p>
+                <ul className="upload-specs">
+                  <li>Required: user_id, create_time, order_type, order_status, total_amount, discount_amount</li>
+                  <li>Optional: rating</li>
+                </ul>
+                <input
+                  ref={ordersFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={handleOrdersUpload}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Items Modal */}
+        {showUploadItems && (
+          <div className="modal-overlay" onClick={() => setShowUploadItems(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Items CSV</h2>
+                <button className="collapse-btn" onClick={() => setShowUploadItems(false)}>×</button>
+              </div>
+              <div className="upload-card" onClick={() => itemsFileInput.current?.click()}>
+                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+                <h3 className="upload-title">Items Catalog Data</h3>
+                <p className="upload-description">Upload menu items for your organization</p>
+                <ul className="upload-specs">
+                  <li>Required: name, needed_employees, price</li>
+                  <li>Each item name must be unique within the organization</li>
+                </ul>
+                <input
+                  ref={itemsFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={handleItemsUpload}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Deliveries Modal */}
+        {showUploadDeliveries && (
+          <div className="modal-overlay" onClick={() => setShowUploadDeliveries(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2 className="section-title">Upload Deliveries CSV</h2>
+                <button className="collapse-btn" onClick={() => setShowUploadDeliveries(false)}>×</button>
+              </div>
+              <div className="upload-card" onClick={() => deliveriesFileInput.current?.click()}>
+                <img src={CloudUploadIcon} alt="Upload" className="upload-icon-svg" />
+                <h3 className="upload-title">Deliveries Data</h3>
+                <p className="upload-description">Upload delivery information</p>
+                <ul className="upload-specs">
+                  <li>Required: order_id, driver_id, out_for_delivery_time, status</li>
+                  <li>Optional: delivered_time, delivery_latitude, delivery_longitude</li>
+                  <li>Prerequisites: Orders must exist</li>
+                </ul>
+                <input
+                  ref={deliveriesFileInput}
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={handleDeliveriesUpload}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
   // ============================================================================
   // STAFFING PANEL - Employee Management
@@ -2136,6 +2506,57 @@ function AdminDashboard() {
         )}
       </div>
 
+      {/* Shift Rules Section */}
+      <div className="section-wrapper">
+        <div className="section-header">
+          <h2 className="section-title">
+            <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
+            Shift Rules
+          </h2>
+        </div>
+        <p className="section-description">
+          Configure shift scheduling parameters for your organization
+        </p>
+        <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+          <div className="setting-item">
+            <label className="setting-label">Minimum Shift Length</label>
+            <select className="setting-input">
+              <option>4 hours</option>
+              <option>6 hours</option>
+              <option>8 hours</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Maximum Shift Length</label>
+            <select className="setting-input">
+              <option>8 hours</option>
+              <option>10 hours</option>
+              <option>12 hours</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Break Duration</label>
+            <select className="setting-input">
+              <option>15 minutes</option>
+              <option>30 minutes</option>
+              <option>60 minutes</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <label className="setting-label">Grace Period</label>
+            <select className="setting-input">
+              <option>5 minutes</option>
+              <option>10 minutes</option>
+              <option>15 minutes</option>
+            </select>
+          </div>
+        </div>
+        <div className="settings-footer" style={{ marginTop: 'var(--space-6)' }}>
+          <button className="btn-secondary">Reset to Defaults</button>
+          <button className="btn-primary">Save Shift Rules</button>
+        </div>
+      </div>
+
       {/* Roles Management Section */}
       <div className="section-wrapper">
         <div className="section-header">
@@ -2738,7 +3159,7 @@ function AdminDashboard() {
     // Get data from currentUser, no fallback hardcoded values in display
     const displayName = currentUser?.full_name || "Loading..."
     const displayEmail = currentUser?.email || "Loading..."
-    const displayRole = currentUser?.role || "Loading..."
+    const displayRole = currentUser?.user_role || "Loading..."
 
     return (
       <>
@@ -2802,15 +3223,15 @@ function AdminDashboard() {
                     <span className="info-value">{displayEmail}</span>
                   </div>
                   <div className="info-item">
-                    <span className="info-label">User ID</span>
-                    <span className="info-value">
-                      {currentUser?.id || "N/A"}
+                    <span className="info-label">Role</span>
+                    <span className="info-value" style={{textTransform: 'capitalize'}}>
+                      {displayRole}
                     </span>
                   </div>
                   <div className="info-item">
-                    <span className="info-label">Organization ID</span>
+                    <span className="info-label">Organization</span>
                     <span className="info-value">
-                      {currentUser?.organization_id || "N/A"}
+                      {currentUser?.organization_name || currentUser?.organization || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -3037,6 +3458,33 @@ function AdminDashboard() {
                       <div className="info-subtitle">Active</div>
                     </div>
                   </div>
+                  {currentUser?.created_at && (
+                    <div className="info-row">
+                      <svg
+                        className="info-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <div>
+                        <div className="info-title">Member Since</div>
+                        <div className="info-subtitle">
+                          {new Date(currentUser.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3185,10 +3633,10 @@ function AdminDashboard() {
           <>
             {activeTab === "home" && renderHomeDashboard()}
             {activeTab === "schedule" && renderMasterSchedule()}
-            {activeTab === "analytics" && renderAnalytics()}
+            {activeTab === "insights" && renderInsights()}
             {activeTab === "planning" && renderPlanning()}
             {activeTab === "staffing" && renderStaffing()}
-            {activeTab === "settings" && renderOrgSettings()}
+            {activeTab === "orders" && renderOrders()}
             {activeTab === "info" && renderInfo()}
           </>
         )}

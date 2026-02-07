@@ -716,6 +716,230 @@ export const insightsAPI = {
 }
 
 // ============================================================================
+// DELIVERIES API
+// ============================================================================
+
+export const deliveriesAPI = {
+  /**
+   * Get delivery insights and analytics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getDeliveryInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/deliveries`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get all deliveries for the organization
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllDeliveries: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/deliveries/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get deliveries from the last 7 days
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getDeliveriesWeek: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/deliveries/week`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get deliveries from today
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getDeliveriesToday: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/deliveries/today`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Upload deliveries CSV file
+   * @param {File} file - CSV file with deliveries data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadDeliveriesCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/deliveries/upload`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+}
+
+// ============================================================================
+// ITEMS API
+// ============================================================================
+
+export const itemsAPI = {
+  /**
+   * Get item insights and analytics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getItemInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/items`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get all items for the organization
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllItems: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/items/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Upload items CSV file
+   * @param {File} file - CSV file with items data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadItemsCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/items/upload`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+}
+
+// ============================================================================
+// CAMPAIGNS API
+// ============================================================================
+
+export const campaignsAPI = {
+  /**
+   * Get campaign insights and analytics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getCampaignInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get all campaigns for the organization
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllCampaigns: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get campaigns from the last 7 days
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getCampaignsWeek: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/campaigns/week`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Upload campaigns CSV file
+   * @param {File} file - CSV file with campaigns data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadCampaignsCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/campaigns/upload`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+
+  /**
+   * Upload campaign items CSV file
+   * @param {File} file - CSV file with campaign items data
+   * @returns {Promise<{total_rows: number, success_count: number, error_count: number, message: string}>}
+   */
+  uploadCampaignItemsCSV: async (file) => {
+    const orgId = getOrgId()
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return apiRequest(`/api/${orgId}/campaigns/upload/items`, {
+      method: "POST",
+      contentType: null,
+      body: formData,
+    })
+  },
+}
+
+// ============================================================================
+// DASHBOARD/SURGE API
+// ============================================================================
+
+export const dashboardAPI = {
+  /**
+   * Get surge pricing insights and analytics
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getSurgeInsights: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/surge`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get all surge pricing data
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllSurge: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/surge/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get surge pricing data from the last 7 days
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getSurgeWeek: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/surge/week`, {
+      method: "GET",
+    })
+  },
+}
+
+// ============================================================================
 // ORGANIZATION API
 // ============================================================================
 
@@ -764,6 +988,10 @@ const api = {
   preferences: preferencesAPI,
   insights: insightsAPI,
   orders: ordersAPI,
+  deliveries: deliveriesAPI,
+  items: itemsAPI,
+  campaigns: campaignsAPI,
+  dashboard: dashboardAPI,
   health: healthAPI,
 }
 

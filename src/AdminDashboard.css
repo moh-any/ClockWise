@@ -1911,10 +1911,12 @@ textarea {
 }
 
 .upload-icon-svg {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   margin: 0 auto var(--space-4);
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.6;
   transition: opacity var(--transition-fast);
 }

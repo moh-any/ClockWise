@@ -7,6 +7,8 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
   const navigate = useNavigate()
   const [organizationName, setOrganizationName] = useState("")
   const [address, setAddress] = useState("")
+  const [orgType, setOrgType] = useState("restaurant")
+  const [orgPhone, setOrgPhone] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
@@ -46,6 +48,8 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
       const registrationData = {
         org_name: organizationName,
         org_address: address || undefined,
+        org_type: orgType,
+        org_phone: orgPhone,
         admin_email: email,
         admin_full_name: fullName,
         admin_password: password,
@@ -119,6 +123,40 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
             />
           </div>
           <div className="signup-form-group">
+            <label className="signup-label" htmlFor="orgType">
+              Organization Type
+            </label>
+            <select
+              className="signup-input"
+              id="orgType"
+              value={orgType}
+              onChange={(e) => setOrgType(e.target.value)}
+              required
+              disabled={loading}
+            >
+              <option value="restaurant">Restaurant</option>
+              <option value="cafe">Cafe</option>
+              <option value="bar">Bar</option>
+              <option value="lounge">Lounge</option>
+              <option value="pub">Pub</option>
+            </select>
+          </div>
+          <div className="signup-form-group">
+            <label className="signup-label" htmlFor="orgPhone">
+              Organization Phone
+            </label>
+            <input
+              className="signup-input"
+              type="tel"
+              id="orgPhone"
+              value={orgPhone}
+              onChange={(e) => setOrgPhone(e.target.value)}
+              placeholder="+1234567890"
+              required
+              disabled={loading}
+            />
+          </div>
+          <div className="signup-form-group">
             <label className="signup-label" htmlFor="fullName">
               Full Name
             </label>
@@ -158,9 +196,9 @@ function Signup({ onClose, onSwitchToLogin, isClosing }) {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password (min 6 characters)"
+              placeholder="Enter your password (min 8 characters)"
               required
-              minLength="6"
+              minLength="8"
               disabled={loading}
             />
           </div>
