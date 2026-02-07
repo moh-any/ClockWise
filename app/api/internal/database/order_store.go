@@ -746,10 +746,10 @@ func (pgos *PostgresOrderStore) StoreItems(org_id uuid.UUID, item *Item) error {
 	}
 
 	query := `
-		INSERT INTO items (organization_id, name, needed_num_to_prepare, price)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO items (id,organization_id, name, needed_num_to_prepare, price)
+		VALUES ($1, $2, $3, $4, $5)
 	`
-	_, err = pgos.DB.Exec(query, org_id, item.Name, item.NeededNumEmployeesToPrepare, item.Price)
+	_, err = pgos.DB.Exec(query, item.ItemID ,org_id, item.Name, item.NeededNumEmployeesToPrepare, item.Price)
 	if err != nil {
 		pgos.Logger.Error("Failed to insert item", "error", err)
 		return err

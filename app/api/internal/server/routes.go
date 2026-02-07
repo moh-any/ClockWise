@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"log"
 	"net/http"
 
@@ -50,6 +51,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	api := r.Group("/api")
 	r.GET("/health", s.healthHandler)
+	r.GET("/ml/health", s.MLHealthHandler)
 
 	authMiddleware, err := middleware.NewAuthMiddleware(s.userStore)
 	if err != nil {
@@ -123,9 +125,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// TODO: Dashboard which includes, demands, insights, general info
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
-	dashboard.POST("/demand/refresh", s.dashboardHandler.RefreshDemandHeatMapHandler) // Send data and fetch demand from demand service
+	dashboard.POST("/demand/predict", s.dashboardHandler.PredictDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	// TODO: Surge ML Model Handlin
+	// TODO: Surge ML Model Handling
 	surge := dashboard.Group("/surge")
 	surge.GET("", s.alertHandler.GetAlertInsightsHandler) // Get All Alerts
 	surge.GET("/all", s.alertHandler.GetAllAlertsHandler)
@@ -219,4 +221,24 @@ func (s *Server) healthHandler(c *gin.Context) {
 // @Router       any
 func (s *Server) notFoundHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
+}
+
+func (s *Server) MLHealthHandler (c *gin.Context) {
+	client := &http.Client{}
+
+    req, err := http.NewRequest("GET", "http://cw-ml-service:8000/", nil)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ML health check request"})
+        return
+    }
+
+    resp, err := client.Do(req)
+    if err != nil {
+        c.JSON(http.StatusServiceUnavailable, gin.H{"error": "ML service is unavailable"})
+        return
+    }
+    defer resp.Body.Close()
+
+    body, _ := io.ReadAll(resp.Body)
+    c.JSON(resp.StatusCode, gin.H{"ml_service": string(body)})
 }

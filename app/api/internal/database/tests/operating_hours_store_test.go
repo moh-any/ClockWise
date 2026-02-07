@@ -89,7 +89,7 @@ func TestSetOperatingHours(t *testing.T) {
 	store := database.NewPostgresOperatingHoursStore(db, logger)
 
 	orgID := uuid.New()
-	hours := []*database.OperatingHours{
+	hours := []database.OperatingHours{
 		{OrganizationID: orgID, Weekday: "Monday", OpeningTime: "09:00", ClosingTime: "17:00"},
 		{OrganizationID: orgID, Weekday: "Tuesday", OpeningTime: "09:00", ClosingTime: "17:00"},
 	}

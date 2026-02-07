@@ -65,7 +65,7 @@ func TestGetOrganizationRules(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		env.ResetMocks()
 		rules := &database.OrganizationRules{OrganizationID: orgID, MaxWeeklyHours: 40}
-		operatingHours := []*database.OperatingHours{{Weekday: "Monday", OpeningTime: "09:00", ClosingTime: "17:00"}}
+		operatingHours := []database.OperatingHours{{Weekday: "Monday", OpeningTime: "09:00", ClosingTime: "17:00"}}
 
 		env.RulesStore.On("GetRulesByOrganizationID", orgID).Return(rules, nil).Once()
 		env.OperatingHoursStore.On("GetOperatingHours", orgID).Return(operatingHours, nil).Once()
@@ -85,7 +85,7 @@ func TestGetOrganizationRules(t *testing.T) {
 		env.ResetMocks()
 		// Rules not found (nil), Operating hours found
 		env.RulesStore.On("GetRulesByOrganizationID", orgID).Return(nil, nil).Once()
-		env.OperatingHoursStore.On("GetOperatingHours", orgID).Return([]*database.OperatingHours{}, nil).Once()
+		env.OperatingHoursStore.On("GetOperatingHours", orgID).Return([]database.OperatingHours{}, nil).Once()
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/"+orgID.String()+"/rules", nil)
@@ -148,7 +148,7 @@ func TestUpdateOrganizationRules(t *testing.T) {
 		})).Return(nil).Once()
 
 		env.OperatingHoursStore.On("SetOperatingHours", orgID, mock.Anything).Return(nil).Once()
-		env.OperatingHoursStore.On("GetOperatingHours", orgID).Return([]*database.OperatingHours{}, nil).Once()
+		env.OperatingHoursStore.On("GetOperatingHours", orgID).Return([]database.OperatingHours{}, nil).Once()
 
 		jsonBytes, _ := json.Marshal(reqBody)
 		w := httptest.NewRecorder()

@@ -10,7 +10,7 @@ import (
 
 // OperatingHours represents the operating hours for a specific day
 type OperatingHours struct {
-	OrganizationID uuid.UUID `json:"organization_id"`
+	OrganizationID uuid.UUID `json:"-"`
 	Weekday        string    `json:"weekday"`
 	OpeningTime    string    `json:"opening_time,omitempty"`
 	ClosingTime    string    `json:"closing_time,omitempty"`
@@ -20,11 +20,11 @@ type OperatingHours struct {
 // OperatingHoursStore defines the interface for operating hours data operations
 type OperatingHoursStore interface {
 	// Get all operating hours for an organization
-	GetOperatingHours(orgID uuid.UUID) ([]*OperatingHours, error)
+	GetOperatingHours(orgID uuid.UUID) ([]OperatingHours, error)
 	// Get operating hours for a specific day
 	GetOperatingHoursByDay(orgID uuid.UUID, weekday string) (*OperatingHours, error)
 	// Set operating hours for multiple days (replaces existing)
-	SetOperatingHours(orgID uuid.UUID, hours []*OperatingHours) error
+	SetOperatingHours(orgID uuid.UUID, hours []OperatingHours) error
 	// Upsert a single day's operating hours
 	UpsertOperatingHours(hours *OperatingHours) error
 	// Delete operating hours for a specific day
@@ -48,8 +48,8 @@ func NewPostgresOperatingHoursStore(db *sql.DB, logger *slog.Logger) *PostgresOp
 }
 
 // GetOperatingHours retrieves all operating hours for an organization
-func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*OperatingHours, error) {
-	query := `SELECT organization_id, weekday, opening_time, closing_time 
+func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]OperatingHours, error) {
+	query := `SELECT organization_id, weekday, opening_time, closing_time
 		FROM organizations_operating_hours WHERE organization_id = $1 ORDER BY 
 		CASE weekday 
 			WHEN 'Sunday' THEN 0 
@@ -69,7 +69,7 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*Ope
 	defer rows.Close()
 
 	// Create a map to store existing operating hours by weekday
-	hoursMap := make(map[string]*OperatingHours)
+	hoursMap := make(map[string]OperatingHours)
 	for rows.Next() {
 		var h OperatingHours
 		if err := rows.Scan(
@@ -81,22 +81,22 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*Ope
 			s.Logger.Error("failed to scan operating hours", "error", err)
 			return nil, err
 		}
-		hoursMap[h.Weekday] = &h
+		hoursMap[h.Weekday] = h
 	}
 
 	// Define all weekdays in order
 	allWeekdays := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
 
 	// Build the complete result with all 7 days
-	var hours []*OperatingHours
-	closed := true
+	var hours []OperatingHours
 	for _, weekday := range allWeekdays {
 		if existingHours, found := hoursMap[weekday]; found {
-			// Day has operating hours
+			// Day has operating hours in database
 			hours = append(hours, existingHours)
 		} else {
-			// Day is closed - add with closed flag
-			hours = append(hours, &OperatingHours{
+			// Day not in database - add with closed flag
+			closed := true
+			hours = append(hours, OperatingHours{
 				OrganizationID: orgID,
 				Weekday:        weekday,
 				Closed:         &closed,
@@ -110,8 +110,9 @@ func (s *PostgresOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*Ope
 // GetOperatingHoursByDay retrieves operating hours for a specific day
 func (s *PostgresOperatingHoursStore) GetOperatingHoursByDay(orgID uuid.UUID, weekday string) (*OperatingHours, error) {
 	var hours OperatingHours
+	var closed bool
 
-	query := `SELECT organization_id, weekday, opening_time, closing_time 
+	query := `SELECT organization_id, weekday, opening_time, closing_time
 		FROM organizations_operating_hours WHERE organization_id = $1 AND weekday = $2`
 
 	err := s.db.QueryRow(query, orgID, weekday).Scan(
@@ -134,11 +135,12 @@ func (s *PostgresOperatingHoursStore) GetOperatingHoursByDay(orgID uuid.UUID, we
 		return nil, err
 	}
 
+	hours.Closed = &closed
 	return &hours, nil
 }
 
 // SetOperatingHours replaces all operating hours for an organization
-func (s *PostgresOperatingHoursStore) SetOperatingHours(orgID uuid.UUID, hours []*OperatingHours) error {
+func (s *PostgresOperatingHoursStore) SetOperatingHours(orgID uuid.UUID, hours []OperatingHours) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.Logger.Error("failed to begin transaction", "error", err)
@@ -181,7 +183,6 @@ func (s *PostgresOperatingHoursStore) UpsertOperatingHours(hours *OperatingHours
 		ON CONFLICT (organization_id, weekday) DO UPDATE SET 
 		opening_time = EXCLUDED.opening_time,
 		closing_time = EXCLUDED.closing_time`
-
 	_, err := s.db.Exec(query, hours.OrganizationID, hours.Weekday, hours.OpeningTime, hours.ClosingTime)
 	if err != nil {
 		s.Logger.Error("failed to upsert operating hours", "error", err, "organization_id", hours.OrganizationID, "weekday", hours.Weekday)

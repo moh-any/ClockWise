@@ -90,7 +90,15 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	insightHandler := api.NewInsightHandler(insightStore, Logger)
 	profileHandler := api.NewProfileHandler(userStore, Logger)
 	orderHandler := api.NewOrderHandler(orderStore, uploadService, Logger)
-	dashboardHandler := api.NewDashboardHandler(Logger)
+	dashboardHandler := api.NewDashboardHandler(
+		orgStore,
+		rulesStore,
+		operatingHoursStore,
+		orderStore,
+		campaignStore,
+		demandStore,
+		Logger,
+	)
 	scheduleHandler := api.NewScheduleHandler(Logger)
 	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, Logger)
 	alertHandler := api.NewAlertHandler(alertStore, Logger)

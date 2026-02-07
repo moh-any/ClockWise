@@ -360,12 +360,12 @@ type MockOperatingHoursStore struct {
 	mock.Mock
 }
 
-func (m *MockOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]*database.OperatingHours, error) {
+func (m *MockOperatingHoursStore) GetOperatingHours(orgID uuid.UUID) ([]database.OperatingHours, error) {
 	args := m.Called(orgID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]*database.OperatingHours), args.Error(1)
+	return args.Get(0).([]database.OperatingHours), args.Error(1)
 }
 
 func (m *MockOperatingHoursStore) GetOperatingHoursByDay(orgID uuid.UUID, weekday string) (*database.OperatingHours, error) {
@@ -376,7 +376,7 @@ func (m *MockOperatingHoursStore) GetOperatingHoursByDay(orgID uuid.UUID, weekda
 	return args.Get(0).(*database.OperatingHours), args.Error(1)
 }
 
-func (m *MockOperatingHoursStore) SetOperatingHours(orgID uuid.UUID, hours []*database.OperatingHours) error {
+func (m *MockOperatingHoursStore) SetOperatingHours(orgID uuid.UUID, hours []database.OperatingHours) error {
 	args := m.Called(orgID, hours)
 	return args.Error(0)
 }

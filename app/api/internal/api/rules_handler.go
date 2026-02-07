@@ -27,9 +27,10 @@ func NewRulesHandler(rulesStore database.RulesStore, operatingHoursStore databas
 
 // OperatingHoursRequest represents a single day's operating hours in a request
 type OperatingHoursRequest struct {
-	Weekday     string `json:"weekday" binding:"required"`
-	OpeningTime string `json:"opening_time" binding:"required"`
-	ClosingTime string `json:"closing_time" binding:"required"`
+	Weekday     string `json:"weekday"`
+	OpeningTime string `json:"opening_time,omitempty"`
+	ClosingTime string `json:"closing_time,omitempty"`
+	Closed      *bool  `json:"closed,omitempty"`
 }
 
 // RulesRequest represents the request body for creating/updating organization rules
@@ -55,7 +56,7 @@ type RulesRequest struct {
 // RulesResponse represents the response for rules GET
 type RulesResponse struct {
 	Rules          *database.OrganizationRules `json:"rules"`
-	OperatingHours []*database.OperatingHours  `json:"operating_hours"`
+	OperatingHours []database.OperatingHours   `json:"operating_hours"`
 }
 
 // GetOrganizationRules godoc
@@ -102,7 +103,7 @@ func (h *RulesHandler) GetOrganizationRules(c *gin.Context) {
 		return
 	}
 	if operatingHours == nil {
-		operatingHours = []*database.OperatingHours{}
+		operatingHours = []database.OperatingHours{}
 	}
 
 	if rules == nil {
@@ -270,9 +271,9 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 		}
 
 		// Convert to database models
-		operatingHours := make([]*database.OperatingHours, len(req.OperatingHours))
+		operatingHours := make([]database.OperatingHours, len(req.OperatingHours))
 		for i, oh := range req.OperatingHours {
-			operatingHours[i] = &database.OperatingHours{
+			operatingHours[i] = database.OperatingHours{
 				OrganizationID: user.OrganizationID,
 				Weekday:        oh.Weekday,
 				OpeningTime:    oh.OpeningTime,
@@ -295,7 +296,7 @@ func (h *RulesHandler) UpdateOrganizationRules(c *gin.Context) {
 		return
 	}
 	if currentOperatingHours == nil {
-		currentOperatingHours = []*database.OperatingHours{}
+		currentOperatingHours = []database.OperatingHours{}
 	}
 
 	response := RulesResponse{

@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS marketing_campaigns (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     organization_id UUID REFERENCES organizations(id),
     name TEXT NOT NULL, 
     status VARCHAR(10) CHECK (status IN ('active','inactive')),

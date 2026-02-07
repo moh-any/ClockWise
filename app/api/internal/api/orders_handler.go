@@ -228,7 +228,7 @@ func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 	}
 
 	// Expected columns: user_id, create_time, order_type, order_status, total_amount, discount_amount, rating
-	requiredColumns := []string{"user_id", "create_time", "order_type", "order_status", "total_amount", "discount_amount"}
+	requiredColumns := []string{"order_id", "user_id", "create_time", "order_type", "order_status", "total_amount", "discount_amount"}
 	for _, col := range requiredColumns {
 		found := false
 		for _, header := range csvData.Headers {
@@ -247,6 +247,13 @@ func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 	// Store each order from CSV
 	var successCount, errorCount int
 	for i, row := range csvData.Rows {
+		orderID, err := uuid.Parse(row["order_id"])
+		if err != nil {
+			oh.Logger.Warn("invalid order_id in row", "row", i, "error", err)
+			errorCount++
+			continue
+		}
+
 		// Parse user_id
 		userID, err := uuid.Parse(row["user_id"])
 		if err != nil {
@@ -293,7 +300,7 @@ func (oh *OrderHandler) UploadAllPastOrdersCSV(c *gin.Context) {
 		}
 
 		order := &database.Order{
-			OrderID:        uuid.New(),
+			OrderID:        orderID,
 			UserID:         userID,
 			OrganizationID: user.OrganizationID,
 			CreateTime:     createTime,
@@ -439,7 +446,7 @@ func (oh *OrderHandler) UploadOrderItemsCSV(c *gin.Context) {
 		}
 
 		// Parse total_price
-		totalPrice, err := strconv.ParseFloat(row["total_price"],32)
+		totalPrice, err := strconv.ParseFloat(row["total_price"], 32)
 		if err != nil {
 			oh.Logger.Warn("invalid total_price in row", "row", i, "error", err)
 			errorCount++
@@ -660,7 +667,7 @@ func (oh *OrderHandler) UploadAllPastDeliveriesCSV(c *gin.Context) {
 		return
 	}
 
-	// TODO Add to cache 
+	// TODO Add to cache
 
 	// Get the file from the request
 	file, _, err := c.Request.FormFile("file")
@@ -871,7 +878,7 @@ func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 	}
 
 	// Expected columns: name, needed_employees, price
-	requiredColumns := []string{"name", "needed_employees", "price"}
+	requiredColumns := []string{"item_id", "name", "needed_employees", "price"}
 	for _, col := range requiredColumns {
 		found := false
 		for _, header := range csvData.Headers {
@@ -890,6 +897,13 @@ func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 	// Store each item from CSV
 	var successCount, errorCount int
 	for i, row := range csvData.Rows {
+		itemID, err := uuid.Parse(row["item_id"])
+		if err != nil {
+			oh.Logger.Warn("invalid item_id in row", "row", i, "error", err)
+			errorCount++
+			continue
+		}
+
 		// Parse needed_employees
 		neededEmployees, err := strconv.Atoi(row["needed_employees"])
 		if err != nil {
@@ -907,6 +921,7 @@ func (oh *OrderHandler) UploadItemsCSV(c *gin.Context) {
 		}
 
 		item := &database.Item{
+			ItemID:                      itemID,
 			Name:                        row["name"],
 			NeededNumEmployeesToPrepare: &neededEmployees,
 			Price:                       &price,

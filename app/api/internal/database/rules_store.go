@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"time"
@@ -30,8 +31,71 @@ type OrganizationRules struct {
 }
 
 type ShiftTime struct {
-	StartTime time.Time `json:"from"`
-	EndTime   time.Time `json:"to"`
+	StartTime time.Time `json:"-"`
+	EndTime   time.Time `json:"-"`
+	From      string    `json:"from"`
+	To        string    `json:"to"`
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for ShiftTime
+func (st *ShiftTime) UnmarshalJSON(data []byte) error {
+	type Alias struct {
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+	var alias Alias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+
+	st.From = alias.From
+	st.To = alias.To
+
+	// Parse time strings (HH:MM:SS format) into time.Time
+	// We use a dummy date since we only care about the time portion
+	const timeFormat = "15:04:05"
+	const dateTimeFormat = "2006-01-02 15:04:05"
+
+	if alias.From != "" {
+		parsedFrom, err := time.Parse(timeFormat, alias.From)
+		if err != nil {
+			return err
+		}
+		st.StartTime = parsedFrom
+	}
+
+	if alias.To != "" {
+		parsedTo, err := time.Parse(timeFormat, alias.To)
+		if err != nil {
+			return err
+		}
+		st.EndTime = parsedTo
+	}
+
+	return nil
+}
+
+// MarshalJSON implements custom JSON marshaling for ShiftTime
+func (st ShiftTime) MarshalJSON() ([]byte, error) {
+	type Alias struct {
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+
+	alias := Alias{
+		From: st.From,
+		To:   st.To,
+	}
+
+	// If From/To strings are empty, try to format from time.Time
+	if alias.From == "" && !st.StartTime.IsZero() {
+		alias.From = st.StartTime.Format("15:04:05")
+	}
+	if alias.To == "" && !st.EndTime.IsZero() {
+		alias.To = st.EndTime.Format("15:04:05")
+	}
+
+	return json.Marshal(alias)
 }
 
 // RulesStore defines the interface for organization rules data operations
@@ -270,9 +334,13 @@ func (s *PostgresRulesStore) getShiftTimes(orgID uuid.UUID) ([]ShiftTime, error)
 	var shiftTimes []ShiftTime
 	for rows.Next() {
 		var st ShiftTime
-		if err := rows.Scan(&st.StartTime, &st.EndTime); err != nil {
+		var startTimeStr, endTimeStr string
+		if err := rows.Scan(&startTimeStr, &endTimeStr); err != nil {
 			return nil, err
 		}
+		// Store the time strings directly in From/To fields
+		st.From = startTimeStr
+		st.To = endTimeStr
 		shiftTimes = append(shiftTimes, st)
 	}
 
@@ -293,6 +361,22 @@ func (s *PostgresRulesStore) setShiftTimes(orgID uuid.UUID, shiftTimes []ShiftTi
 
 	query := `INSERT INTO organization_shift_times (organization_id, start_time, end_time) VALUES ($1, $2, $3)`
 	for _, st := range shiftTimes {
+		// If StartTime/EndTime are not set, parse from From/To strings
+		if st.StartTime.IsZero() && st.From != "" {
+			parsedFrom, err := time.Parse("15:04:05", st.From)
+			if err != nil {
+				return err
+			}
+			st.StartTime = parsedFrom
+		}
+		if st.EndTime.IsZero() && st.To != "" {
+			parsedTo, err := time.Parse("15:04:05", st.To)
+			if err != nil {
+				return err
+			}
+			st.EndTime = parsedTo
+		}
+
 		_, err := s.db.Exec(query, orgID, st.StartTime, st.EndTime)
 		if err != nil {
 			return err
