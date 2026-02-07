@@ -2583,12 +2583,21 @@ function AdminDashboard() {
                     style={{
                       fontSize: "var(--text-lg)",
                       fontWeight: 600,
-                      marginBottom: "var(--space-3)",
+                      marginBottom: "var(--space-2)",
                       color: "var(--gray-700)",
                     }}
                   >
                     Orders
                   </h3>
+                  <p
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: "var(--gray-500)",
+                      marginBottom: "var(--space-3)",
+                    }}
+                  >
+                    Showing first 100 of {ordersData.length} orders
+                  </p>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
@@ -2655,7 +2664,7 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ordersData.map((order, index) => (
+                      {ordersData.slice(0, 100).map((order, index) => (
                         <tr
                           key={order.order_id || `order-${index}`}
                           style={{ borderBottom: "1px solid var(--gray-200)" }}
@@ -2733,12 +2742,21 @@ function AdminDashboard() {
                     style={{
                       fontSize: "var(--text-lg)",
                       fontWeight: 600,
-                      marginBottom: "var(--space-3)",
+                      marginBottom: "var(--space-2)",
                       color: "var(--gray-700)",
                     }}
                   >
                     Order Items
                   </h3>
+                  <p
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: "var(--gray-500)",
+                      marginBottom: "var(--space-3)",
+                    }}
+                  >
+                    Showing first 100 of {orderItemsData.length} order items
+                  </p>
                   {orderItemsData.length > 0 ? (
                     <table
                       style={{ width: "100%", borderCollapse: "collapse" }}
@@ -2798,7 +2816,7 @@ function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {orderItemsData.map((orderItem, index) => (
+                        {orderItemsData.slice(0, 100).map((orderItem, index) => (
                           <tr
                             key={`${orderItem.order_id}-${orderItem.item_id}-${index}`}
                             style={{
@@ -2870,7 +2888,17 @@ function AdminDashboard() {
             ) : (
               <div style={{ overflowX: "auto" }}>
                 {ordersDataType === "items" ? (
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <>
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--gray-500)",
+                        marginBottom: "var(--space-3)",
+                      }}
+                    >
+                      Showing first 100 of {ordersData.length} items
+                    </p>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
                         <th
@@ -2924,7 +2952,7 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ordersData.map((item, index) => (
+                      {ordersData.slice(0, 100).map((item, index) => (
                         <tr
                           key={item.item_id || `item-${index}`}
                           style={{ borderBottom: "1px solid var(--gray-200)" }}
@@ -2974,8 +3002,19 @@ function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  </>
                 ) : (
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <>
+                    <p
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        color: "var(--gray-500)",
+                        marginBottom: "var(--space-3)",
+                      }}
+                    >
+                      Showing first 100 of {ordersData.length} deliveries
+                    </p>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
                         <th
@@ -3053,7 +3092,7 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ordersData.map((delivery, index) => (
+                      {ordersData.slice(0, 100).map((delivery, index) => (
                         <tr
                           key={delivery.order_id || `delivery-${index}`}
                           style={{ borderBottom: "1px solid var(--gray-200)" }}
@@ -3136,6 +3175,7 @@ function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  </>
                 )}
               </div>
             )}
