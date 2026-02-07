@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS users(
     max_consec_slots INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id, user_role) REFERENCES organizations_roles(organization_id,role)
 );
 
 CREATE TABLE IF NOT EXISTS user_roles (
