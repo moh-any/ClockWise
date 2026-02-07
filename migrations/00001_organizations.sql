@@ -59,6 +59,9 @@ BEGIN
     INSERT INTO organizations_roles (organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent)
     VALUES (NEW.id, 'manager', 1, NULL, false, true);
     
+    INSERT INTO organizations_roles (organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent)
+    VALUES (NEW.id, 'employee', 1, NULL, false, true);
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
