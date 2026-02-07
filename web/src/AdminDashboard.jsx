@@ -4349,7 +4349,7 @@ function AdminDashboard() {
         payload.items_per_role_per_hour = null
       }
 
-      await api.roles.updateRole(selectedRole.role, payload)
+      await api.roles.updateRole(selectedRole.role_id, payload)
       setShowEditRoleModal(false)
       setSelectedRole(null)
       setActionMessage({
@@ -4392,11 +4392,11 @@ function AdminDashboard() {
   const openEditRole = (role) => {
     setSelectedRole(role)
     setRoleForm({
-      role: role.role,
-      min_needed_per_shift: role.min_needed_per_shift || 1,
-      items_per_role_per_hour: role.items_per_role_per_hour || "",
-      need_for_demand: role.need_for_demand || false,
-      independent: role.independent !== undefined ? role.independent : true,
+      role: role.role_id,
+      min_needed_per_shift: role.min_present || 1,
+      items_per_role_per_hour: role.items_per_employee_per_hour || "",
+      need_for_demand: role.producing || false,
+      independent: role.is_independent !== undefined ? role.is_independent : true,
     })
     setShowEditRoleModal(true)
   }
@@ -5228,7 +5228,7 @@ function AdminDashboard() {
               <tbody>
                 {roles.map((role) => (
                   <tr
-                    key={role.role}
+                    key={role.role_id}
                     style={{
                       borderBottom: "1px solid var(--gray-200)",
                     }}
@@ -5241,7 +5241,7 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      <span className="badge badge-primary">{role.role}</span>
+                      <span className="badge badge-primary">{role.role_id}</span>
                     </td>
                     <td
                       style={{
@@ -5251,7 +5251,7 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.min_needed_per_shift}
+                      {role.min_present}
                     </td>
                     <td
                       style={{
@@ -5261,7 +5261,7 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.need_for_demand ? (
+                      {role.producing ? (
                         <span style={{ color: "var(--color-primary)" }}>
                           ✓ Yes
                         </span>
@@ -5277,8 +5277,8 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.items_per_role_per_hour != null
-                        ? role.items_per_role_per_hour
+                      {role.items_per_employee_per_hour != null
+                        ? role.items_per_employee_per_hour
                         : "—"}
                     </td>
                     <td
@@ -5289,7 +5289,7 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.independent ? (
+                      {role.is_independent ? (
                         <span style={{ color: "var(--color-primary)" }}>
                           ✓ Yes
                         </span>
@@ -5305,7 +5305,7 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.role !== "admin" && role.role !== "manager" && (
+                      {role.role_id !== "admin" && role.role_id !== "manager" && (
                         <>
                           <button
                             className="btn-link"
@@ -5323,7 +5323,7 @@ function AdminDashboard() {
                           </button>
                         </>
                       )}
-                      {(role.role === "admin" || role.role === "manager") && (
+                      {(role.role_id === "admin" || role.role_id === "manager") && (
                         <span
                           style={{
                             color: "var(--gray-400)",
@@ -5672,7 +5672,7 @@ function AdminDashboard() {
               }}
             >
               Are you sure you want to delete the role{" "}
-              <strong>{confirmDeleteRole.role}</strong>? This action cannot be
+              <strong>{confirmDeleteRole.role_id}</strong>? This action cannot be
               undone and may fail if employees are assigned to this role.
             </p>
             <div className="settings-footer">
@@ -5685,7 +5685,7 @@ function AdminDashboard() {
               <button
                 className="btn-primary"
                 style={{ background: "var(--color-accent)" }}
-                onClick={() => handleDeleteRole(confirmDeleteRole.role)}
+                onClick={() => handleDeleteRole(confirmDeleteRole.role_id)}
                 disabled={actionLoading}
               >
                 {actionLoading ? "Deleting..." : "Confirm Delete"}
