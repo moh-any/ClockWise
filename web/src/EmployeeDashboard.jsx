@@ -56,9 +56,20 @@ function EmployeeDashboard() {
   const [preferencesSuccess, setPreferencesSuccess] = useState("")
   const [weeklyAvailabilitySaved, setWeeklyAvailabilitySaved] = useState(false)
 
+  // Requests state
+  const [requests, setRequests] = useState([])
+  const [requestForm, setRequestForm] = useState({
+    type: "calloff",
+    message: "",
+  })
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  const [requestsError, setRequestsError] = useState("")
+  const [requestsSuccess, setRequestsSuccess] = useState("")
+
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "schedule", label: "Schedule", icon: ScheduleIcon },
+    { id: "requests", label: "Requests", icon: InfoIcon },
     { id: "preferences", label: "Preferences", icon: SettingsIcon },
     { id: "profile", label: "Profile", icon: InfoIcon },
   ]
@@ -133,6 +144,12 @@ function EmployeeDashboard() {
     fetchDashboardData()
     fetchCurrentUser()
   }, [])
+
+  useEffect(() => {
+    if (activeTab === "requests" && currentUser?.user_id) {
+      fetchUserRequests()
+    }
+  }, [activeTab, currentUser])
 
   const fetchCurrentUser = async () => {
     try {
@@ -385,6 +402,48 @@ function EmployeeDashboard() {
       setPreferencesError(err.message || "Failed to save preferences")
     } finally {
       setPreferencesLoading(false)
+    }
+  }
+
+  // Fetch user's submitted requests
+  const fetchUserRequests = async () => {
+    if (!currentUser?.user_id) return
+
+    try {
+      const response = await api.requests.getEmployeeRequests(
+        currentUser.user_id,
+      )
+      setRequests(response.requests || [])
+    } catch (err) {
+      console.error("Error fetching requests:", err)
+    }
+  }
+
+  // Submit a new request
+  const handleSubmitRequest = async (e) => {
+    e.preventDefault()
+    setRequestsLoading(true)
+    setRequestsError("")
+    setRequestsSuccess("")
+
+    try {
+      await api.requests.submitRequest(requestForm)
+      setRequestsSuccess("Request submitted successfully!")
+      setRequestForm({
+        type: "calloff",
+        message: "",
+      })
+
+      // Refresh the requests list
+      await fetchUserRequests()
+
+      setTimeout(() => {
+        setRequestsSuccess("")
+      }, 3000)
+    } catch (err) {
+      setRequestsError(err.message || "Failed to submit request")
+    } finally {
+      setRequestsLoading(false)
     }
   }
 
@@ -864,6 +923,146 @@ function EmployeeDashboard() {
     </div>
   )
 
+  const renderRequests = () => {
+    const getRequestTypeLabel = (type) => {
+      const labels = {
+        calloff: "Call Off",
+        holiday: "Holiday / Leave",
+        resign: "Resignation",
+      }
+      return labels[type] || type
+    }
+
+    const getStatusBadgeClass = (status) => {
+      switch (status) {
+        case "approved":
+          return "status-badge status-approved"
+        case "declined":
+          return "status-badge status-declined"
+        case "pending":
+        default:
+          return "status-badge status-pending"
+      }
+    }
+
+    return (
+      <div className="premium-content fade-in">
+        <div className="content-header">
+          <div>
+            <h1 className="page-title">My Requests</h1>
+            <p className="page-subtitle">
+              Submit and track your time-off and other requests
+            </p>
+          </div>
+        </div>
+
+        {/* Submit New Request Form */}
+        <div className="section-wrapper">
+          <div className="section-header">
+            <h2 className="section-title">Submit New Request</h2>
+          </div>
+
+          <form onSubmit={handleSubmitRequest} className="request-form">
+            {requestsError && (
+              <div className="alert alert-error">{requestsError}</div>
+            )}
+            {requestsSuccess && (
+              <div className="alert alert-success">{requestsSuccess}</div>
+            )}
+
+            <div className="form-group">
+              <label className="form-label">Request Type</label>
+              <select
+                className="form-input"
+                value={requestForm.type}
+                onChange={(e) =>
+                  setRequestForm({ ...requestForm, type: e.target.value })
+                }
+                required
+              >
+                <option value="calloff">Call Off (Sick/Emergency)</option>
+                <option value="holiday">Holiday / Vacation</option>
+                <option value="resign">Resignation</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Message / Reason</label>
+              <textarea
+                className="form-input"
+                rows="4"
+                placeholder="Please provide details about your request..."
+                value={requestForm.message}
+                onChange={(e) =>
+                  setRequestForm({ ...requestForm, message: e.target.value })
+                }
+                required
+                minLength={10}
+              />
+              <small className="form-hint">Minimum 10 characters</small>
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={requestsLoading}
+            >
+              {requestsLoading ? "Submitting..." : "Submit Request"}
+            </button>
+          </form>
+        </div>
+
+        {/* My Requests List */}
+        <div
+          className="section-wrapper"
+          style={{ marginTop: "var(--emp-space-6)" }}
+        >
+          <div className="section-header">
+            <h2 className="section-title">My Submitted Requests</h2>
+          </div>
+
+          {requests.length === 0 ? (
+            <div className="empty-state">
+              <p>You haven't submitted any requests yet.</p>
+            </div>
+          ) : (
+            <div className="requests-list">
+              {requests.map((request) => (
+                <div key={request.id} className="request-card">
+                  <div className="request-header">
+                    <div className="request-type">
+                      {getRequestTypeLabel(request.request_type)}
+                    </div>
+                    <span className={getStatusBadgeClass(request.status)}>
+                      {request.status?.toUpperCase() || "PENDING"}
+                    </span>
+                  </div>
+                  <div className="request-body">
+                    <p className="request-message">{request.reason}</p>
+                    {request.start_date && (
+                      <div className="request-dates">
+                        <strong>Dates:</strong>{" "}
+                        {new Date(request.start_date).toLocaleDateString()}
+                        {request.end_date &&
+                          ` - ${new Date(request.end_date).toLocaleDateString()}`}
+                      </div>
+                    )}
+                  </div>
+                  <div className="request-footer">
+                    <span className="request-date">
+                      Submitted:{" "}
+                      {new Date(request.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const renderProfile = () => (
     <div className="premium-content fade-in">
       <div className="content-header">
@@ -1171,6 +1370,7 @@ function EmployeeDashboard() {
           <>
             {activeTab === "home" && renderHomeDashboard()}
             {activeTab === "schedule" && renderSchedule()}
+            {activeTab === "requests" && renderRequests()}
             {activeTab === "preferences" && renderPreferences()}
             {activeTab === "profile" && renderProfile()}
           </>

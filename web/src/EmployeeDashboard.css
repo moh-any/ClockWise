@@ -2540,3 +2540,167 @@ button:focus-visible {
     font-size: 0.75rem;
   }
 }
+/* ========================================
+   REQUESTS SECTION STYLES
+   ======================================== */
+
+.employee-dashboard-wrapper .request-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emp-space-4);
+}
+
+.employee-dashboard-wrapper .form-hint {
+  display: block;
+  margin-top: var(--emp-space-2);
+  font-size: var(--emp-text-sm);
+  color: var(--emp-text-secondary);
+  font-style: italic;
+}
+
+.employee-dashboard-wrapper .requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--emp-space-4);
+}
+
+.employee-dashboard-wrapper .request-card {
+  background: var(--emp-card-bg);
+  border: 1px solid var(--emp-border-color);
+  border-radius: var(--emp-radius-lg);
+  padding: var(--emp-space-5);
+  box-shadow: var(--emp-shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.employee-dashboard-wrapper .request-card:hover {
+  box-shadow: var(--emp-shadow-md);
+  transform: translateY(-2px);
+}
+
+.employee-dashboard-wrapper .request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--emp-space-3);
+  padding-bottom: var(--emp-space-3);
+  border-bottom: 1px solid var(--emp-border-color);
+}
+
+.employee-dashboard-wrapper .request-type {
+  font-size: var(--emp-text-lg);
+  font-weight: 600;
+  color: var(--emp-text-primary);
+}
+
+.employee-dashboard-wrapper .status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--emp-space-1) var(--emp-space-3);
+  border-radius: var(--emp-radius-full);
+  font-size: var(--emp-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.employee-dashboard-wrapper .status-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.employee-dashboard-wrapper .status-badge.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.employee-dashboard-wrapper .status-badge.status-declined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.employee-dashboard-wrapper .request-body {
+  margin-bottom: var(--emp-space-3);
+}
+
+.employee-dashboard-wrapper .request-message {
+  color: var(--emp-text-primary);
+  font-size: var(--emp-text-base);
+  line-height: 1.6;
+  margin-bottom: var(--emp-space-3);
+}
+
+.employee-dashboard-wrapper .request-dates {
+  display: flex;
+  align-items: center;
+  gap: var(--emp-space-2);
+  color: var(--emp-text-secondary);
+  font-size: var(--emp-text-sm);
+  padding: var(--emp-space-2) var(--emp-space-3);
+  background: var(--emp-bg-secondary);
+  border-radius: var(--emp-radius-md);
+}
+
+.employee-dashboard-wrapper .request-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--emp-space-3);
+  border-top: 1px solid var(--emp-border-color);
+}
+
+.employee-dashboard-wrapper .request-date {
+  font-size: var(--emp-text-sm);
+  color: var(--emp-text-secondary);
+}
+
+.employee-dashboard-wrapper .empty-state {
+  text-align: center;
+  padding: var(--emp-space-12);
+  color: var(--emp-text-secondary);
+  font-size: var(--emp-text-lg);
+}
+
+/* Dark Mode for Requests */
+.employee-dashboard-wrapper.dark-mode .status-badge.status-pending {
+  background: #78350f;
+  color: #fbbf24;
+}
+
+.employee-dashboard-wrapper.dark-mode .status-badge.status-approved {
+  background: #064e3b;
+  color: #6ee7b7;
+}
+
+.employee-dashboard-wrapper.dark-mode .status-badge.status-declined {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.employee-dashboard-wrapper.dark-mode .request-card {
+  background: var(--emp-card-bg);
+  border-color: var(--emp-border-color);
+}
+
+.employee-dashboard-wrapper.dark-mode .request-dates {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive for Requests */
+@media (max-width: 768px) {
+  .employee-dashboard-wrapper .request-card {
+    padding: var(--emp-space-4);
+  }
+
+  .employee-dashboard-wrapper .request-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--emp-space-2);
+  }
+
+  .employee-dashboard-wrapper .request-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--emp-space-2);
+  }
+}

@@ -17,7 +17,7 @@ Version 3.1 Updates:
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Optional, Dict, Union, Any
 from datetime import datetime, date, timedelta
 from fastapi.openapi.docs import get_redoc_html  
@@ -176,18 +176,43 @@ class PlaceData(BaseModel):
     name: Optional[str] = None
     place_name: Optional[str] = None
     type: str
-    latitude: float
-    longitude: float
+    latitude: Optional[float] = 0.0
+    longitude: Optional[float] = 0.0
     waiting_time: Optional[int] = None
-    receiving_phone: bool
-    delivery: bool
-    opening_hours: Union[List[OpeningHoursDay], Dict[str, OpeningHoursDay]]
+    receiving_phone: Optional[bool] = False
+    delivery: Optional[bool] = False
+    opening_hours: Optional[Union[List[OpeningHoursDay], Dict[str, OpeningHoursDay]]] = []
     fixed_shifts: bool = True
-    number_of_shifts_per_day: int = 3
+    number_of_shifts_per_day: Optional[int] = 3
     shift_times: Optional[List[ShiftTimeData]] = Field(None)
     shift_time: Optional[List[ShiftTimeData]] = Field(None)
     rating: Optional[float] = None
     accepting_orders: Optional[bool] = True
+
+    @field_validator('latitude', mode='before')
+    @classmethod
+    def lat_not_none(cls, v):
+        return v if v is not None else 0.0
+
+    @field_validator('longitude', mode='before')
+    @classmethod
+    def lon_not_none(cls, v):
+        return v if v is not None else 0.0
+
+    @field_validator('opening_hours', mode='before')
+    @classmethod
+    def opening_hours_not_none(cls, v):
+        return v if v is not None else []
+
+    @field_validator('number_of_shifts_per_day', mode='before')
+    @classmethod
+    def shifts_per_day_not_none(cls, v):
+        return v if v is not None else 3
+
+    @field_validator('receiving_phone', 'delivery', mode='before')
+    @classmethod
+    def bool_not_none(cls, v):
+        return v if v is not None else False
 
     @property
     def resolved_name(self) -> str:
@@ -298,7 +323,12 @@ class DayPrediction(BaseModel):
     """Predictions for a single day"""
     day_name: str
     date: str
-    hours: List[HourPrediction]
+    hours: List[HourPrediction] = []
+
+    @field_validator('hours', mode='before')
+    @classmethod
+    def hours_not_none(cls, v):
+        return v if v is not None else []
 
 
 class DemandOutput(BaseModel):
@@ -328,12 +358,17 @@ class DemandPredictionResponse(BaseModel):
 
 class RoleData(BaseModel):
     """Role definition"""
+    organization_id: Optional[str] = None
     role_id: str
-    role_name: str
-    producing: bool
+    role_name: Optional[str] = None
+    producing: bool = False
     items_per_employee_per_hour: Optional[float] = None
     min_present: int = 0
-    is_independent: bool = True
+    is_independent: Optional[bool] = True
+
+    @property
+    def resolved_role_name(self) -> str:
+        return self.role_name or self.role_id
 
 
 class EmployeeHours(BaseModel):
@@ -347,15 +382,45 @@ class EmployeeHours(BaseModel):
 class EmployeeData(BaseModel):
     """Employee information"""
     employee_id: str
-    role_ids: List[str]
-    available_days: List[str]
-    preferred_days: List[str]
-    available_hours: Dict[str, EmployeeHours]
-    preferred_hours: Dict[str, EmployeeHours]
-    hourly_wage: float
-    max_hours_per_week: float = 40.0
-    max_consec_slots: int = 8
-    pref_hours: float = 32.0
+    role_ids: Optional[List[str]] = []
+    available_days: Optional[List[str]] = []
+    preferred_days: Optional[List[str]] = []
+    available_hours: Optional[Dict[str, EmployeeHours]] = {}
+    preferred_hours: Optional[Dict[str, EmployeeHours]] = {}
+    hourly_wage: Optional[float] = 0.0
+    max_hours_per_week: Optional[float] = 40.0
+    max_consec_slots: Optional[int] = 8
+    pref_hours: Optional[float] = 32.0
+
+    @field_validator('role_ids', 'available_days', 'preferred_days', mode='before')
+    @classmethod
+    def list_not_none(cls, v):
+        return v if v is not None else []
+
+    @field_validator('available_hours', 'preferred_hours', mode='before')
+    @classmethod
+    def dict_not_none(cls, v):
+        return v if v is not None else {}
+
+    @field_validator('hourly_wage', mode='before')
+    @classmethod
+    def wage_not_none(cls, v):
+        return v if v is not None else 0.0
+
+    @field_validator('max_hours_per_week', mode='before')
+    @classmethod
+    def max_hours_not_none(cls, v):
+        return v if v is not None else 40.0
+
+    @field_validator('max_consec_slots', mode='before')
+    @classmethod
+    def consec_not_none(cls, v):
+        return v if v is not None else 8
+
+    @field_validator('pref_hours', mode='before')
+    @classmethod
+    def pref_not_none(cls, v):
+        return v if v is not None else 32.0
 
 
 class ProductionChainData(BaseModel):
@@ -367,18 +432,45 @@ class ProductionChainData(BaseModel):
 
 class SchedulerConfig(BaseModel):
     """Scheduler configuration parameters"""
-    slot_len_hour: float = 1.0
-    min_rest_slots: int = 2
-    min_shift_length_slots: int = 2
-    meet_all_demand: bool = False
+    slot_len_hour: Optional[float] = 1.0
+    min_rest_slots: Optional[int] = 2
+    min_shift_length_slots: Optional[int] = 2
+    meet_all_demand: Optional[bool] = False
+
+    @field_validator('slot_len_hour', mode='before')
+    @classmethod
+    def slot_len_not_none(cls, v):
+        return v if v is not None else 1.0
+
+    @field_validator('min_rest_slots', mode='before')
+    @classmethod
+    def rest_not_none(cls, v):
+        return v if v is not None else 2
+
+    @field_validator('min_shift_length_slots', mode='before')
+    @classmethod
+    def shift_len_not_none(cls, v):
+        return v if v is not None else 2
+
+    @field_validator('meet_all_demand', mode='before')
+    @classmethod
+    def meet_not_none(cls, v):
+        return v if v is not None else False
 
 
 class ScheduleInput(BaseModel):
     """Input for schedule generation"""
-    roles: List[RoleData]
-    employees: List[EmployeeData]
-    production_chains: List[ProductionChainData] = []
+    roles: Optional[List[RoleData]] = []
+    employees: Optional[List[EmployeeData]] = []
+    production_chains: Optional[List[ProductionChainData]] = []
     scheduler_config: Optional[SchedulerConfig] = None
+    demand_predictions: Optional[List[DayPrediction]] = None
+    prediction_start_date: Optional[str] = None
+
+    @field_validator('roles', 'employees', 'production_chains', mode='before')
+    @classmethod
+    def list_not_none(cls, v):
+        return v if v is not None else []
 
 
 class ScheduleOutput(BaseModel):
@@ -410,8 +502,22 @@ class SchedulingRequest(BaseModel):
     """Request for scheduling only"""
     place: PlaceData
     schedule_input: ScheduleInput
-    demand_predictions: List[DayPrediction]
-    prediction_start_date: str
+    demand_predictions: Optional[List[DayPrediction]] = None
+    prediction_start_date: Optional[str] = None
+
+    @property
+    def resolved_demand_predictions(self) -> List[DayPrediction]:
+        """Get demand_predictions from schedule_input (Go backend) or top-level (legacy)"""
+        if self.schedule_input.demand_predictions:
+            return self.schedule_input.demand_predictions
+        return self.demand_predictions or []
+
+    @property
+    def resolved_prediction_start_date(self) -> str:
+        """Get prediction_start_date from schedule_input (Go backend) or top-level (legacy)"""
+        if self.schedule_input.prediction_start_date:
+            return self.schedule_input.prediction_start_date
+        return self.prediction_start_date or datetime.now().strftime('%Y-%m-%d')
 
 
 class SchedulingResponse(BaseModel):
@@ -1006,7 +1112,7 @@ def convert_api_data_to_scheduler_input(
             producing=role_data.producing,
             items_per_hour=role_data.items_per_employee_per_hour or 0,
             min_present=role_data.min_present,
-            is_independent=role_data.is_independent
+            is_independent=role_data.is_independent if role_data.is_independent is not None else True
         ))
     
     scheduler_chains = []
@@ -1087,10 +1193,10 @@ def convert_api_data_to_scheduler_input(
         
         scheduler_employees.append(Employee(
             id=emp_data.employee_id,
-            wage=emp_data.hourly_wage,
-            max_hours_per_week=emp_data.max_hours_per_week,
-            max_consec_slots=emp_data.max_consec_slots,
-            pref_hours=emp_data.pref_hours,
+            wage=emp_data.hourly_wage or 0.0,
+            max_hours_per_week=emp_data.max_hours_per_week or 40.0,
+            max_consec_slots=emp_data.max_consec_slots or 8,
+            pref_hours=emp_data.pref_hours or 32.0,
             role_eligibility=set(emp_data.role_ids),
             availability=availability,
             slot_preferences=preferences
@@ -1368,7 +1474,12 @@ def predict_demand_only(request: DemandPredictionRequest):
 
 @app.post("/predict/schedule", response_model=SchedulingResponse, tags=["Staff Scheduling"])
 def predict_schedule_only(request: SchedulingRequest):
-    """Generate schedule based on provided demand predictions"""
+    """Generate schedule based on provided demand predictions.
+    
+    Accepts demand_predictions and prediction_start_date either:
+    - Inside schedule_input (Go backend format)
+    - At top-level (legacy format)
+    """
     
     if not SCHEDULER_AVAILABLE:
         raise HTTPException(status_code=503, detail="Scheduler not available")
@@ -1376,8 +1487,15 @@ def predict_schedule_only(request: SchedulingRequest):
     try:
         logger.info(f"Processing scheduling for {request.place.resolved_name}")
         
+        # Resolve demand predictions and start date (supports both Go and legacy formats)
+        demand_predictions = request.resolved_demand_predictions
+        prediction_start_date = request.resolved_prediction_start_date
+        
+        if not demand_predictions:
+            raise HTTPException(status_code=400, detail="No demand predictions provided. Supply them in schedule_input.demand_predictions or at top level.")
+        
         demand_data = []
-        for day in request.demand_predictions:
+        for day in demand_predictions:
             for hour_pred in day.hours:
                 demand_data.append({
                     'datetime': pd.to_datetime(f"{day.date} {hour_pred.hour:02d}:00:00"),
@@ -1395,7 +1513,7 @@ def predict_schedule_only(request: SchedulingRequest):
             place=request.place,
             schedule_input=request.schedule_input,
             demand_predictions=datetime_info,
-            prediction_start_date=request.prediction_start_date
+            prediction_start_date=prediction_start_date
         )
         
         scheduler = SchedulerCPSAT(scheduler_input)
@@ -1409,8 +1527,8 @@ def predict_schedule_only(request: SchedulingRequest):
                 solution=solution,
                 place=request.place,
                 config=config,
-                prediction_start_date=request.prediction_start_date,
-                num_days=len(request.demand_predictions)
+                prediction_start_date=prediction_start_date,
+                num_days=len(demand_predictions)
             )
             
             logger.info("✓ Schedule generated successfully")
@@ -1430,6 +1548,8 @@ def predict_schedule_only(request: SchedulingRequest):
                 management_insights=insights
             )
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Scheduling failed: {e}", exc_info=True)
         return SchedulingResponse(

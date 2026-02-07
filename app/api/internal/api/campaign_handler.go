@@ -434,6 +434,7 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 	}
 
 	// Fetch organization data
+	// Fetch organization data
 	org, err := ch.OrgStore.GetOrganizationByID(user.OrganizationID)
 	if err != nil {
 		ch.Logger.Error("failed to get organization", "error", err)
@@ -444,16 +445,14 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 	// Fetch organization rules for delivery and phone settings
 	rules, err := ch.RulesStore.GetRulesByOrganizationID(user.OrganizationID)
 	if err != nil {
-		ch.Logger.Error("failed to get organization rules", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve organization rules"})
-		return
+		ch.Logger.Warn("failed to get organization rules, using defaults", "error", err)
 	}
 
 	// Fetch operating hours
 	operatingHours, err := ch.OperatingHoursStore.GetOperatingHours(user.OrganizationID)
 	if err != nil {
 		ch.Logger.Warn("failed to get operating hours, using empty", "error", err)
-		operatingHours = []database.OperatingHours{}  // Use empty if not found
+		operatingHours = []database.OperatingHours{} // Use empty if not found
 	}
 
 	// Fetch historical orders
@@ -470,6 +469,38 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 		ch.Logger.Error("failed to get campaigns", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve historical campaigns"})
 		return
+	}
+
+	// NOW add the rules handling and ML request building code...
+	// If rules is nil, use safe defaults for all fields
+	var (
+		delivery             = false
+		receivingPhone       = ""
+		fixedShifts          = false
+		numberOfShiftsPerDay = 3
+		waitingTime          = 0
+	)
+
+	// Only populate from rules if it exists
+	if rules != nil {
+		delivery = rules.Delivery
+
+		// ReceivingPhone is bool - convert to string for ML service
+		if rules.ReceivingPhone {
+			receivingPhone = "enabled"
+		} else {
+			receivingPhone = "disabled"
+		}
+
+		fixedShifts = rules.FixedShifts
+
+		// NumberOfShiftsPerDay is *int
+		if rules.NumberOfShiftsPerDay != nil {
+			numberOfShiftsPerDay = *rules.NumberOfShiftsPerDay
+		}
+
+		// WaitingTime is int (not pointer)
+		waitingTime = rules.WaitingTime
 	}
 
 	// Build ML service request
@@ -493,12 +524,6 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 		}
 	}
 
-	// Handle nil number_of_shifts_per_day with default value
-	numberOfShiftsPerDay := 3
-	if rules.NumberOfShiftsPerDay != nil {
-		numberOfShiftsPerDay = *rules.NumberOfShiftsPerDay
-	}
-
 	mlRequest := map[string]any{
 		"place": map[string]any{
 			"place_id":                 user.OrganizationID.String(),
@@ -506,12 +531,12 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 			"latitude":                 latitude,
 			"longitude":                longitude,
 			"type":                     org.Type,
-			"delivery":                 rules.Delivery,
-			"receiving_phone":          rules.ReceivingPhone,
+			"delivery":                 delivery,
+			"receiving_phone":          receivingPhone,
 			"opening_hours":            operatingHoursMap,
-			"fixed_shifts":             rules.FixedShifts,
+			"fixed_shifts":             fixedShifts,
 			"number_of_shifts_per_day": numberOfShiftsPerDay,
-			"waiting_time":             rules.WaitingTime,
+			"waiting_time":             waitingTime,
 		},
 		"orders":                     ch.convertOrdersForML(orders),
 		"campaigns":                  ch.convertCampaignsForML(campaigns),
@@ -525,6 +550,7 @@ func (ch *CampaignHandler) RecommendCampaignsHandler(c *gin.Context) {
 		"available_items":            request.AvailableItems,
 	}
 
+	// Continue with jsonData marshaling and ML service call...
 	jsonData, err := json.Marshal(mlRequest)
 	if err != nil {
 		ch.Logger.Error("failed to marshal request", "error", err)
@@ -637,25 +663,52 @@ func (ch *CampaignHandler) SubmitCampaignFeedbackHandler(c *gin.Context) {
 
 // Helper functions to convert data formats for ML service
 func (ch *CampaignHandler) convertOrdersForML(orders []database.Order) []map[string]any {
-	mlOrders := make([]map[string]any, len(orders))
-	for i, order := range orders {
-		mlOrders[i] = map[string]any{
-			"time":            order.CreateTime.Format(time.RFC3339),
-			"total_amount":    order.TotalAmount,
-			"items":           order.OrderCount,
-			"status":          order.OrderStatus,
-			"discount_amount": order.DiscountAmount,
+	mlOrders := make([]map[string]any, 0, len(orders))
+	for _, order := range orders {
+		// Skip invalid orders
+		if order.CreateTime.IsZero() {
+			ch.Logger.Warn("skipping order with zero create time", "order_id", order.OrderID)
+			continue
 		}
+
+		totalAmount := 0.0
+		if order.TotalAmount != nil {
+			totalAmount = *order.TotalAmount
+		}
+
+		discountAmount := 0.0
+		if order.DiscountAmount != nil {
+			discountAmount = *order.DiscountAmount
+		}
+
+		// OrderCount is int, not *int - use it directly
+		orderCount := order.OrderCount
+
+		mlOrders = append(mlOrders, map[string]any{
+			"time":            order.CreateTime.Format(time.RFC3339),
+			"total_amount":    totalAmount,
+			"items":           orderCount,
+			"status":          order.OrderStatus,
+			"discount_amount": discountAmount,
+		})
 	}
 	return mlOrders
 }
 
 func (ch *CampaignHandler) convertCampaignsForML(campaigns []database.Campaign) []map[string]any {
-	mlCampaigns := make([]map[string]any, len(campaigns))
-	for i, campaign := range campaigns {
-		itemNames := make([]string, len(campaign.ItemsIncluded))
-		for j, item := range campaign.ItemsIncluded {
-			itemNames[j] = item.Name
+	mlCampaigns := make([]map[string]any, 0, len(campaigns))
+	for _, campaign := range campaigns {
+		// Skip campaigns with invalid times
+		if campaign.StartTime == "" || campaign.EndTime == "" {
+			ch.Logger.Warn("skipping campaign with empty time", "campaign_id", campaign.ID)
+			continue
+		}
+
+		itemNames := make([]string, 0, len(campaign.ItemsIncluded))
+		for _, item := range campaign.ItemsIncluded {
+			if item.Name != "" {
+				itemNames = append(itemNames, item.Name)
+			}
 		}
 
 		discount := 0.0
@@ -663,24 +716,30 @@ func (ch *CampaignHandler) convertCampaignsForML(campaigns []database.Campaign) 
 			discount = *campaign.DiscountPercent
 		}
 
-		mlCampaigns[i] = map[string]any{
+		mlCampaigns = append(mlCampaigns, map[string]any{
 			"start_time":     campaign.StartTime,
 			"end_time":       campaign.EndTime,
 			"items_included": itemNames,
 			"discount":       discount,
-		}
+		})
 	}
 	return mlCampaigns
 }
 
 func (ch *CampaignHandler) convertOrderItemsForML(orders []database.Order) []map[string]any {
-	var mlOrderItems []map[string]any
+	mlOrderItems := make([]map[string]any, 0)
 	for _, order := range orders {
 		for _, item := range order.OrderItems {
 			quantity := 1
 			if item.Quantity != nil {
 				quantity = *item.Quantity
 			}
+
+			// Skip items with zero UUID
+			if item.ItemID == uuid.Nil {
+				continue
+			}
+
 			mlOrderItems = append(mlOrderItems, map[string]any{
 				"order_id": order.OrderID.String(),
 				"item_id":  item.ItemID.String(),
@@ -689,4 +748,40 @@ func (ch *CampaignHandler) convertOrderItemsForML(orders []database.Order) []map
 		}
 	}
 	return mlOrderItems
+}
+func (ch *CampaignHandler) validateRecommendationRequest(request *RecommendCampaignRequest) error {
+	// Validate date format
+	_, err := time.Parse("2006-01-02", request.RecommendationStartDate)
+	if err != nil {
+		return fmt.Errorf("invalid date format, expected YYYY-MM-DD: %w", err)
+	}
+
+	// Validate num_recommendations
+	if request.NumRecommendations < 1 || request.NumRecommendations > 20 {
+		return fmt.Errorf("num_recommendations must be between 1 and 20")
+	}
+
+	// Validate optimize_for
+	validOptimizations := map[string]bool{"roi": true, "revenue": true, "uplift": true}
+	if !validOptimizations[request.OptimizeFor] {
+		return fmt.Errorf("optimize_for must be one of: roi, revenue, uplift")
+	}
+
+	// Validate discount range
+	if request.MaxDiscount < 0 || request.MaxDiscount > 100 {
+		return fmt.Errorf("max_discount must be between 0 and 100")
+	}
+
+	// Validate duration
+	if request.MinCampaignDurationDays < 1 || request.MinCampaignDurationDays > 365 {
+		return fmt.Errorf("min_campaign_duration_days must be between 1 and 365")
+	}
+	if request.MaxCampaignDurationDays < 1 || request.MaxCampaignDurationDays > 365 {
+		return fmt.Errorf("max_campaign_duration_days must be between 1 and 365")
+	}
+	if request.MinCampaignDurationDays > request.MaxCampaignDurationDays {
+		return fmt.Errorf("min_campaign_duration_days cannot exceed max_campaign_duration_days")
+	}
+
+	return nil
 }

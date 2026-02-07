@@ -35,7 +35,8 @@ Authorization: Bearer <access_token>
 11. [Deliveries](#deliveries-endpoints)
 12. [Items](#items-endpoints)
 13. [Campaigns](#campaigns-endpoints)
-14. [Alerts](#alerts-endpoints)
+14. [Schedule](#schedule-endpoints)
+15. [Alerts](#alerts-endpoints)
 
 ---
 
@@ -2817,6 +2818,212 @@ Content-Type: application/json
   - Hour is between 0-23
   - Order count and item count are non-negative
   - Day name matches the actual day of the week
+
+---
+
+## Schedule Endpoints
+
+### GET /api/:org/dashboard/schedule/
+
+Get the current authenticated user's schedule for the next 7 days.
+
+**Authentication:** Required (manager or employee only)
+
+**Request:**
+```http
+GET /api/:org/dashboard/schedule/
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| org | UUID | Organization ID |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Schedule retrieved successfully",
+  "data": [
+    {
+      "date": "2026-02-07T00:00:00Z",
+      "day": "saturday",
+      "start_time": "2026-02-07T10:00:00Z",
+      "end_time": "2026-02-07T14:00:00Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `403 Forbidden` - Admins cannot access this endpoint
+- `500 Internal Server Error` - Failed to retrieve schedule
+
+---
+
+### GET /api/:org/dashboard/schedule/all
+
+Get the full organization schedule for the next 7 days. Only accessible by admin and manager roles.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+GET /api/:org/dashboard/schedule/all
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| org | UUID | Organization ID |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Schedule retrieved successfully",
+  "data": [
+    {
+      "date": "2026-02-07T00:00:00Z",
+      "day": "saturday",
+      "start_time": "2026-02-07T10:00:00Z",
+      "end_time": "2026-02-07T14:00:00Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `403 Forbidden` - Employees cannot access this endpoint
+- `500 Internal Server Error` - Failed to retrieve schedule
+
+---
+
+### POST /api/:org/dashboard/schedule/predict
+
+Generate a new weekly schedule using the ML scheduling service. The endpoint gathers all necessary data (organization details, roles, employees, preferences, demand predictions) and sends it to the ML service for optimal schedule generation. The resulting schedule is stored in the database.
+
+**Authentication:** Required (admin or manager only)
+
+**Request:**
+```http
+POST /api/:org/dashboard/schedule/predict
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| org | UUID | Organization ID |
+
+**Request Body:** None required. All data is fetched internally from the database.
+
+**Response (200 OK):**
+```json
+{
+  "message": "schedule prediction retrieved successfully from API",
+  "schedule_status": "OPTIMAL",
+  "schedule_message": "Schedule generated successfully",
+  "objective_value": 12345.67,
+  "schedule_output": {
+    "monday": [
+      { "10:00-14:00": ["employee-uuid-1", "employee-uuid-2"] },
+      { "14:00-22:00": ["employee-uuid-3"] }
+    ],
+    "tuesday": [],
+    "wednesday": [],
+    "thursday": [],
+    "friday": [],
+    "saturday": [],
+    "sunday": []
+  },
+  "management_insights": {
+    "has_solution": true,
+    "peak_periods": [],
+    "capacity_analysis": {},
+    "employee_utilization": [],
+    "role_demand": {},
+    "hiring_recommendations": [],
+    "coverage_gaps": [],
+    "cost_analysis": {},
+    "workload_distribution": {},
+    "feasibility_analysis": []
+  }
+}
+```
+
+**Schedule Output Format:**
+The `schedule_output` is a map where each key is a lowercase day name (`monday`–`sunday`) and the value is an array of shift objects. Each shift object maps a time range (`"HH:MM-HH:MM"`) to an array of employee UUIDs assigned to that shift.
+
+**Management Insights:**
+| Field | Type | Description |
+|-------|------|-------------|
+| has_solution | boolean | Whether the scheduler found a feasible solution |
+| peak_periods | array | Identified peak demand periods |
+| capacity_analysis | object | Workforce capacity vs demand analysis |
+| employee_utilization | array | Per-employee utilization metrics |
+| role_demand | object | Demand breakdown by role |
+| hiring_recommendations | array | Suggested hiring actions |
+| coverage_gaps | array | Shifts/slots with insufficient coverage |
+| cost_analysis | object | Labor cost breakdown |
+| workload_distribution | object | Fairness metrics for hour distribution |
+| feasibility_analysis | array | Constraints that could not be satisfied |
+
+**Prerequisites:**
+- Organization must have demand predictions generated (via `/dashboard/demand/predict`)
+- Organization must have employees with roles assigned
+- Organization must have operating hours and rules configured
+
+**Error Responses:**
+- `403 Forbidden` - Only admins and managers can access this endpoint
+- `500 Internal Server Error` - Failed to fetch required data or ML service error
+
+**Notes:**
+- The schedule is automatically stored in the database upon successful generation
+- The ML service uses the OR-Tools CP-SAT solver with a 60-second time limit
+- Employee availability and preferences are pulled from the preferences table
+- Demand predictions must exist before generating a schedule
+
+---
+
+### GET /api/:org/staffing/employees/:id/schedule
+
+Get a specific employee's schedule for the next 7 days. Accessible by admin and manager roles.
+
+**Authentication:** Required (admin or manager)
+
+**Request:**
+```http
+GET /api/:org/staffing/employees/:id/schedule
+Authorization: Bearer <access_token>
+```
+
+**Path Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| org | UUID | Organization ID |
+| id | UUID | Employee ID |
+
+**Response (200 OK):**
+```json
+{
+  "message": "Employee schedule retrieved successfully",
+  "data": [
+    {
+      "date": "2026-02-07T00:00:00Z",
+      "day": "saturday",
+      "start_time": "2026-02-07T10:00:00Z",
+      "end_time": "2026-02-07T14:00:00Z"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid employee ID format
+- `403 Forbidden` - Employee belongs to a different organization
+- `404 Not Found` - Employee not found
+- `500 Internal Server Error` - Failed to retrieve schedule
 
 ---
 
