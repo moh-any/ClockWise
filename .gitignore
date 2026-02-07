@@ -50,7 +50,6 @@ api/__pycache__/
 .env
 load-env.ps1
 
-test-data
 .vscode
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 

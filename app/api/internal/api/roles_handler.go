@@ -57,7 +57,7 @@ func (h *RolesHandler) GetAllRoles(c *gin.Context) {
 	}
 
 	if roles == nil {
-		roles = []*database.OrganizationRole{}
+		roles = []database.OrganizationRole{}
 	}
 
 	h.Logger.Info("roles retrieved", "organization_id", user.OrganizationID, "count", len(roles))

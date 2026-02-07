@@ -44,11 +44,11 @@ func (crs *CachedRolesStore) CreateRole(role *database.OrganizationRole) error {
 
 // GetRolesByOrganizationID retrieves the full list of roles
 // Cache key: org:{uuid}:roles
-func (crs *CachedRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]*database.OrganizationRole, error) {
+func (crs *CachedRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]database.OrganizationRole, error) {
 	key := fmt.Sprintf("org:%s:roles", orgID)
 
-	var roles []*database.OrganizationRole
-	if err := crs.cache.Get(key, &roles); err == nil {
+	var roles []database.OrganizationRole
+	if err := crs.cache.Get(key, roles); err == nil {
 		return roles, nil
 	}
 

@@ -362,27 +362,27 @@ Authorization: Bearer <access_token>
   "data": [
     {
       "organization_id": "uuid",
-      "role": "admin",
-      "min_needed_per_shift": 0,
-      "items_per_role_per_hour": null,
-      "need_for_demand": false,
-      "independent": true
+      "role_id": "admin",
+      "min_present": 0,
+      "items_per_employee_per_hour": null,
+      "producing": false,
+      "is_independent": true
     },
     {
       "organization_id": "uuid",
-      "role": "manager",
-      "min_needed_per_shift": 1,
-      "items_per_role_per_hour": null,
-      "need_for_demand": false,
-      "independent": true
+      "role_id": "manager",
+      "min_present": 1,
+      "items_per_employee_per_hour": null,
+      "producing": false,
+      "is_independent": true
     },
     {
       "organization_id": "uuid",
-      "role": "waiter",
-      "min_needed_per_shift": 2,
-      "items_per_role_per_hour": 10,
-      "need_for_demand": true,
-      "independent": false
+      "role_id": "waiter",
+      "min_present": 2,
+      "items_per_employee_per_hour": 10,
+      "producing": true,
+      "is_independent": false
     }
   ]
 }
@@ -416,22 +416,22 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "role": "string (required, 1-50 characters)",
-  "min_needed_per_shift": "integer (required, >= 0)",
-  "items_per_role_per_hour": "integer (required if need_for_demand is true)",
-  "need_for_demand": "boolean (required)",
-  "independent": "boolean (required for custom roles)"
+  "role_id": "string (required, 1-50 characters)",
+  "min_present": "integer (required, >= 0)",
+  "items_per_employee_per_hour": "integer (required if producing is true)",
+  "producing": "boolean (required)",
+  "is_independent": "boolean (required for custom roles)"
 }
 ```
 
 **Example Request:**
 ```json
 {
-  "role": "host",
-  "min_needed_per_shift": 1,
-  "need_for_demand": true,
-  "items_per_role_per_hour": 5,
-  "independent": false
+  "role_id": "host",
+  "min_present": 1,
+  "producing": true,
+  "items_per_employee_per_hour": 5,
+  "is_independent": false
 }
 ```
 
@@ -441,19 +441,19 @@ Content-Type: application/json
   "message": "Role created successfully",
   "data": {
     "organization_id": "uuid",
-    "role": "host",
-    "min_needed_per_shift": 1,
-    "items_per_role_per_hour": 5,
-    "need_for_demand": true,
-    "independent": false
+    "role_id": "host",
+    "min_present": 1,
+    "items_per_employee_per_hour": 5,
+    "producing": true,
+    "is_independent": false
   }
 }
 ```
 
 **Database Constraints:**
-- If `need_for_demand` is true, `items_per_role_per_hour` must be >= 0
-- If `need_for_demand` is false, `items_per_role_per_hour` must be null
-- Custom roles require `independent` to be explicitly set
+- If `producing` is true, `items_per_employee_per_hour` must be >= 0
+- If `producing` is false, `items_per_employee_per_hour` must be null
+- Custom roles require `is_independent` to be explicitly set
 
 **Error Responses:**
 - `400 Bad Request` - Invalid request body or constraint violation
@@ -485,11 +485,11 @@ Authorization: Bearer <access_token>
   "message": "Role retrieved successfully",
   "data": {
     "organization_id": "uuid",
-    "role": "waiter",
-    "min_needed_per_shift": 2,
-    "items_per_role_per_hour": 10,
-    "need_for_demand": true,
-    "independent": false
+    "role_id": "waiter",
+    "min_present": 2,
+    "items_per_employee_per_hour": 10,
+    "producing": true,
+    "is_independent": false
   }
 }
 ```
@@ -521,20 +521,20 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "min_needed_per_shift": "integer (>= 0)",
-  "items_per_role_per_hour": "integer (optional)",
-  "need_for_demand": "boolean",
-  "independent": "boolean (optional)"
+  "min_present": "integer (>= 0)",
+  "items_per_employee_per_hour": "integer (optional)",
+  "producing": "boolean",
+  "is_independent": "boolean (optional)"
 }
 ```
 
 **Example Request:**
 ```json
 {
-  "min_needed_per_shift": 2,
-  "items_per_role_per_hour": 10,
-  "need_for_demand": true,
-  "independent": false
+  "min_present": 2,
+  "items_per_employee_per_hour": 10,
+  "producing": true,
+  "is_independent": false
 }
 ```
 
@@ -544,11 +544,11 @@ Content-Type: application/json
   "message": "Role updated successfully",
   "data": {
     "organization_id": "uuid",
-    "role": "waiter",
-    "min_needed_per_shift": 2,
-    "items_per_role_per_hour": 10,
-    "need_for_demand": true,
-    "independent": false
+    "role_id": "waiter",
+    "min_present": 2,
+    "items_per_employee_per_hour": 10,
+    "producing": true,
+    "is_independent": false
   }
 }
 ```

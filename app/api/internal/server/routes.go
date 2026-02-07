@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// TODO: Add Caching
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
@@ -23,9 +22,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80", "http://localhost"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80","http://localhost:8000","http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
-		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type"},
+		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Encoding"},
 		AllowCredentials: true,
 	}))
 
@@ -136,7 +135,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
+	schedule.GET("/",s.scheduleHandler.GetCurrentUserScheduleHandler) // Show schedule for manager and employee
+	schedule.GET("/all", s.scheduleHandler.GetScheduleHandler)         // If admin or manager show full schedule, if employee do not allow
 	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
 
 	// TODO Handle Get Employee Schedule
