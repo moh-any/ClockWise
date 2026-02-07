@@ -4333,1445 +4333,1137 @@ function AdminDashboard() {
     setShowEditRoleModal(true)
   }
 
-  const renderInfo = () => (
-    <div className="premium-content fade-in">
-      <div className="content-header">
-        <div>
-          <h1 className="page-title">Organization Setup</h1>
-          <p className="page-subtitle">
-            Configure your organization location and roles
-          </p>
-        </div>
+const renderInfo = () => (
+  <div className="premium-content fade-in">
+    <div className="content-header">
+      <div>
+        <h1 className="page-title">Organization Setup</h1>
+        <p className="page-subtitle">
+          Configure your organization location and roles
+        </p>
       </div>
+    </div>
 
-      {/* Action Message Toast */}
-      {actionMessage && (
-        <div
-          className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
-          style={{ marginBottom: "var(--space-6)" }}
-        >
-          <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
-            {actionMessage.text}
-          </p>
+    {/* Action Message Toast */}
+    {actionMessage && (
+      <div
+        className={`alert-card ${actionMessage.type === "success" ? "alert-low" : "alert-high"}`}
+        style={{ marginBottom: "var(--space-6)" }}
+      >
+        <p className="alert-message" style={{ whiteSpace: "pre-wrap" }}>
+          {actionMessage.text}
+        </p>
+      </div>
+    )}
+
+    {/* Location Section */}
+    <div className="section-wrapper">
+      <div className="section-header">
+        <h2 className="section-title">
+          <img src={LocationIcon} alt="Location" className="title-icon-svg" />
+          Organization Location
+        </h2>
+      </div>
+      <p className="section-description">
+        Click anywhere on the map to set your primary business location
+      </p>
+
+      {selectedCoords.lat && selectedCoords.lng && (
+        <div className="coords-display">
+          <div className="coords-item">
+            <span className="coords-label">Latitude:</span>
+            <span className="coords-value">{selectedCoords.lat}</span>
+          </div>
+          <div className="coords-item">
+            <span className="coords-label">Longitude:</span>
+            <span className="coords-value">{selectedCoords.lng}</span>
+          </div>
+          <button className="btn-primary btn-sm">Confirm Location</button>
         </div>
       )}
 
+      <div id="location-map" className="map-container"></div>
 
+      {!selectedCoords.lat && (
+        <div className="map-hint">
+          <p>👆 Click on the map to select your location</p>
+        </div>
+      )}
+    </div>
 
-{/* Shift Rules Section */}
-<div className="section-wrapper">
-  <div className="section-header">
-    <h2 className="section-title">
-      <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
-      Shift Rules & Operating Hours
-    </h2>
-  </div>
-  <p className="section-description">
-    Configure shift scheduling parameters and operating hours for your organization
-  </p>
-
-  <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
-    {/* Basic Shift Parameters */}
-    <div className="setting-item">
-      <label className="setting-label">Minimum Shift Length (hours)</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="1" 
-        max="24"
-        value={shiftRulesForm.shift_min_hours}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_min_hours: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Maximum Shift Length (hours)</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="1" 
-        max="24"
-        value={shiftRulesForm.shift_max_hours}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_max_hours: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Minimum Weekly Hours</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="0" 
-        max="168"
-        value={shiftRulesForm.min_weekly_hours}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_weekly_hours: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Maximum Weekly Hours</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="0" 
-        max="168"
-        value={shiftRulesForm.max_weekly_hours}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, max_weekly_hours: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Minimum Rest Slots Between Shifts</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="0" 
-        max="24"
-        value={shiftRulesForm.min_rest_slots}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_rest_slots: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Slot Length (hours)</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        step="0.25"
-        min="0.25" 
-        max="4"
-        value={shiftRulesForm.slot_len_hour}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, slot_len_hour: e.target.value})}
-      />
-      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)', marginTop: 'var(--space-1)' }}>
-        Time unit for scheduling (e.g., 0.5 = 30 minutes)
-      </p>
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Minimum Shift Length (slots)</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="1" 
-        max="48"
-        value={shiftRulesForm.min_shift_length_slots}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_shift_length_slots: e.target.value})}
-      />
-    </div>
-    <div className="setting-item">
-      <label className="setting-label">Waiting Time (minutes)</label>
-      <input 
-        className="setting-input" 
-        type="number" 
-        min="0" 
-        max="120"
-        value={shiftRulesForm.waiting_time}
-        onChange={(e) => setShiftRulesForm({...shiftRulesForm, waiting_time: e.target.value})}
-      />
-    </div>
-  </div>
-
-  {/* Toggle Switches - with spacing */}
-  <div style={{ marginTop: 'var(--space-8)' }}>
-    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-      <div className="toggle-content">
-        <h4 className="toggle-title">Fixed Shifts</h4>
-        <p className="toggle-description">
-          Enable if you have predefined shift times each day
-        </p>
+    {/* Shift Rules Section */}
+    <div className="section-wrapper">
+      <div className="section-header">
+        <h2 className="section-title">
+          <img src={ScheduleIcon} alt="Shift Rules" className="title-icon-svg" />
+          Shift Rules & Operating Hours
+        </h2>
       </div>
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={shiftRulesForm.fixed_shifts}
-          onChange={(e) => setShiftRulesForm({...shiftRulesForm, fixed_shifts: e.target.checked})}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-    </div>
+      <p className="section-description">
+        Configure shift scheduling parameters and operating hours for your organization
+      </p>
 
-    {shiftRulesForm.fixed_shifts && (
-      <div style={{ 
-        marginTop: 'var(--space-4)', 
-        marginBottom: 'var(--space-6)',
-        padding: 'var(--space-5)', 
-        background: 'var(--gray-50)', 
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--gray-200)'
-      }}>
-        <h4 style={{ 
-          marginBottom: 'var(--space-4)', 
-          fontSize: 'var(--text-base)', 
-          fontWeight: 600,
-          color: 'var(--text-primary)'
-        }}>
-          Fixed Shift Configuration
-        </h4>
-        
-        <div className="setting-item" style={{ marginBottom: 'var(--space-5)' }}>
-          <label className="setting-label">Number of Shifts per Day</label>
+      <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+        {/* Basic Shift Parameters */}
+        <div className="setting-item">
+          <label className="setting-label">Minimum Shift Length (hours)</label>
           <input 
             className="setting-input" 
             type="number" 
             min="1" 
-            max="10"
-            value={shiftRulesForm.number_of_shifts_per_day}
-            onChange={(e) => {
-              const num = parseInt(e.target.value)
-              setShiftRulesForm({...shiftRulesForm, number_of_shifts_per_day: num})
-              
-              // Adjust shift times array
-              const newShifts = [...shiftTimes]
-              while (newShifts.length < num) {
-                const lastShift = newShifts[newShifts.length - 1] || { to: "09:00" }
-                newShifts.push({ from: lastShift.to, to: "17:00" })
-              }
-              while (newShifts.length > num) {
-                newShifts.pop()
-              }
-              setShiftTimes(newShifts)
-            }}
+            max="24"
+            value={shiftRulesForm.shift_min_hours}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_min_hours: e.target.value})}
           />
         </div>
+        <div className="setting-item">
+          <label className="setting-label">Maximum Shift Length (hours)</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="1" 
+            max="24"
+            value={shiftRulesForm.shift_max_hours}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, shift_max_hours: e.target.value})}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Minimum Weekly Hours</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="0" 
+            max="168"
+            value={shiftRulesForm.min_weekly_hours}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_weekly_hours: e.target.value})}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Maximum Weekly Hours</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="0" 
+            max="168"
+            value={shiftRulesForm.max_weekly_hours}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, max_weekly_hours: e.target.value})}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Minimum Rest Slots Between Shifts</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="0" 
+            max="24"
+            value={shiftRulesForm.min_rest_slots}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_rest_slots: e.target.value})}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Slot Length (hours)</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            step="0.25"
+            min="0.25" 
+            max="4"
+            value={shiftRulesForm.slot_len_hour}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, slot_len_hour: e.target.value})}
+          />
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)', marginTop: 'var(--space-1)' }}>
+            Time unit for scheduling (e.g., 0.5 = 30 minutes)
+          </p>
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Minimum Shift Length (slots)</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="1" 
+            max="48"
+            value={shiftRulesForm.min_shift_length_slots}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, min_shift_length_slots: e.target.value})}
+          />
+        </div>
+        <div className="setting-item">
+          <label className="setting-label">Waiting Time (minutes)</label>
+          <input 
+            className="setting-input" 
+            type="number" 
+            min="0" 
+            max="120"
+            value={shiftRulesForm.waiting_time}
+            onChange={(e) => setShiftRulesForm({...shiftRulesForm, waiting_time: e.target.value})}
+          />
+        </div>
+      </div>
 
-        <h5 style={{ 
-          marginBottom: 'var(--space-3)', 
-          fontSize: 'var(--text-sm)', 
+      {/* Toggle Switches - with spacing */}
+      <div style={{ marginTop: 'var(--space-8)' }}>
+        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="toggle-content">
+            <h4 className="toggle-title">Fixed Shifts</h4>
+            <p className="toggle-description">
+              Enable if you have predefined shift times each day
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={shiftRulesForm.fixed_shifts}
+              onChange={(e) => setShiftRulesForm({...shiftRulesForm, fixed_shifts: e.target.checked})}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        {shiftRulesForm.fixed_shifts && (
+          <div style={{ 
+            marginTop: 'var(--space-4)', 
+            marginBottom: 'var(--space-6)',
+            padding: 'var(--space-5)', 
+            background: 'var(--gray-50)', 
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--gray-200)'
+          }}>
+            <h4 style={{ 
+              marginBottom: 'var(--space-4)', 
+              fontSize: 'var(--text-base)', 
+              fontWeight: 600,
+              color: 'var(--text-primary)'
+            }}>
+              Fixed Shift Configuration
+            </h4>
+            
+            <div className="setting-item" style={{ marginBottom: 'var(--space-5)' }}>
+              <label className="setting-label">Number of Shifts per Day</label>
+              <input 
+                className="setting-input" 
+                type="number" 
+                min="1" 
+                max="10"
+                value={shiftRulesForm.number_of_shifts_per_day}
+                onChange={(e) => {
+                  const num = parseInt(e.target.value)
+                  setShiftRulesForm({...shiftRulesForm, number_of_shifts_per_day: num})
+                  
+                  // Adjust shift times array
+                  const newShifts = [...shiftTimes]
+                  while (newShifts.length < num) {
+                    const lastShift = newShifts[newShifts.length - 1] || { to: "09:00" }
+                    newShifts.push({ from: lastShift.to, to: "17:00" })
+                  }
+                  while (newShifts.length > num) {
+                    newShifts.pop()
+                  }
+                  setShiftTimes(newShifts)
+                }}
+              />
+            </div>
+
+            <h5 style={{ 
+              marginBottom: 'var(--space-3)', 
+              fontSize: 'var(--text-sm)', 
+              fontWeight: 600,
+              color: 'var(--text-primary)'
+            }}>
+              Default Shift Times
+            </h5>
+            {shiftTimes.map((shift, index) => (
+              <div key={index} style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', alignItems: 'center' }}>
+                <span style={{ 
+                  minWidth: '80px', 
+                  fontSize: 'var(--text-sm)', 
+                  fontWeight: 500,
+                  color: 'var(--text-primary)'
+                }}>
+                  Shift {index + 1}:
+                </span>
+                <input
+                  type="time"
+                  className="setting-input"
+                  style={{ flex: 1 }}
+                  value={shift.from}
+                  onChange={(e) => {
+                    const newShifts = [...shiftTimes]
+                    newShifts[index].from = e.target.value
+                    setShiftTimes(newShifts)
+                  }}
+                />
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--gray-500)' }}>to</span>
+                <input
+                  type="time"
+                  className="setting-input"
+                  style={{ flex: 1 }}
+                  value={shift.to}
+                  onChange={(e) => {
+                    const newShifts = [...shiftTimes]
+                    newShifts[index].to = e.target.value
+                    setShiftTimes(newShifts)
+                  }}
+                />
+              </div>
+            ))}
+
+            <div style={{ marginTop: 'var(--space-6)' }}>
+              <h5 style={{ 
+                marginBottom: 'var(--space-3)', 
+                fontSize: 'var(--text-sm)', 
+                fontWeight: 600,
+                color: 'var(--text-primary)'
+              }}>
+                Custom Day Shifts (Optional - Frontend Only)
+              </h5>
+              <p style={{ 
+                fontSize: 'var(--text-xs)', 
+                color: 'var(--gray-600)', 
+                marginBottom: 'var(--space-4)',
+                fontStyle: 'italic'
+              }}>
+                ⚠️ This feature is stored locally but not yet sent to backend (future implementation)
+              </p>
+              
+              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                <div key={day} style={{ marginBottom: 'var(--space-4)' }}>
+                  <div className="toggle-item" style={{ 
+                    padding: 'var(--space-3)', 
+                    background: 'var(--bg-primary)', 
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--gray-300)'
+                  }}>
+                    <div className="toggle-content">
+                      <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
+                        {day}
+                      </h4>
+                      <p className="toggle-description" style={{ fontSize: 'var(--text-xs)' }}>
+                        Use custom shifts for this day
+                      </p>
+                    </div>
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={!!customDayShifts[day]}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setCustomDayShifts({
+                              ...customDayShifts,
+                              [day]: [...shiftTimes]
+                            })
+                          } else {
+                            const newCustom = {...customDayShifts}
+                            delete newCustom[day]
+                            setCustomDayShifts(newCustom)
+                          }
+                        }}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                  
+                  {customDayShifts[day] && (
+                    <div style={{ 
+                      marginTop: 'var(--space-3)', 
+                      marginLeft: 'var(--space-4)', 
+                      padding: 'var(--space-4)', 
+                      background: 'var(--bg-primary)', 
+                      borderRadius: 'var(--radius-md)', 
+                      border: '1px solid var(--gray-300)'
+                    }}>
+                      {customDayShifts[day].map((shift, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'center' }}>
+                          <span style={{ 
+                            minWidth: '60px', 
+                            fontSize: 'var(--text-xs)',
+                            color: 'var(--text-primary)'
+                          }}>
+                            Shift {idx + 1}:
+                          </span>
+                          <input
+                            type="time"
+                            className="setting-input"
+                            style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
+                            value={shift.from}
+                            onChange={(e) => {
+                              const newCustom = {...customDayShifts}
+                              newCustom[day][idx].from = e.target.value
+                              setCustomDayShifts(newCustom)
+                            }}
+                          />
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)' }}>to</span>
+                          <input
+                            type="time"
+                            className="setting-input"
+                            style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
+                            value={shift.to}
+                            onChange={(e) => {
+                              const newCustom = {...customDayShifts}
+                              newCustom[day][idx].to = e.target.value
+                              setCustomDayShifts(newCustom)
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="toggle-content">
+            <h4 className="toggle-title">Meet All Demand</h4>
+            <p className="toggle-description">
+              Schedule enough staff to meet all predicted demand
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={shiftRulesForm.meet_all_demand}
+              onChange={(e) => setShiftRulesForm({...shiftRulesForm, meet_all_demand: e.target.checked})}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="toggle-content">
+            <h4 className="toggle-title">Receiving Phone Orders</h4>
+            <p className="toggle-description">
+              Organization accepts phone orders
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={shiftRulesForm.receiving_phone}
+              onChange={(e) => setShiftRulesForm({...shiftRulesForm, receiving_phone: e.target.checked})}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="toggle-content">
+            <h4 className="toggle-title">Delivery Service</h4>
+            <p className="toggle-description">
+              Organization offers delivery service
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={shiftRulesForm.delivery}
+              onChange={(e) => setShiftRulesForm({...shiftRulesForm, delivery: e.target.checked})}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
+          <div className="toggle-content">
+            <h4 className="toggle-title">Accepting Orders</h4>
+            <p className="toggle-description">
+              Organization is currently accepting new orders
+            </p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={shiftRulesForm.accepting_orders}
+              onChange={(e) => setShiftRulesForm({...shiftRulesForm, accepting_orders: e.target.checked})}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      {/* Operating Hours */}
+      <div style={{ marginTop: 'var(--space-8)' }}>
+        <h4 style={{ 
+          marginBottom: 'var(--space-4)', 
+          fontSize: 'var(--text-lg)', 
           fontWeight: 600,
           color: 'var(--text-primary)'
         }}>
-          Default Shift Times
-        </h5>
-        {shiftTimes.map((shift, index) => (
-          <div key={index} style={{ display: 'flex', gap: 'var(--space-3)', marginBottom: 'var(--space-3)', alignItems: 'center' }}>
-            <span style={{ 
-              minWidth: '80px', 
-              fontSize: 'var(--text-sm)', 
-              fontWeight: 500,
-              color: 'var(--text-primary)'
+          Operating Hours
+        </h4>
+        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+          {operatingHours.map((day, index) => (
+            <div key={day.weekday} style={{ 
+              display: 'flex', 
+              gap: 'var(--space-3)', 
+              alignItems: 'center',
+              padding: 'var(--space-4)',
+              background: 'var(--gray-50)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--gray-200)'
             }}>
-              Shift {index + 1}:
-            </span>
-            <input
-              type="time"
-              className="setting-input"
-              style={{ flex: 1 }}
-              value={shift.from}
-              onChange={(e) => {
-                const newShifts = [...shiftTimes]
-                newShifts[index].from = e.target.value
-                setShiftTimes(newShifts)
-              }}
-            />
-            Shift Rules & Operating Hours
-          </h2>
+              <span style={{ 
+                minWidth: '100px', 
+                fontWeight: 500,
+                color: 'var(--text-primary)'
+              }}>
+                {day.weekday}
+              </span>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <input
+                  type="checkbox"
+                  checked={day.closed || false}
+                  onChange={(e) => {
+                    const newHours = [...operatingHours]
+                    newHours[index].closed = e.target.checked
+                    if (e.target.checked) {
+                      newHours[index].opening_time = ""
+                      newHours[index].closing_time = ""
+                    }
+                    setOperatingHours(newHours)
+                  }}
+                />
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>Closed</span>
+              </label>
+              {!day.closed && (
+                <>
+                  <input
+                    type="time"
+                    className="setting-input"
+                    style={{ flex: 1 }}
+                    value={day.opening_time}
+                    onChange={(e) => {
+                      const newHours = [...operatingHours]
+                      newHours[index].opening_time = e.target.value
+                      setOperatingHours(newHours)
+                    }}
+                  />
+                  <span style={{ color: 'var(--gray-500)' }}>to</span>
+                  <input
+                    type="time"
+                    className="setting-input"
+                    style={{ flex: 1 }}
+                    value={day.closing_time}
+                    onChange={(e) => {
+                      const newHours = [...operatingHours]
+                      newHours[index].closing_time = e.target.value
+                      setOperatingHours(newHours)
+                    }}
+                  />
+                </>
+              )}
+            </div>
+          ))}
         </div>
-        <p className="section-description">
-          Configure shift scheduling parameters and operating hours for your
-          organization
-        </p>
+      </div>
 
-        <div className="settings-grid" style={{ marginTop: "var(--space-4)" }}>
-          {/* Basic Shift Parameters */}
-          <div className="setting-item">
-            <label className="setting-label">
-              Minimum Shift Length (hours)
-            </label>
-            <input
-              className="setting-input"
-              type="number"
-              min="1"
-              max="24"
-              value={shiftRulesForm.shift_min_hours}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  shift_min_hours: e.target.value,
-                })
-              }
-            />
+      <div className="settings-footer" style={{ marginTop: 'var(--space-8)' }}>
+        <button 
+          className="btn-secondary"
+          onClick={() => {
+            fetchShiftRules()
+            setActionMessage({ type: 'success', text: 'Reset to saved values' })
+            setTimeout(() => setActionMessage(null), 3000)
+          }}
+        >
+          Reset to Defaults
+        </button>
+        <button 
+          className="btn-primary"
+          onClick={handleSaveShiftRules}
+          disabled={shiftRulesLoading}
+        >
+          {shiftRulesLoading ? 'Saving...' : 'Save Shift Rules'}
+        </button>
+      </div>
+    </div>
+
+    {/* Roles Management Section */}
+    <div className="section-wrapper">
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">
+            <img src={EmployeeIcon} alt="Roles" className="title-icon-svg" />
+            Organization Roles
+          </h2>
+          <p className="section-description">
+            Define roles for your organization and their requirements
+          </p>
+        </div>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setRoleForm({
+              role: "",
+              min_needed_per_shift: 1,
+              items_per_role_per_hour: "",
+              need_for_demand: false,
+              independent: true,
+            })
+            setRoleError("")
+            setShowAddRoleModal(true)
+          }}
+        >
+          + Add Role
+        </button>
+      </div>
+
+      {roles && roles.length > 0 ? (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Role Name
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Min per Shift
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Demand Based
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Items/Hour
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Independent
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    padding: "var(--space-4)",
+                    fontSize: "var(--text-sm)",
+                    fontWeight: 600,
+                    color: "var(--gray-600)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {roles.map((role) => (
+                <tr
+                  key={role.role}
+                  style={{
+                    borderBottom: "1px solid var(--gray-200)",
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    <span className="badge badge-primary">{role.role}</span>
+                  </td>
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {role.min_needed_per_shift}
+                  </td>
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {role.need_for_demand ? (
+                      <span style={{ color: "var(--color-primary)" }}>
+                        ✓ Yes
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {role.items_per_role_per_hour != null
+                      ? role.items_per_role_per_hour
+                      : "—"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {role.independent ? (
+                      <span style={{ color: "var(--color-primary)" }}>
+                        ✓ Yes
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--gray-400)" }}>✗ No</span>
+                    )}
+                  </td>
+                  <td
+                    style={{
+                      padding: "var(--space-4)",
+                      fontSize: "var(--text-base)",
+                      color: "var(--gray-700)",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {role.role !== "admin" && role.role !== "manager" && (
+                      <>
+                        <button
+                          className="btn-link"
+                          style={{ marginRight: "var(--space-2)" }}
+                          onClick={() => openEditRole(role)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn-link"
+                          style={{ color: "var(--color-accent)" }}
+                          onClick={() => setConfirmDeleteRole(role)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                    {(role.role === "admin" || role.role === "manager") && (
+                      <span
+                        style={{
+                          color: "var(--gray-400)",
+                          fontSize: "var(--text-sm)",
+                        }}
+                      >
+                        Default Role
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="empty-state">
+          <h3>No Roles Defined</h3>
+          <p>Add your first role to get started</p>
+        </div>
+      )}
+    </div>
+
+    {/* Add Role Modal */}
+    {showAddRoleModal && (
+      <div
+        className="modal-overlay"
+        onClick={() => setShowAddRoleModal(false)}
+      >
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 className="section-title">Add New Role</h2>
+            <button
+              className="collapse-btn"
+              onClick={() => setShowAddRoleModal(false)}
+            >
+              ×
+            </button>
           </div>
-          <div className="setting-item">
-            <label className="setting-label">
-              Maximum Shift Length (hours)
-            </label>
-            <input
-              className="setting-input"
-              type="number"
-              min="1"
-              max="24"
-              value={shiftRulesForm.shift_max_hours}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  shift_max_hours: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Minimum Weekly Hours</label>
-            <input
-              className="setting-input"
-              type="number"
-              min="0"
-              max="168"
-              value={shiftRulesForm.min_weekly_hours}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  min_weekly_hours: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Maximum Weekly Hours</label>
-            <input
-              className="setting-input"
-              type="number"
-              min="0"
-              max="168"
-              value={shiftRulesForm.max_weekly_hours}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  max_weekly_hours: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">
-              Minimum Rest Slots Between Shifts
-            </label>
-            <input
-              className="setting-input"
-              type="number"
-              min="0"
-              max="24"
-              value={shiftRulesForm.min_rest_slots}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  min_rest_slots: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Slot Length (hours)</label>
-            <input
-              className="setting-input"
-              type="number"
-              step="0.25"
-              min="0.25"
-              max="4"
-              value={shiftRulesForm.slot_len_hour}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  slot_len_hour: e.target.value,
-                })
-              }
-            />
-            <p
+          {roleError && (
+            <div
+              className="login-error-message"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              {roleError}
+            </div>
+          )}
+          <form onSubmit={handleAddRole}>
+            <div
               style={{
-                fontSize: "var(--text-xs)",
-                color: "var(--gray-500)",
-                marginTop: "var(--space-1)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-4)",
               }}
             >
-              Time unit for scheduling (e.g., 0.5 = 30 minutes)
-            </p>
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">
-              Minimum Shift Length (slots)
-            </label>
-            <input
-              className="setting-input"
-              type="number"
-              min="1"
-              max="48"
-              value={shiftRulesForm.min_shift_length_slots}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  min_shift_length_slots: e.target.value,
-                })
-              }
-            />
-          </div>
-          <div className="setting-item">
-            <label className="setting-label">Waiting Time (minutes)</label>
-            <input
-              className="setting-input"
-              type="number"
-              min="0"
-              max="120"
-              value={shiftRulesForm.waiting_time}
-              onChange={(e) =>
-                setShiftRulesForm({
-                  ...shiftRulesForm,
-                  waiting_time: e.target.value,
-                })
-              }
-            />
-          </div>
-        </div>
-
-        <div style={{ marginTop: 'var(--space-6)' }}>
-          <h5 style={{ 
-            marginBottom: 'var(--space-3)', 
-            fontSize: 'var(--text-sm)', 
-            fontWeight: 600,
-            color: 'var(--text-primary)'
-          }}>
-            Custom Day Shifts
-          </h5>
-          
-          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-            <div key={day} style={{ marginBottom: 'var(--space-4)' }}>
-              <div className="toggle-item" style={{ 
-                padding: 'var(--space-3)', 
-                background: 'var(--bg-primary)', 
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--gray-300)'
-              }}>
+              <div className="setting-item">
+                <label className="setting-label">Role Name</label>
+                <input
+                  className="setting-input"
+                  type="text"
+                  value={roleForm.role}
+                  onChange={(e) =>
+                    setRoleForm({ ...roleForm, role: e.target.value })
+                  }
+                  placeholder="e.g., waiter, cashier, cook"
+                  required
+                />
+              </div>
+              <div className="setting-item">
+                <label className="setting-label">
+                  Minimum Needed per Shift
+                </label>
+                <input
+                  className="setting-input"
+                  type="number"
+                  min="0"
+                  value={roleForm.min_needed_per_shift}
+                  onChange={(e) =>
+                    setRoleForm({
+                      ...roleForm,
+                      min_needed_per_shift: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+              <div className="toggle-item">
                 <div className="toggle-content">
-                  <h4 className="toggle-title" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>
-                    {day}
-                  </h4>
-                  <p className="toggle-description" style={{ fontSize: 'var(--text-xs)' }}>
-                    Use custom shifts for this day
+                  <h4 className="toggle-title">Need for Demand</h4>
+                  <p className="toggle-description">
+                    Is this role required based on demand/capacity?
                   </p>
                 </div>
                 <label className="toggle-switch">
                   <input
                     type="checkbox"
-                    checked={!!customDayShifts[day]}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setCustomDayShifts({
-                          ...customDayShifts,
-                          [day]: [...shiftTimes]
-                        })
-                      } else {
-                        const newCustom = {...customDayShifts}
-                        delete newCustom[day]
-                        setCustomDayShifts(newCustom)
-                      }
-                      newShifts.push({ from: lastShift.to, to: "17:00" })
+                    checked={roleForm.need_for_demand}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        need_for_demand: e.target.checked,
+                      })
                     }
-                    while (newShifts.length > num) {
-                      newShifts.pop()
-                    }
-                    setShiftTimes(newShifts)
-                  }}
-                />
-              </div>
-
-              <h5
-                style={{
-                  marginBottom: "var(--space-3)",
-                  fontSize: "var(--text-sm)",
-                  fontWeight: 600,
-                }}
-              >
-                Default Shift Times
-              </h5>
-              {shiftTimes.map((shift, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    gap: "var(--space-3)",
-                    marginBottom: "var(--space-3)",
-                    alignItems: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      minWidth: "80px",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 500,
-                    }}
-                  >
-                    Shift {index + 1}:
-                  </span>
-                  <input
-                    type="time"
-                    className="setting-input"
-                    style={{ flex: 1 }}
-                    value={shift.from}
-                    onChange={(e) => {
-                      const newShifts = [...shiftTimes]
-                      newShifts[index].from = e.target.value
-                      setShiftTimes(newShifts)
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "var(--text-sm)",
-                      color: "var(--gray-500)",
-                    }}
-                  >
-                    to
-                  </span>
-                  <input
-                    type="time"
-                    className="setting-input"
-                    style={{ flex: 1 }}
-                    value={shift.to}
-                    onChange={(e) => {
-                      const newShifts = [...shiftTimes]
-                      newShifts[index].to = e.target.value
-                      setShiftTimes(newShifts)
-                    }}
                   />
                   <span className="toggle-slider"></span>
                 </label>
               </div>
-              
-              {customDayShifts[day] && (
-                <div style={{ 
-                  marginTop: 'var(--space-3)', 
-                  marginLeft: 'var(--space-4)', 
-                  padding: 'var(--space-4)', 
-                  background: 'var(--bg-primary)', 
-                  borderRadius: 'var(--radius-md)', 
-                  border: '1px solid var(--gray-300)'
-                }}>
-                  {customDayShifts[day].map((shift, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', alignItems: 'center' }}>
-                      <span style={{ 
-                        minWidth: '60px', 
-                        fontSize: 'var(--text-xs)',
-                        color: 'var(--text-primary)'
-                      }}>
-                        Shift {idx + 1}:
-                      </span>
-                      <input
-                        type="time"
-                        className="setting-input"
-                        style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
-                        value={shift.from}
-                        onChange={(e) => {
-                          const newCustom = {...customDayShifts}
-                          newCustom[day][idx].from = e.target.value
-                          setCustomDayShifts(newCustom)
-                        }}
-                      />
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gray-500)' }}>to</span>
-                      <input
-                        type="time"
-                        className="setting-input"
-                        style={{ flex: 1, fontSize: 'var(--text-xs)', padding: 'var(--space-2)' }}
-                        value={shift.to}
-                        onChange={(e) => {
-                          const newCustom = {...customDayShifts}
-                          newCustom[day][idx].to = e.target.value
-                          setCustomDayShifts(newCustom)
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              <div style={{ marginTop: "var(--space-4)" }}>
-                <h5
-                  style={{
-                    marginBottom: "var(--space-3)",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Custom Day Shifts (Optional)
-                </h5>
-                <p
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: "var(--gray-600)",
-                    marginBottom: "var(--space-3)",
-                  }}
-                >
-                  Override default shifts for specific days of the week
-                </p>
-
-                {[
-                  "Monday",
-                  "Tuesday",
-                  "Wednesday",
-                  "Thursday",
-                  "Friday",
-                  "Saturday",
-                  "Sunday",
-                ].map((day) => (
-                  <div key={day} style={{ marginBottom: "var(--space-3)" }}>
-                    <div
-                      className="toggle-item"
-                      style={{
-                        padding: "var(--space-2)",
-                        background: "white",
-                        borderRadius: "var(--radius-md)",
-                      }}
-                    >
-                      <div className="toggle-content">
-                        <h4
-                          className="toggle-title"
-                          style={{ fontSize: "var(--text-sm)" }}
-                        >
-                          {day}
-                        </h4>
-                        <p
-                          className="toggle-description"
-                          style={{ fontSize: "var(--text-xs)" }}
-                        >
-                          Use custom shifts for this day
-                        </p>
-                      </div>
-                      <label className="toggle-switch">
-                        <input
-                          type="checkbox"
-                          checked={!!customDayShifts[day]}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setCustomDayShifts({
-                                ...customDayShifts,
-                                [day]: [...shiftTimes],
-                              })
-                            } else {
-                              const newCustom = { ...customDayShifts }
-                              delete newCustom[day]
-                              setCustomDayShifts(newCustom)
-                            }
-                          }}
-                        />
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-
-                    {customDayShifts[day] && (
-                      <div
-                        style={{
-                          marginTop: "var(--space-2)",
-                          marginLeft: "var(--space-4)",
-                          padding: "var(--space-3)",
-                          background: "white",
-                          borderRadius: "var(--radius-md)",
-                          border: "1px solid var(--gray-200)",
-                        }}
-                      >
-                        {customDayShifts[day].map((shift, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: "flex",
-                              gap: "var(--space-2)",
-                              marginBottom: "var(--space-2)",
-                              alignItems: "center",
-                            }}
-                          >
-                            <span
-                              style={{
-                                minWidth: "60px",
-                                fontSize: "var(--text-xs)",
-                              }}
-                            >
-                              Shift {idx + 1}:
-                            </span>
-                            <input
-                              type="time"
-                              className="setting-input"
-                              style={{
-                                flex: 1,
-                                fontSize: "var(--text-xs)",
-                                padding: "var(--space-2)",
-                              }}
-                              value={shift.from}
-                              onChange={(e) => {
-                                const newCustom = { ...customDayShifts }
-                                newCustom[day][idx].from = e.target.value
-                                setCustomDayShifts(newCustom)
-                              }}
-                            />
-                            <span style={{ fontSize: "var(--text-xs)" }}>
-                              to
-                            </span>
-                            <input
-                              type="time"
-                              className="setting-input"
-                              style={{
-                                flex: 1,
-                                fontSize: "var(--text-xs)",
-                                padding: "var(--space-2)",
-                              }}
-                              value={shift.to}
-                              onChange={(e) => {
-                                const newCustom = { ...customDayShifts }
-                                newCustom[day][idx].to = e.target.value
-                                setCustomDayShifts(newCustom)
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-      <div className="toggle-content">
-        <h4 className="toggle-title">Meet All Demand</h4>
-        <p className="toggle-description">
-          Schedule enough staff to meet all predicted demand
-        </p>
-      </div>
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={shiftRulesForm.meet_all_demand}
-          onChange={(e) => setShiftRulesForm({...shiftRulesForm, meet_all_demand: e.target.checked})}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-    </div>
-
-    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-      <div className="toggle-content">
-        <h4 className="toggle-title">Receiving Phone Orders</h4>
-        <p className="toggle-description">
-          Organization accepts phone orders
-        </p>
-      </div>
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={shiftRulesForm.receiving_phone}
-          onChange={(e) => setShiftRulesForm({...shiftRulesForm, receiving_phone: e.target.checked})}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-    </div>
-
-    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-      <div className="toggle-content">
-        <h4 className="toggle-title">Delivery Service</h4>
-        <p className="toggle-description">
-          Organization offers delivery service
-        </p>
-      </div>
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={shiftRulesForm.delivery}
-          onChange={(e) => setShiftRulesForm({...shiftRulesForm, delivery: e.target.checked})}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-    </div>
-
-    <div className="toggle-item" style={{ marginBottom: 'var(--space-4)' }}>
-      <div className="toggle-content">
-        <h4 className="toggle-title">Accepting Orders</h4>
-        <p className="toggle-description">
-          Organization is currently accepting new orders
-        </p>
-      </div>
-      <label className="toggle-switch">
-        <input
-          type="checkbox"
-          checked={shiftRulesForm.accepting_orders}
-          onChange={(e) => setShiftRulesForm({...shiftRulesForm, accepting_orders: e.target.checked})}
-        />
-        <span className="toggle-slider"></span>
-      </label>
-    </div>
-  </div>
-
-  {/* Operating Hours */}
-  <div style={{ marginTop: 'var(--space-8)' }}>
-    <h4 style={{ 
-      marginBottom: 'var(--space-4)', 
-      fontSize: 'var(--text-lg)', 
-      fontWeight: 600,
-      color: 'var(--text-primary)'
-    }}>
-      Operating Hours
-    </h4>
-    <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-      {operatingHours.map((day, index) => (
-        <div key={day.weekday} style={{ 
-          display: 'flex', 
-          gap: 'var(--space-3)', 
-          alignItems: 'center',
-          padding: 'var(--space-4)',
-          background: 'var(--gray-50)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--gray-200)'
-        }}>
-          <span style={{ 
-            minWidth: '100px', 
-            fontWeight: 500,
-            color: 'var(--text-primary)'
-          }}>
-            {day.weekday}
-          </span>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <input
-              type="checkbox"
-              checked={day.closed || false}
-              onChange={(e) => {
-                const newHours = [...operatingHours]
-                newHours[index].closed = e.target.checked
-                if (e.target.checked) {
-                  newHours[index].opening_time = ""
-                  newHours[index].closing_time = ""
-                }
-                setOperatingHours(newHours)
-              }}
-            />
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-primary)' }}>Closed</span>
-          </label>
-          {!day.closed && (
-            <>
-              <input
-                type="time"
-                className="setting-input"
-                style={{ flex: 1 }}
-                value={day.opening_time}
-                onChange={(e) => {
-                  const newHours = [...operatingHours]
-                  newHours[index].opening_time = e.target.value
-                  setOperatingHours(newHours)
-                }}
-              />
-              <span style={{ color: 'var(--gray-500)' }}>to</span>
-              <input
-                type="time"
-                className="setting-input"
-                style={{ flex: 1 }}
-                value={day.closing_time}
-                onChange={(e) => {
-                  const newHours = [...operatingHours]
-                  newHours[index].closing_time = e.target.value
-                  setOperatingHours(newHours)
-                }}
-              />
-            </>
-          )}
-
-  <div className="settings-footer" style={{ marginTop: 'var(--space-8)' }}>
-    <button 
-      className="btn-secondary"
-      onClick={() => {
-        fetchShiftRules()
-        setActionMessage({ type: 'success', text: 'Reset to saved values' })
-        setTimeout(() => setActionMessage(null), 3000)
-      }}
-    >
-      Reset to Defaults
-    </button>
-    <button 
-      className="btn-primary"
-      onClick={handleSaveShiftRules}
-      disabled={shiftRulesLoading}
-    >
-      {shiftRulesLoading ? 'Saving...' : 'Save Shift Rules'}
-    </button>
-  </div>
-</div>
-
-      {/* Roles Management Section */}
-      <div className="section-wrapper">
-        <div className="section-header">
-          <div>
-            <h2 className="section-title">
-              <img src={EmployeeIcon} alt="Roles" className="title-icon-svg" />
-              Organization Roles
-            </h2>
-            <p className="section-description">
-              Define roles for your organization and their requirements
-            </p>
-          </div>
-          <button
-            className="btn-primary"
-            onClick={() => {
-              setRoleForm({
-                role: "",
-                min_needed_per_shift: 1,
-                items_per_role_per_hour: "",
-                need_for_demand: false,
-                independent: true,
-              })
-              setRoleError("")
-              setShowAddRoleModal(true)
-            }}
-          >
-            + Add Role
-          </button>
-        </div>
-
-        {roles && roles.length > 0 ? (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid var(--gray-200)" }}>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Role Name
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Min per Shift
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Demand Based
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Items/Hour
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Independent
-                  </th>
-                  <th
-                    style={{
-                      textAlign: "left",
-                      padding: "var(--space-4)",
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 600,
-                      color: "var(--gray-600)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {roles.map((role) => (
-                  <tr
-                    key={role.role}
-                    style={{
-                      borderBottom: "1px solid var(--gray-200)",
-                    }}
-                  >
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      <span className="badge badge-primary">{role.role}</span>
-                    </td>
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {role.min_needed_per_shift}
-                    </td>
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {role.need_for_demand ? (
-                        <span style={{ color: "var(--color-primary)" }}>
-                          ✓ Yes
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {role.items_per_role_per_hour != null
-                        ? role.items_per_role_per_hour
-                        : "—"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {role.independent ? (
-                        <span style={{ color: "var(--color-primary)" }}>
-                          ✓ Yes
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--gray-400)" }}>✗ No</span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "var(--space-4)",
-                        fontSize: "var(--text-base)",
-                        color: "var(--gray-700)",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {role.role !== "admin" && role.role !== "manager" && (
-                        <>
-                          <button
-                            className="btn-link"
-                            style={{ marginRight: "var(--space-2)" }}
-                            onClick={() => openEditRole(role)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn-link"
-                            style={{ color: "var(--color-accent)" }}
-                            onClick={() => setConfirmDeleteRole(role)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                      {(role.role === "admin" || role.role === "manager") && (
-                        <span
-                          style={{
-                            color: "var(--gray-400)",
-                            fontSize: "var(--text-sm)",
-                          }}
-                        >
-                          Default Role
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="empty-state">
-            <h3>No Roles Defined</h3>
-            <p>Add your first role to get started</p>
-          </div>
-        )}
-      </div>
-
-      {/* Add Role Modal */}
-      {showAddRoleModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowAddRoleModal(false)}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="section-title">Add New Role</h2>
-              <button
-                className="collapse-btn"
-                onClick={() => setShowAddRoleModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            {roleError && (
-              <div
-                className="login-error-message"
-                style={{ marginBottom: "var(--space-4)" }}
-              >
-                {roleError}
-              </div>
-            )}
-            <form onSubmit={handleAddRole}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-4)",
-                }}
-              >
-                <div className="setting-item">
-                  <label className="setting-label">Role Name</label>
-                  <input
-                    className="setting-input"
-                    type="text"
-                    value={roleForm.role}
-                    onChange={(e) =>
-                      setRoleForm({ ...roleForm, role: e.target.value })
-                    }
-                    placeholder="e.g., waiter, cashier, cook"
-                    required
-                  />
-                </div>
+              {roleForm.need_for_demand && (
                 <div className="setting-item">
                   <label className="setting-label">
-                    Minimum Needed per Shift
+                    Items per Role per Hour
                   </label>
                   <input
                     className="setting-input"
                     type="number"
                     min="0"
-                    value={roleForm.min_needed_per_shift}
+                    value={roleForm.items_per_role_per_hour}
                     onChange={(e) =>
                       setRoleForm({
                         ...roleForm,
-                        min_needed_per_shift: e.target.value,
+                        items_per_role_per_hour: e.target.value,
                       })
                     }
-                    required
+                    placeholder="e.g., 10"
+                    required={roleForm.need_for_demand}
                   />
+                  <p
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      color: "var(--gray-500)",
+                      marginTop: "var(--space-2)",
+                    }}
+                  >
+                    How many items/customers this role can handle per hour
+                  </p>
                 </div>
-                <div className="toggle-item">
-                  <div className="toggle-content">
-                    <h4 className="toggle-title">Need for Demand</h4>
-                    <p className="toggle-description">
-                      Is this role required based on demand/capacity?
-                    </p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={roleForm.need_for_demand}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          need_for_demand: e.target.checked,
-                        })
-                      }
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
+              )}
+              <div className="toggle-item">
+                <div className="toggle-content">
+                  <h4 className="toggle-title">Independent Role</h4>
+                  <p className="toggle-description">
+                    Can this role work independently?
+                  </p>
                 </div>
-                {roleForm.need_for_demand && (
-                  <div className="setting-item">
-                    <label className="setting-label">
-                      Items per Role per Hour
-                    </label>
-                    <input
-                      className="setting-input"
-                      type="number"
-                      min="0"
-                      value={roleForm.items_per_role_per_hour}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          items_per_role_per_hour: e.target.value,
-                        })
-                      }
-                      placeholder="e.g., 10"
-                      required={roleForm.need_for_demand}
-                    />
-                    <p
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        color: "var(--gray-500)",
-                        marginTop: "var(--space-2)",
-                      }}
-                    >
-                      How many items/customers this role can handle per hour
-                    </p>
-                  </div>
-                )}
-                <div className="toggle-item">
-                  <div className="toggle-content">
-                    <h4 className="toggle-title">Independent Role</h4>
-                    <p className="toggle-description">
-                      Can this role work independently?
-                    </p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={roleForm.independent}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          independent: e.target.checked,
-                        })
-                      }
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-              </div>
-              <div
-                className="settings-footer"
-                style={{ marginTop: "var(--space-6)" }}
-              >
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowAddRoleModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={roleLoading}
-                >
-                  {roleLoading ? "Creating..." : "Create Role"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Role Modal */}
-      {showEditRoleModal && selectedRole && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowEditRoleModal(false)}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 className="section-title">Edit Role: {selectedRole.role}</h2>
-              <button
-                className="collapse-btn"
-                onClick={() => setShowEditRoleModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            {roleError && (
-              <div
-                className="login-error-message"
-                style={{ marginBottom: "var(--space-4)" }}
-              >
-                {roleError}
-              </div>
-            )}
-            <form onSubmit={handleEditRole}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-4)",
-                }}
-              >
-                <div className="setting-item">
-                  <label className="setting-label">
-                    Minimum Needed per Shift
-                  </label>
+                <label className="toggle-switch">
                   <input
-                    className="setting-input"
-                    type="number"
-                    min="0"
-                    value={roleForm.min_needed_per_shift}
+                    type="checkbox"
+                    checked={roleForm.independent}
                     onChange={(e) =>
                       setRoleForm({
                         ...roleForm,
-                        min_needed_per_shift: e.target.value,
+                        independent: e.target.checked,
                       })
                     }
-                    required
                   />
-                </div>
-                <div className="toggle-item">
-                  <div className="toggle-content">
-                    <h4 className="toggle-title">Need for Demand</h4>
-                    <p className="toggle-description">
-                      Is this role required based on demand/capacity?
-                    </p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={roleForm.need_for_demand}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          need_for_demand: e.target.checked,
-                        })
-                      }
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-                {roleForm.need_for_demand && (
-                  <div className="setting-item">
-                    <label className="setting-label">
-                      Items per Role per Hour
-                    </label>
-                    <input
-                      className="setting-input"
-                      type="number"
-                      min="0"
-                      value={roleForm.items_per_role_per_hour}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          items_per_role_per_hour: e.target.value,
-                        })
-                      }
-                      placeholder="e.g., 10"
-                      required={roleForm.need_for_demand}
-                    />
-                  </div>
-                )}
-                <div className="toggle-item">
-                  <div className="toggle-content">
-                    <h4 className="toggle-title">Independent Role</h4>
-                    <p className="toggle-description">
-                      Can this role work independently?
-                    </p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={roleForm.independent}
-                      onChange={(e) =>
-                        setRoleForm({
-                          ...roleForm,
-                          independent: e.target.checked,
-                        })
-                      }
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
+                  <span className="toggle-slider"></span>
+                </label>
               </div>
-              <div
-                className="settings-footer"
-                style={{ marginTop: "var(--space-6)" }}
-              >
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowEditRoleModal(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={roleLoading}
-                >
-                  {roleLoading ? "Updating..." : "Update Role"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Role Confirmation */}
-      {confirmDeleteRole && (
-        <div
-          className="modal-overlay"
-          onClick={() => setConfirmDeleteRole(null)}
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 440 }}
-          >
-            <div className="modal-header">
-              <h2
-                className="section-title"
-                style={{ color: "var(--color-accent)" }}
-              >
-                Confirm Delete
-              </h2>
             </div>
-            <p
-              style={{
-                color: "var(--text-primary)",
-                marginBottom: "var(--space-6)",
-                lineHeight: 1.6,
-              }}
+            <div
+              className="settings-footer"
+              style={{ marginTop: "var(--space-6)" }}
             >
-              Are you sure you want to delete the role{" "}
-              <strong>{confirmDeleteRole.role}</strong>? This action cannot be
-              undone and may fail if employees are assigned to this role.
-            </p>
-            <div className="settings-footer">
               <button
+                type="button"
                 className="btn-secondary"
-                onClick={() => setConfirmDeleteRole(null)}
+                onClick={() => setShowAddRoleModal(false)}
               >
                 Cancel
               </button>
               <button
+                type="submit"
                 className="btn-primary"
-                style={{ background: "var(--color-accent)" }}
-                onClick={() => handleDeleteRole(confirmDeleteRole.role)}
-                disabled={actionLoading}
+                disabled={roleLoading}
               >
-                {actionLoading ? "Deleting..." : "Confirm Delete"}
+                {roleLoading ? "Creating..." : "Create Role"}
               </button>
             </div>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {/* Edit Role Modal */}
+    {showEditRoleModal && selectedRole && (
+      <div
+        className="modal-overlay"
+        onClick={() => setShowEditRoleModal(false)}
+      >
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2 className="section-title">Edit Role: {selectedRole.role}</h2>
+            <button
+              className="collapse-btn"
+              onClick={() => setShowEditRoleModal(false)}
+            >
+              ×
+            </button>
+          </div>
+          {roleError && (
+            <div
+              className="login-error-message"
+              style={{ marginBottom: "var(--space-4)" }}
+            >
+              {roleError}
+            </div>
+          )}
+          <form onSubmit={handleEditRole}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-4)",
+              }}
+            >
+              <div className="setting-item">
+                <label className="setting-label">
+                  Minimum Needed per Shift
+                </label>
+                <input
+                  className="setting-input"
+                  type="number"
+                  min="0"
+                  value={roleForm.min_needed_per_shift}
+                  onChange={(e) =>
+                    setRoleForm({
+                      ...roleForm,
+                      min_needed_per_shift: e.target.value,
+                    })
+                  }
+                  required
+                />
+              </div>
+              <div className="toggle-item">
+                <div className="toggle-content">
+                  <h4 className="toggle-title">Need for Demand</h4>
+                  <p className="toggle-description">
+                    Is this role required based on demand/capacity?
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={roleForm.need_for_demand}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        need_for_demand: e.target.checked,
+                      })
+                    }
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {roleForm.need_for_demand && (
+                <div className="setting-item">
+                  <label className="setting-label">
+                    Items per Role per Hour
+                  </label>
+                  <input
+                    className="setting-input"
+                    type="number"
+                    min="0"
+                    value={roleForm.items_per_role_per_hour}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        items_per_role_per_hour: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., 10"
+                    required={roleForm.need_for_demand}
+                  />
+                </div>
+              )}
+              <div className="toggle-item">
+                <div className="toggle-content">
+                  <h4 className="toggle-title">Independent Role</h4>
+                  <p className="toggle-description">
+                    Can this role work independently?
+                  </p>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={roleForm.independent}
+                    onChange={(e) =>
+                      setRoleForm({
+                        ...roleForm,
+                        independent: e.target.checked,
+                      })
+                    }
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div
+              className="settings-footer"
+              style={{ marginTop: "var(--space-6)" }}
+            >
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowEditRoleModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={roleLoading}
+              >
+                {roleLoading ? "Updating..." : "Update Role"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {/* Delete Role Confirmation */}
+    {confirmDeleteRole && (
+      <div
+        className="modal-overlay"
+        onClick={() => setConfirmDeleteRole(null)}
+      >
+        <div
+          className="modal-content"
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: 440 }}
+        >
+          <div className="modal-header">
+            <h2
+              className="section-title"
+              style={{ color: "var(--color-accent)" }}
+            >
+              Confirm Delete
+            </h2>
+          </div>
+          <p
+            style={{
+              color: "var(--text-primary)",
+              marginBottom: "var(--space-6)",
+              lineHeight: 1.6,
+            }}
+          >
+            Are you sure you want to delete the role{" "}
+            <strong>{confirmDeleteRole.role}</strong>? This action cannot be
+            undone and may fail if employees are assigned to this role.
+          </p>
+          <div className="settings-footer">
+            <button
+              className="btn-secondary"
+              onClick={() => setConfirmDeleteRole(null)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              style={{ background: "var(--color-accent)" }}
+              onClick={() => handleDeleteRole(confirmDeleteRole.role)}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Deleting..." : "Confirm Delete"}
+            </button>
           </div>
         </div>
-      )}
-    </div>
-  )
-
+      </div>
+    )}
+  </div>
+)
   const renderAdminProfile = () => {
     console.log("Rendering profile with currentUser:", currentUser)
 
