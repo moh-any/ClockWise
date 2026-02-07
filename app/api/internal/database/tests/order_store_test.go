@@ -138,7 +138,7 @@ func TestStoreOrder(t *testing.T) {
 		// Upsert Item
 		qUpsertItem := regexp.QuoteMeta(`INSERT INTO order_items (order_id, item_id, quantity, total_price) VALUES ($1, $2, $3, $4) ON CONFLICT (order_id, item_id) DO UPDATE SET quantity = order_items.quantity + EXCLUDED.quantity, total_price = order_items.total_price + EXCLUDED.total_price`)
 		mock.ExpectExec(qUpsertItem).
-			WithArgs(orderID, itemID, 2, 50).
+			WithArgs(orderID, itemID, 2, order.OrderItems[0].TotalPrice).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		err := store.StoreOrder(orgID, order)
@@ -206,18 +206,19 @@ func TestStoreItems(t *testing.T) {
 	orgID := uuid.New()
 
 	item := &database.Item{
+		ItemID:                      uuid.New(),
 		Name:                        "Burger",
 		NeededNumEmployeesToPrepare: func() *int { i := 2; return &i }(),
 		Price:                       func() *float64 { f := 10.5; return &f }(),
 	}
 
 	qCheck := regexp.QuoteMeta(`SELECT EXISTS(SELECT 1 FROM items WHERE organization_id = $1 AND name = $2)`)
-	qInsert := regexp.QuoteMeta(`INSERT INTO items (organization_id, name, needed_num_to_prepare, price) VALUES ($1, $2, $3, $4)`)
+	qInsert := regexp.QuoteMeta(`INSERT INTO items (id,organization_id, name, needed_num_to_prepare, price) VALUES ($1, $2, $3, $4, $5)`)
 
 	t.Run("Success", func(t *testing.T) {
 		mock.ExpectQuery(qCheck).WithArgs(orgID, item.Name).WillReturnRows(NewRow(false))
 		mock.ExpectExec(qInsert).
-			WithArgs(orgID, item.Name, item.NeededNumEmployeesToPrepare, item.Price).
+			WithArgs(item.ItemID, orgID, item.Name, item.NeededNumEmployeesToPrepare, item.Price).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		err := store.StoreItems(orgID, item)
