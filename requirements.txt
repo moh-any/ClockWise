@@ -1,0 +1,37 @@
+# Core API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# Data processing
+pandas==2.1.3
+numpy==1.26.2
+
+# ML Models
+scikit-learn==1.3.2
+xgboost==2.0.2
+lightgbm==4.1.0
+joblib==1.3.2
+
+# External APIs
+requests==2.31.0
+holidays==0.37          # For holiday detection
+
+# Scheduler
+ortools==9.8.3296       # For CP-SAT solver
+
+# Surge Detection - Layer 1 (Data Collection)
+python-dotenv==1.0.0    # Environment configuration
+pytrends==4.9.2         # Google Trends API (free)
+
+# Surge Detection - Layer 3 (Alerts - optional)
+twilio==8.10.0          # SMS and voice alerts
+# sendgrid==6.11.0      # Email alerts (uncomment if needed)
+# anthropic==0.7.0      # LLM analysis - PAID (uncomment if needed)
+google-genai            # Gemini LLM analysis - FREE tier (NEW package)
+
+# Development
+jupyter==1.0.0
+matplotlib==3.8.2
+seaborn==0.13.0
+pytest==9.0.0           # Testing framework

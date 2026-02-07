@@ -1,0 +1,16 @@
+{
+  "generated_at": "2026-02-06T21:08:49.084489",
+  "date_range": {
+    "start": "2023-07-01T10:02:00",
+    "end": "2024-01-31T22:29:00"
+  },
+  "statistics": {
+    "total_orders": 22718,
+    "total_campaigns": 39,
+    "total_order_items": 66260,
+    "avg_order_value": 38.294558059688356,
+    "avg_items_per_order": 2.916629985033894,
+    "total_revenue": 869975.77,
+    "total_discounts": 86067.59290000002
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "restaurant_name": "Pizza Paradise",
+  "recommendation_date": "2026-02-07 01:51:50",
+  "recommendations": [
+    {
+      "campaign_id": "rec_template_0_1770501600",
+      "items": [
+        "pizza_margherita",
+        "drink_cola"
+      ],
+      "discount_percentage": 15.0,
+      "start_date": "2026-02-09",
+      "end_date": "2026-02-15",
+      "duration_days": 6,
+      "expected_uplift": 0.0,
+      "expected_roi": 0.0,
+      "expected_revenue": 6000.0,
+      "confidence_score": 1.0,
+      "reasoning": "Recommended because: optimal day of week, predicted ROI: 0.0%",
+      "priority_score": 22.346318784754168,
+      "recommended_for_context": {
+        "day_of_week": 6,
+        "season": "winter"
+      }
+    },
+    {
+      "campaign_id": "rec_template_1_1770501600",
+      "items": [
+        "pasta_carbonara",
+        "salad_caesar"
+      ],
+      "discount_percentage": 20.0,
+      "start_date": "2026-02-09",
+      "end_date": "2026-02-15",
+      "duration_days": 6,
+      "expected_uplift": 0.0,
+      "expected_roi": 0.0,
+      "expected_revenue": 6000.0,
+      "confidence_score": 0.8,
+      "reasoning": "Recommended because: predicted ROI: 0.0%",
+      "priority_score": 21.870919340102517,
+      "recommended_for_context": {
+        "day_of_week": 6,
+        "season": "winter"
+      }
+    },
+    {
+      "campaign_id": "rec_template_3_1770501600",
+      "items": [
+        "pizza_pepperoni"
+      ],
+      "discount_percentage": 25.0,
+      "start_date": "2026-02-09",
+      "end_date": "2026-02-10",
+      "duration_days": 1,
+      "expected_uplift": 0.0,
+      "expected_roi": 0.0,
+      "expected_revenue": 1000.0,
+      "confidence_score": 1.0,
+      "reasoning": "Recommended because: predicted ROI: 0.0%",
+      "priority_score": 20.928536863778387,
+      "recommended_for_context": {
+        "day_of_week": 6,
+        "season": "winter"
+      }
+    },
+    {
+      "campaign_id": "rec_template_2_1770501600",
+      "items": [
+        "pasta_bolognese",
+        "drink_water"
+      ],
+      "discount_percentage": 12.0,
+      "start_date": "2026-02-09",
+      "end_date": "2026-02-12",
+      "duration_days": 3,
+      "expected_uplift": 0.0,
+      "expected_roi": 0.0,
+      "expected_revenue": 3000.0,
+      "confidence_score": 0.6,
+      "reasoning": "Recommended because: optimal day of week, predicted ROI: 0.0%",
+      "priority_score": 13.452082191137245,
+      "recommended_for_context": {
+        "day_of_week": 6,
+        "season": "winter"
+      }
+    }
+  ],
+  "analysis_summary": {
+    "total_campaigns_analyzed": 39,
+    "avg_uplift": 0.0,
+    "median_uplift": 0.0,
+    "avg_roi": 0.0,
+    "median_roi": 0.0,
+    "total_revenue_impact": 0.0,
+    "successful_campaigns": 0,
+    "success_rate": 0.0
+  },
+  "insights": {
+    "best_day_of_week": {
+      "day": "Monday",
+      "avg_revenue": 37.77061224489796
+    },
+    "best_hours": [
+      11,
+      15,
+      12
+    ],
+    "top_item_pairs": [
+      {
+        "items": [
+          "dessert_panna_cotta",
+          "pasta_arrabbiata"
+        ],
+        "affinity_score": 2.3666666666666667
+      },
+      {
+        "items": [
+          "dessert_panna_cotta",
+          "drink_water"
+        ],
+        "affinity_score": 2.2421052631578946
+      },
+      {
+        "items": [
+          "dessert_tiramisu",
+          "pasta_arrabbiata"
+        ],
+        "affinity_score": 2.1130952380952386
+      },
+      {
+        "items": [
+          "dessert_panna_cotta",
+          "salad_caesar"
+        ],
+        "affinity_score": 2.0285714285714285
+      },
+      {
+        "items": [
+          "dessert_panna_cotta",
+          "pizza_quattro_formaggi"
+        ],
+        "affinity_score": 2.0285714285714285
+      }
+    ]
+  },
+  "confidence_level": "high"
+}
