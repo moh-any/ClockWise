@@ -5421,299 +5421,196 @@ const renderInfo = () => (
     )}
   </div>
 )
-  const renderAdminProfile = () => {
-    console.log("Rendering profile with currentUser:", currentUser)
+const renderAdminProfile = () => {
+  console.log("Rendering profile with currentUser:", currentUser)
+  console.log("Profile data:", profileData)
 
-    const userInitials = currentUser?.full_name
-      ? currentUser.full_name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
-      : "AD"
+  const userInitials = currentUser?.full_name
+    ? currentUser.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "AD"
 
-    // Get data from currentUser
-    const displayName = currentUser?.full_name || "Loading..."
-    const displayEmail = currentUser?.email || "Loading..."
-    const displayRole = currentUser?.user_role || "Loading..."
-    const displayOrganization =
-      currentUser?.organization_name || currentUser?.organization || "N/A"
-    const displaySalary =
-      currentUser?.salary_per_hour != null
-        ? `$${currentUser.salary_per_hour}/hr`
-        : "N/A"
-    const displayMaxHours = currentUser?.max_hours_per_week || "N/A"
-    const displayPrefHours = currentUser?.preferred_hours_per_week || "N/A"
-    const displayMaxConsecSlots = currentUser?.max_consec_slots || "N/A"
-    const displayOnCall =
-      currentUser?.on_call !== undefined
-        ? currentUser.on_call
-          ? "Yes"
-          : "No"
-        : "N/A"
+  // Get data from currentUser (from /api/auth/me)
+  const displayName = currentUser?.full_name || "Admin User"
+  const displayEmail = currentUser?.email || "user@example.com"
+  const displayRole = currentUser?.user_role || "employee"
+  
+  // Get organization from either source
+  const displayOrganization = profileData?.organization || 
+                              currentUser?.organization_name || 
+                              currentUser?.organization || 
+                              "Organization"
+  
+  // Employee-specific fields from currentUser
+  const displaySalary = currentUser?.salary_per_hour != null ? `$${currentUser.salary_per_hour}/hr` : null
+  const displayMaxHours = currentUser?.max_hours_per_week || null
+  const displayPrefHours = currentUser?.preferred_hours_per_week || null
+  const displayMaxConsecSlots = currentUser?.max_consec_slots || null
+  const displayOnCall = currentUser?.on_call !== undefined ? (currentUser.on_call ? "Yes" : "No") : null
 
-    // Extract insights data for statistics
-    const getInsightValue = (titleMatch) => {
-      const insight = insights.find((i) =>
-        i.title.toLowerCase().includes(titleMatch.toLowerCase()),
-      )
-      return insight ? insight.statistic : "N/A"
-    }
+  // Extract insights data for statistics
+  const getInsightValue = (titleMatch) => {
+    const insight = insights.find(i => i.title.toLowerCase().includes(titleMatch.toLowerCase()))
+    return insight ? insight.statistic : "N/A"
+  }
 
-    // Get role-specific statistics
-    const getRoleStats = () => {
-      if (currentUser?.user_role === "admin") {
-        return {
-          stat1: {
-            label: "Total Employees",
-            value: getInsightValue("Number of Employees"),
-          },
-          stat2: { label: "Active Roles", value: roles.length },
-          stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
-          stat4: {
-            label: "Orders Today",
-            value: getInsightValue("Orders Served Today"),
-          },
-        }
-      } else if (currentUser?.user_role === "manager") {
-        return {
-          stat1: {
-            label: "Team Size",
-            value: getInsightValue("Number of Employees"),
-          },
-          stat2: {
-            label: "Deliveries Today",
-            value: getInsightValue("deliveries today"),
-          },
-          stat3: {
-            label: "Orders Today",
-            value: getInsightValue("Orders Served Today"),
-          },
-          stat4: { label: "My Salary", value: displaySalary },
-        }
-      } else {
-        // Employee
-        return {
-          stat1: { label: "My Salary", value: displaySalary },
-          stat2: { label: "My Role", value: displayRole },
-          stat3: {
-            label: "Hours This Week",
-            value: profileData?.hours_worked_this_week || "N/A",
-          },
-          stat4: {
-            label: "Total Hours",
-            value: profileData?.hours_worked || "N/A",
-          },
-        }
+  // Get role-specific statistics
+  const getRoleStats = () => {
+    if (currentUser?.user_role === 'admin') {
+      return {
+        stat1: { label: "Total Employees", value: getInsightValue("Number of Employees") },
+        stat2: { label: "Active Roles", value: roles.length },
+        stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
+        stat4: { label: "Orders Today", value: getInsightValue("Orders Served Today") }
+      }
+    } else if (currentUser?.user_role === 'manager') {
+      return {
+        stat1: { label: "Team Size", value: getInsightValue("Number of Employees") },
+        stat2: { label: "Deliveries Today", value: getInsightValue("deliveries today") },
+        stat3: { label: "Orders Today", value: getInsightValue("Orders Served Today") },
+        stat4: { label: "My Salary", value: displaySalary || "N/A" }
+      }
+    } else {
+      // Employee
+      return {
+        stat1: { label: "My Salary", value: displaySalary || "N/A" },
+        stat2: { label: "My Role", value: displayRole },
+        stat3: { label: "Hours This Week", value: profileData?.hours_worked_this_week || "0" },
+        stat4: { label: "Total Hours", value: profileData?.hours_worked || "0" }
       }
     }
+  }
 
-    const roleStats = getRoleStats()
+  const roleStats = getRoleStats()
 
-    return (
-      <>
-        <div
-          className={`admin-profile-overlay ${showAdminProfile ? "show" : ""}`}
-        >
-          <div className="admin-profile-modal fade-in">
-            <button
-              className="profile-close-btn"
-              onClick={() => setShowAdminProfile(false)}
-              aria-label="Close Profile"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+  return (
+    <>
+      <div
+        className={`admin-profile-overlay ${showAdminProfile ? "show" : ""}`}
+      >
+        <div className="admin-profile-modal fade-in">
+          <button
+            className="profile-close-btn"
+            onClick={() => setShowAdminProfile(false)}
+            aria-label="Close Profile"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
 
-            <div className="profile-header-section">
-              <div className="profile-avatar-large">
-                <div className="avatar-gradient">{userInitials}</div>
-              </div>
-              <div className="profile-header-info">
-                <h1 className="profile-name">{displayName}</h1>
-                <p
-                  className="profile-role"
-                  style={{ textTransform: "capitalize" }}
-                >
-                  {displayRole}
-                </p>
-              </div>
+          <div className="profile-header-section">
+            <div className="profile-avatar-large">
+              <div className="avatar-gradient">{userInitials}</div>
             </div>
+            <div className="profile-header-info">
+              <h1 className="profile-name">{displayName}</h1>
+              <p className="profile-role" style={{ textTransform: 'capitalize' }}>
+                {displayRole}
+              </p>
+            </div>
+          </div>
 
-            <div className="profile-content-grid">
-              {/* Personal Information Card */}
-              <div className="profile-card" data-animation="slide-up">
-                <div className="profile-card-header">
-                  <h3 className="profile-card-title">
-                    <svg
-                      className="card-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                    Personal Information
-                  </h3>
+          <div className="profile-content-grid">
+            {/* Personal Information Card */}
+            <div className="profile-card" data-animation="slide-up">
+              <div className="profile-card-header">
+                <h3 className="profile-card-title">
+                  <svg
+                    className="card-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  Personal Information
+                </h3>
+              </div>
+              <div className="profile-info-grid">
+                <div className="info-item">
+                  <span className="info-label">Full Name</span>
+                  <span className="info-value">{displayName}</span>
                 </div>
-                <div className="profile-info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Full Name</span>
-                    <span className="info-value">{displayName}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Email</span>
-                    <span className="info-value">{displayEmail}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Role</span>
-                    <span
-                      className="info-value"
-                      style={{ textTransform: "capitalize" }}
-                    >
-                      {displayRole}
-                    </span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Organization</span>
-                    <span className="info-value">{displayOrganization}</span>
-                  </div>
-                  {currentUser?.user_role !== "admin" && (
-                    <>
+                <div className="info-item">
+                  <span className="info-label">Email</span>
+                  <span className="info-value">{displayEmail}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Role</span>
+                  <span className="info-value" style={{ textTransform: 'capitalize' }}>
+                    {displayRole}
+                  </span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Organization</span>
+                  <span className="info-value">{displayOrganization}</span>
+                </div>
+                
+                {/* Show employee-specific fields for non-admins */}
+                {currentUser?.user_role !== 'admin' && (
+                  <>
+                    {displaySalary && (
                       <div className="info-item">
                         <span className="info-label">Hourly Rate</span>
-                        <span className="info-value">{displaySalary}</span>
+                        <span className="info-value" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                          {displaySalary}
+                        </span>
                       </div>
+                    )}
+                    {displayMaxHours && (
                       <div className="info-item">
                         <span className="info-label">Max Hours/Week</span>
-                        <span className="info-value">{displayMaxHours}</span>
+                        <span className="info-value">{displayMaxHours} hrs</span>
                       </div>
+                    )}
+                    {displayPrefHours && (
                       <div className="info-item">
                         <span className="info-label">Preferred Hours/Week</span>
-                        <span className="info-value">{displayPrefHours}</span>
+                        <span className="info-value">{displayPrefHours} hrs</span>
                       </div>
+                    )}
+                    {displayMaxConsecSlots && (
                       <div className="info-item">
-                        <span className="info-label">
-                          Max Consecutive Slots
-                        </span>
-                        <span className="info-value">
-                          {displayMaxConsecSlots}
-                        </span>
+                        <span className="info-label">Max Consecutive Slots</span>
+                        <span className="info-value">{displayMaxConsecSlots} slots</span>
                       </div>
+                    )}
+                    {displayOnCall !== null && (
                       <div className="info-item">
-                        <span className="info-label">On Call</span>
+                        <span className="info-label">On Call Status</span>
                         <span className="info-value">
-                          <span
-                            className={`badge ${currentUser?.on_call ? "badge-primary" : "badge-secondary"}`}
-                          >
+                          <span className={`badge ${currentUser?.on_call ? 'badge-primary' : 'badge-secondary'}`}>
                             {displayOnCall}
                           </span>
                         </span>
                       </div>
-                    </>
-                  )}
-                </div>
+                    )}
+                  </>
+                )}
               </div>
+            </div>
 
-              {/* Work Statistics Card */}
-              {currentUser?.user_role !== "admin" && profileData && (
-                <div
-                  className="profile-card"
-                  data-animation="slide-up"
-                  style={{ animationDelay: "0.1s" }}
-                >
-                  <div className="profile-card-header">
-                    <h3 className="profile-card-title">
-                      <svg
-                        className="card-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Work Hours
-                    </h3>
-                  </div>
-                  <div className="profile-info-grid">
-                    <div className="info-item">
-                      <span className="info-label">Total Hours Worked</span>
-                      <span
-                        className="info-value"
-                        style={{
-                          fontSize: "var(--text-2xl)",
-                          fontWeight: 700,
-                          color: "var(--color-primary)",
-                        }}
-                      >
-                        {profileData.hours_worked || "0"} hrs
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">This Week</span>
-                      <span
-                        className="info-value"
-                        style={{
-                          fontSize: "var(--text-2xl)",
-                          fontWeight: 700,
-                          color: "var(--color-secondary)",
-                        }}
-                      >
-                        {profileData.hours_worked_this_week || "0"} hrs
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Utilization Rate</span>
-                      <span className="info-value">
-                        {currentUser?.max_hours_per_week &&
-                        profileData.hours_worked_this_week
-                          ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="info-item">
-                      <span className="info-label">Weekly Earnings</span>
-                      <span
-                        className="info-value"
-                        style={{ color: "var(--color-accent)" }}
-                      >
-                        {currentUser?.salary_per_hour &&
-                        profileData.hours_worked_this_week
-                          ? `$${(currentUser.salary_per_hour * profileData.hours_worked_this_week).toFixed(2)}`
-                          : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Statistics Card */}
+            {/* Work Statistics Card - For Non-Admins with Profile Data */}
+            {currentUser?.user_role !== 'admin' && (
               <div
                 className="profile-card"
                 data-animation="slide-up"
-                style={{
-                  animationDelay:
-                    currentUser?.user_role !== "admin" && profileData
-                      ? "0.2s"
-                      : "0.1s",
-                }}
+                style={{ animationDelay: "0.1s" }}
               >
                 <div className="profile-card-header">
                   <h3 className="profile-card-title">
@@ -5727,189 +5624,271 @@ const renderInfo = () => (
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    {currentUser?.user_role === "admin"
-                      ? "Organization Statistics"
-                      : "My Statistics"}
+                    Work Hours
                   </h3>
                 </div>
-                <div className="profile-stats-grid">
-                  <div className="stat-item">
-                    <div className="stat-value">{roleStats.stat1.value}</div>
-                    <div className="stat-label">{roleStats.stat1.label}</div>
+                <div className="profile-info-grid">
+                  <div className="info-item">
+                    <span className="info-label">Total Hours Worked</span>
+                    <span className="info-value" style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-primary)' }}>
+                      {profileData?.hours_worked !== null && profileData?.hours_worked !== undefined 
+                        ? `${profileData.hours_worked} hrs` 
+                        : profileLoading ? "Loading..." : "No data"}
+                    </span>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{roleStats.stat2.value}</div>
-                    <div className="stat-label">{roleStats.stat2.label}</div>
+                  <div className="info-item">
+                    <span className="info-label">This Week</span>
+                    <span className="info-value" style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-secondary)' }}>
+                      {profileData?.hours_worked_this_week !== null && profileData?.hours_worked_this_week !== undefined
+                        ? `${profileData.hours_worked_this_week} hrs`
+                        : profileLoading ? "Loading..." : "No data"}
+                    </span>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{roleStats.stat3.value}</div>
-                    <div className="stat-label">{roleStats.stat3.label}</div>
+                  <div className="info-item">
+                    <span className="info-label">Utilization Rate</span>
+                    <span className="info-value">
+                      {currentUser?.max_hours_per_week && profileData?.hours_worked_this_week 
+                        ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
+                        : "N/A"}
+                    </span>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-value">{roleStats.stat4.value}</div>
-                    <div className="stat-label">{roleStats.stat4.label}</div>
+                  <div className="info-item">
+                    <span className="info-label">Weekly Earnings</span>
+                    <span className="info-value" style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
+                      {currentUser?.salary_per_hour && profileData?.hours_worked_this_week
+                        ? `$${(currentUser.salary_per_hour * profileData.hours_worked_this_week).toFixed(2)}`
+                        : "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Security Settings Card */}
-              <div
-                className="profile-card profile-card-full"
-                data-animation="slide-up"
-                style={{
-                  animationDelay:
-                    currentUser?.user_role !== "admin" && profileData
-                      ? "0.3s"
-                      : "0.2s",
-                }}
-              >
-                <div className="profile-card-header">
-                  <h3 className="profile-card-title">
-                    <svg
-                      className="card-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                      />
-                    </svg>
-                    Security & Account
-                  </h3>
-                </div>
-
-                <div className="password-change-section">
-                  <h4 className="section-subtitle">
-                    <svg
-                      className="subtitle-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                      />
-                    </svg>
-                    Change Password
-                  </h4>
-
-                  {passwordError && (
-                    <div
-                      className="login-error-message"
-                      style={{ marginBottom: "var(--space-4)" }}
-                    >
-                      {passwordError}
-                    </div>
-                  )}
-                  {passwordSuccess && (
-                    <div
-                      className="login-error-message"
-                      style={{
-                        marginBottom: "var(--space-4)",
-                        background: "var(--secondary-50)",
-                        color: "var(--color-secondary)",
-                        borderColor: "var(--color-secondary)",
-                      }}
-                    >
-                      {passwordSuccess}
-                    </div>
-                  )}
-
-                  <form
-                    onSubmit={handleChangePassword}
-                    className="password-form"
+            {/* Statistics Card */}
+            <div
+              className="profile-card"
+              data-animation="slide-up"
+              style={{ animationDelay: currentUser?.user_role !== 'admin' ? "0.2s" : "0.1s" }}
+            >
+              <div className="profile-card-header">
+                <h3 className="profile-card-title">
+                  <svg
+                    className="card-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
                   >
-                    <div className="password-form-grid">
-                      <div className="form-group">
-                        <label htmlFor="old_password" className="form-label">
-                          Current Password
-                        </label>
-                        <input
-                          type="password"
-                          id="old_password"
-                          className="form-input"
-                          value={passwordForm.old_password}
-                          onChange={(e) =>
-                            setPasswordForm({
-                              ...passwordForm,
-                              old_password: e.target.value,
-                            })
-                          }
-                          required
-                          minLength={6}
-                          disabled={passwordLoading}
-                          placeholder="Enter current password"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label htmlFor="new_password" className="form-label">
-                          New Password
-                        </label>
-                        <input
-                          type="password"
-                          id="new_password"
-                          className="form-input"
-                          value={passwordForm.new_password}
-                          onChange={(e) =>
-                            setPasswordForm({
-                              ...passwordForm,
-                              new_password: e.target.value,
-                            })
-                          }
-                          required
-                          minLength={6}
-                          disabled={passwordLoading}
-                          placeholder="Enter new password"
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label
-                          htmlFor="confirm_password"
-                          className="form-label"
-                        >
-                          Confirm New Password
-                        </label>
-                        <input
-                          type="password"
-                          id="confirm_password"
-                          className="form-input"
-                          value={passwordForm.confirm_password}
-                          onChange={(e) =>
-                            setPasswordForm({
-                              ...passwordForm,
-                              confirm_password: e.target.value,
-                            })
-                          }
-                          required
-                          minLength={6}
-                          disabled={passwordLoading}
-                          placeholder="Confirm new password"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      className="btn-primary password-submit-btn"
-                      disabled={passwordLoading}
-                    >
-                      {passwordLoading
-                        ? "Changing Password..."
-                        : "Update Password"}
-                    </button>
-                  </form>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  {currentUser?.user_role === 'admin' ? 'Organization Statistics' : 'My Statistics'}
+                </h3>
+              </div>
+              <div className="profile-stats-grid">
+                <div className="stat-item">
+                  <div className="stat-value">{roleStats.stat1.value}</div>
+                  <div className="stat-label">{roleStats.stat1.label}</div>
                 </div>
+                <div className="stat-item">
+                  <div className="stat-value">{roleStats.stat2.value}</div>
+                  <div className="stat-label">{roleStats.stat2.label}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-value">{roleStats.stat3.value}</div>
+                  <div className="stat-label">{roleStats.stat3.label}</div>
+                </div>
+                <div className="stat-item">
+                  <div className="stat-value">{roleStats.stat4.value}</div>
+                  <div className="stat-label">{roleStats.stat4.label}</div>
+                </div>
+              </div>
+            </div>
 
-                <div className="security-info">
+            {/* Security Settings Card */}
+            <div
+              className="profile-card profile-card-full"
+              data-animation="slide-up"
+              style={{ animationDelay: currentUser?.user_role !== 'admin' ? "0.3s" : "0.2s" }}
+            >
+              <div className="profile-card-header">
+                <h3 className="profile-card-title">
+                  <svg
+                    className="card-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                  Security & Account
+                </h3>
+              </div>
+
+              <div className="password-change-section">
+                <h4 className="section-subtitle">
+                  <svg
+                    className="subtitle-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                    />
+                  </svg>
+                  Change Password
+                </h4>
+
+                {passwordError && (
+                  <div
+                    className="login-error-message"
+                    style={{ marginBottom: "var(--space-4)" }}
+                  >
+                    {passwordError}
+                  </div>
+                )}
+                {passwordSuccess && (
+                  <div
+                    className="login-error-message"
+                    style={{
+                      marginBottom: "var(--space-4)",
+                      background: "var(--secondary-50)",
+                      color: "var(--color-secondary)",
+                      borderColor: "var(--color-secondary)",
+                    }}
+                  >
+                    {passwordSuccess}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={handleChangePassword}
+                  className="password-form"
+                >
+                  <div className="password-form-grid">
+                    <div className="form-group">
+                      <label htmlFor="old_password" className="form-label">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="old_password"
+                        className="form-input"
+                        value={passwordForm.old_password}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            old_password: e.target.value,
+                          })
+                        }
+                        required
+                        minLength={8}
+                        disabled={passwordLoading}
+                        placeholder="Enter current password"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="new_password" className="form-label">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="new_password"
+                        className="form-input"
+                        value={passwordForm.new_password}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            new_password: e.target.value,
+                          })
+                        }
+                        required
+                        minLength={8}
+                        disabled={passwordLoading}
+                        placeholder="Enter new password (min 8 chars)"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label
+                        htmlFor="confirm_password"
+                        className="form-label"
+                      >
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirm_password"
+                        className="form-input"
+                        value={passwordForm.confirm_password}
+                        onChange={(e) =>
+                          setPasswordForm({
+                            ...passwordForm,
+                            confirm_password: e.target.value,
+                          })
+                        }
+                        required
+                        minLength={8}
+                        disabled={passwordLoading}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="btn-primary password-submit-btn"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading
+                      ? "Changing Password..."
+                      : "Update Password"}
+                  </button>
+                </form>
+              </div>
+
+              <div className="security-info">
+                <div className="info-row">
+                  <svg
+                    className="info-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  <div>
+                    <div className="info-title">Account Status</div>
+                    <div className="info-subtitle">
+                      <span className="badge badge-primary">Active</span>
+                    </div>
+                  </div>
+                </div>
+                {(profileData?.created_at || currentUser?.created_at) && (
                   <div className="info-row">
                     <svg
                       className="info-icon"
@@ -5921,100 +5900,65 @@ const renderInfo = () => (
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
+                    </svg>
+                    <div>
+                      <div className="info-title">Member Since</div>
+                      <div className="info-subtitle">
+                        {new Date(profileData?.created_at || currentUser?.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {currentUser?.updated_at && (
+                  <div className="info-row">
+                    <svg
+                      className="info-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                       />
                     </svg>
                     <div>
-                      <div className="info-title">Account Status</div>
+                      <div className="info-title">Last Updated</div>
                       <div className="info-subtitle">
-                        <span className="badge badge-primary">Active</span>
+                        {new Date(currentUser.updated_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
                       </div>
                     </div>
                   </div>
-                  {currentUser?.created_at && (
-                    <div className="info-row">
-                      <svg
-                        className="info-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <div>
-                        <div className="info-title">Member Since</div>
-                        <div className="info-subtitle">
-                          {new Date(currentUser.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            },
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {currentUser?.updated_at && (
-                    <div className="info-row">
-                      <svg
-                        className="info-icon"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <div>
-                        <div className="info-title">Last Updated</div>
-                        <div className="info-subtitle">
-                          {new Date(currentUser.updated_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            },
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
+          </div>
 
-            <div className="profile-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowAdminProfile(false)}
-              >
-                Close Profile
-              </button>
-            </div>
+          <div className="profile-footer">
+            <button
+              className="btn-secondary"
+              onClick={() => setShowAdminProfile(false)}
+            >
+              Close Profile
+            </button>
           </div>
         </div>
-      </>
-    )
-  }
-
+      </div>
+    </>
+  )
+}
   return (
     <div className={`dashboard-wrapper ${darkMode ? "dark-mode" : ""}`}>
       {/* Premium Sidebar */}
