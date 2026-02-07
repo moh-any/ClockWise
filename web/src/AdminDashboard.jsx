@@ -595,12 +595,15 @@ function AdminDashboard() {
       // Fetch demand heatmap data
       try {
         const demandResponse = await api.dashboard.getDemandHeatmap()
+        console.log("Initial demand heatmap fetch:", demandResponse)
         if (demandResponse && demandResponse.data) {
           // Transform API data to heatmap format (24 hours x 7 days)
           const transformedHeatmap = transformDemandToHeatmap(
             demandResponse.data,
           )
           setHeatMapData(transformedHeatmap)
+        } else {
+          console.log("No existing demand data, keeping initial zeros")
         }
       } catch (err) {
         console.error("Error fetching demand heatmap:", err)
@@ -616,12 +619,14 @@ function AdminDashboard() {
 
   // Transform demand API response to heatmap format
   const transformDemandToHeatmap = (demandData) => {
+    console.log("transformDemandToHeatmap called with:", demandData)
     // Initialize 24 hours x 7 days array with zeros
     const heatmap = Array(24)
       .fill(null)
       .map(() => Array(7).fill(0))
 
     if (!demandData || !demandData.days) {
+      console.log("No demand data or days found, returning empty heatmap")
       return heatmap
     }
 
@@ -653,6 +658,8 @@ function AdminDashboard() {
       maxItemCount = 1
     }
 
+    console.log("Max item count:", maxItemCount)
+
     // Fill heatmap with percentage values
     demandData.days.forEach((day) => {
       const dayIndex = dayNameToIndex[day.day_name.toLowerCase()]
@@ -669,6 +676,7 @@ function AdminDashboard() {
       }
     })
 
+    console.log("Transformed heatmap:", heatmap)
     return heatmap
   }
 
@@ -812,11 +820,11 @@ function AdminDashboard() {
 
       // Generate predictions
       const response = await api.dashboard.generateDemandPrediction()
+      console.log("Generate prediction response:", response)
 
-      // Fetch updated heatmap data
-      const demandResponse = await api.dashboard.getDemandHeatmap()
-      if (demandResponse && demandResponse.data) {
-        const transformedHeatmap = transformDemandToHeatmap(demandResponse.data)
+      // Use the data directly from the generation response
+      if (response && response.data) {
+        const transformedHeatmap = transformDemandToHeatmap(response.data)
         setHeatMapData(transformedHeatmap)
         setPredictionSuccess("Demand predictions generated successfully!")
 
@@ -1849,7 +1857,10 @@ function AdminDashboard() {
             <h3>Loading campaigns...</h3>
           </div>
         ) : campaignsData && campaignsData.length > 0 ? (
-          <div className="section-wrapper">
+          <div
+            className="section-wrapper"
+            style={{ marginTop: "var(--space-6)" }}
+          >
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
@@ -2554,7 +2565,10 @@ function AdminDashboard() {
             <h3>Loading {ordersDataType}...</h3>
           </div>
         ) : ordersData && ordersData.length > 0 ? (
-          <div className="section-wrapper">
+          <div
+            className="section-wrapper"
+            style={{ marginTop: "var(--space-6)" }}
+          >
             {ordersDataType === "orders" ? (
               <div
                 style={{
