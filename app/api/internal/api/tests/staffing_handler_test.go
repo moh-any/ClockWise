@@ -22,12 +22,14 @@ import (
 )
 
 type StaffingTestEnv struct {
-	Router        *gin.Engine
-	UserStore     *MockUserStore
-	OrgStore      *MockOrgStore
-	UploadService *MockUploadService
-	EmailService  *MockEmailService
-	Handler       *api.StaffingHandler
+	Router         *gin.Engine
+	UserStore      *MockUserStore
+	OrgStore       *MockOrgStore
+	UserRolesStore *MockUserRolesStore
+	RolesStore     *MockRolesStore
+	UploadService  *MockUploadService
+	EmailService   *MockEmailService
+	Handler        *api.StaffingHandler
 }
 
 func setupStaffingEnv() *StaffingTestEnv {
@@ -35,19 +37,23 @@ func setupStaffingEnv() *StaffingTestEnv {
 
 	userStore := new(MockUserStore)
 	orgStore := new(MockOrgStore)
+	userRolesStore := new(MockUserRolesStore)
+	rolesStore := new(MockRolesStore)
 	uploadService := new(MockUploadService)
 	emailService := new(MockEmailService)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	handler := api.NewStaffingHandler(userStore, orgStore, uploadService, emailService, logger)
+	handler := api.NewStaffingHandler(userStore, orgStore, userRolesStore, rolesStore, uploadService, emailService, logger)
 
 	return &StaffingTestEnv{
-		Router:        gin.New(),
-		UserStore:     userStore,
-		OrgStore:      orgStore,
-		UploadService: uploadService,
-		EmailService:  emailService,
-		Handler:       handler,
+		Router:         gin.New(),
+		UserStore:      userStore,
+		OrgStore:       orgStore,
+		UserRolesStore: userRolesStore,
+		RolesStore:     rolesStore,
+		UploadService:  uploadService,
+		EmailService:   emailService,
+		Handler:        handler,
 	}
 }
 
@@ -56,6 +62,10 @@ func (env *StaffingTestEnv) ResetMocks() {
 	env.UserStore.Calls = nil
 	env.OrgStore.ExpectedCalls = nil
 	env.OrgStore.Calls = nil
+	env.UserRolesStore.ExpectedCalls = nil
+	env.UserRolesStore.Calls = nil
+	env.RolesStore.ExpectedCalls = nil
+	env.RolesStore.Calls = nil
 	env.UploadService.ExpectedCalls = nil
 	env.UploadService.Calls = nil
 	env.EmailService.ExpectedCalls = nil
@@ -158,9 +168,9 @@ func TestUploadEmployeesCSV(t *testing.T) {
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}
 
 		csvData := &service.CSVData{
-			Headers: []string{"full_name", "email", "role", "salary"},
+			Headers: []string{"full_name", "email", "role", "hourly_salary", "roles"},
 			Rows: []map[string]string{
-				{"full_name": "New User", "email": "new@test.com", "role": "employee", "salary": "20.5"},
+				{"full_name": "New User", "email": "new@test.com", "role": "employee", "hourly_salary": "20.5", "roles": `["waiter"]`},
 			},
 			Total: 1,
 		}
@@ -183,6 +193,15 @@ func TestUploadEmployeesCSV(t *testing.T) {
 			}
 			return true
 		})).Return(nil).Once()
+
+		// RolesStore expectations - role doesn't exist, so create it
+		env.RolesStore.On("GetRoleByName", orgID, "waiter").Return(nil, nil).Once()
+		env.RolesStore.On("CreateRole", mock.MatchedBy(func(r *database.OrganizationRole) bool {
+			return r.Role == "waiter" && r.OrganizationID == orgID
+		})).Return(nil).Once()
+
+		// UserRolesStore expectation
+		env.UserRolesStore.On("SetUserRoles", mock.Anything, orgID, []string{"waiter"}).Return(nil).Once()
 
 		// Email expectation (async)
 		env.EmailService.On("SendWelcomeEmail", "new@test.com", "New User", mock.Anything, "employee", "Clockwise").Return(nil).Once()
@@ -266,12 +285,12 @@ func TestUploadEmployeesCSV(t *testing.T) {
 		org := &database.Organization{ID: orgID, Name: "Clockwise"}
 
 		csvData := &service.CSVData{
-			Headers: []string{"full_name", "email", "role", "salary"},
+			Headers: []string{"full_name", "email", "role", "hourly_salary", "roles"},
 			Rows: []map[string]string{
 				// Invalid role
-				{"full_name": "Bad Role", "email": "bad@test.com", "role": "wizard", "salary": "10"},
+				{"full_name": "Bad Role", "email": "bad@test.com", "role": "wizard", "hourly_salary": "10", "roles": "[]"},
 				// Valid
-				{"full_name": "Good", "email": "good@test.com", "role": "staff", "salary": "10"},
+				{"full_name": "Good", "email": "good@test.com", "role": "staff", "hourly_salary": "10", "roles": "[]"},
 			},
 		}
 
