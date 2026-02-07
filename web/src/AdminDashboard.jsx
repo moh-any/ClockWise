@@ -153,7 +153,19 @@ function AdminDashboard() {
   const [delegateLoading, setDelegateLoading] = useState(false)
   const [delegateError, setDelegateError] = useState("")
   const csvFileInput = useRef(null)
-
+  // ADD THESE STATE VARIABLES:
+const [showRecommendationModal, setShowRecommendationModal] = useState(false)
+const [recommendationParams, setRecommendationParams] = useState({
+  recommendation_start_date: new Date().toISOString().split('T')[0],
+  num_recommendations: 5,
+  optimize_for: 'roi',
+  max_discount: 30,
+  min_campaign_duration_days: 3,
+  max_campaign_duration_days: 14,
+  available_items: []
+})
+const [recommendations, setRecommendations] = useState(null)
+const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   // Role management state
   const [showAddRoleModal, setShowAddRoleModal] = useState(false)
   const [showEditRoleModal, setShowEditRoleModal] = useState(false)
@@ -1988,14 +2000,49 @@ function AdminDashboard() {
       }
     }
 
-    const handleGetRecommendations = () => {
-      setActionMessage({
-        type: "success",
-        text: "Campaign recommendations feature coming soon! Our AI will analyze your data to suggest optimal campaigns.",
-      })
-      setTimeout(() => setActionMessage(null), 5000)
-    }
+const handleGetRecommendations = async () => {
+  setShowRecommendationModal(true)
+}
 
+const handleFetchRecommendations = async () => {
+  try {
+    setRecommendationsLoading(true)
+    const response = await api.campaigns.recommendCampaigns(recommendationParams)
+    setRecommendations(response)
+    setActionMessage({
+      type: "success",
+      text: `Generated ${response.recommendations?.length || 0} recommendations`,
+    })
+    setTimeout(() => setActionMessage(null), 4000)
+  } catch (err) {
+    console.error("Failed to fetch recommendations:", err)
+    setActionMessage({
+      type: "error",
+      text: err.message || "Failed to generate recommendations. Ensure sufficient historical data exists.",
+    })
+    setTimeout(() => setActionMessage(null), 6000)
+  } finally {
+    setRecommendationsLoading(false)
+  }
+}
+
+const handleSubmitFeedback = async (feedback) => {
+  try {
+    await api.campaigns.submitCampaignFeedback(feedback)
+    setActionMessage({
+      type: "success",
+      text: "Feedback submitted successfully",
+    })
+    setTimeout(() => setActionMessage(null), 4000)
+  } catch (err) {
+    console.error("Failed to submit feedback:", err)
+    setActionMessage({
+      type: "error",
+      text: err.message || "Failed to submit feedback",
+    })
+    setTimeout(() => setActionMessage(null), 4000)
+  }
+}
     const downloadCSV = () => {
       if (!campaignsData || campaignsData.length === 0) {
         setActionMessage({ type: "error", text: "No campaigns to download" })
@@ -2495,6 +2542,348 @@ function AdminDashboard() {
             </div>
           </div>
         )}
+{/* Campaign Recommendation Modal */}
+{showRecommendationModal && (
+  <div
+    className="modal-overlay"
+    onClick={() => !recommendationsLoading && setShowRecommendationModal(false)}
+  >
+    <div 
+      className="modal-content" 
+      style={{ 
+        maxWidth: '900px', 
+        maxHeight: '90vh', 
+        overflow: 'auto'
+      }} 
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="modal-header">
+        <h2 className="section-title">
+          🎯 AI Campaign Recommendations
+        </h2>
+        <button
+          className="collapse-btn"
+          onClick={() => setShowRecommendationModal(false)}
+          disabled={recommendationsLoading}
+        >
+          ×
+        </button>
+      </div>
+      
+      {!recommendations ? (
+        // Configuration Form
+        <div style={{ padding: 'var(--space-4)' }}>
+          <h3 style={{ 
+            marginBottom: 'var(--space-4)', 
+            fontSize: 'var(--text-lg)',
+            color: 'var(--text-primary)'
+          }}>
+            Configure Parameters
+          </h3>
+          
+          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            <div>
+              <label className="form-label">
+                Campaign Start Date
+              </label>
+              <input
+                type="date"
+                className="form-input"
+                value={recommendationParams.recommendation_start_date}
+                onChange={(e) => setRecommendationParams({
+                  ...recommendationParams,
+                  recommendation_start_date: e.target.value
+                })}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              <div>
+                <label className="form-label">
+                  Number of Recommendations
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  className="form-input"
+                  value={recommendationParams.num_recommendations}
+                  onChange={(e) => setRecommendationParams({
+                    ...recommendationParams,
+                    num_recommendations: parseInt(e.target.value)
+                  })}
+                />
+              </div>
+
+              <div>
+                <label className="form-label">
+                  Optimize For
+                </label>
+                <select
+                  className="form-input"
+                  value={recommendationParams.optimize_for}
+                  onChange={(e) => setRecommendationParams({
+                    ...recommendationParams,
+                    optimize_for: e.target.value
+                  })}
+                >
+                  <option value="roi">ROI</option>
+                  <option value="revenue">Revenue</option>
+                  <option value="uplift">Uplift</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="form-label">
+                Maximum Discount (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="5"
+                className="form-input"
+                value={recommendationParams.max_discount}
+                onChange={(e) => setRecommendationParams({
+                  ...recommendationParams,
+                  max_discount: parseFloat(e.target.value)
+                })}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+              <div>
+                <label className="form-label">
+                  Min Duration (days)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  className="form-input"
+                  value={recommendationParams.min_campaign_duration_days}
+                  onChange={(e) => setRecommendationParams({
+                    ...recommendationParams,
+                    min_campaign_duration_days: parseInt(e.target.value)
+                  })}
+                />
+              </div>
+              <div>
+                <label className="form-label">
+                  Max Duration (days)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  className="form-input"
+                  value={recommendationParams.max_campaign_duration_days}
+                  onChange={(e) => setRecommendationParams({
+                    ...recommendationParams,
+                    max_campaign_duration_days: parseInt(e.target.value)
+                  })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            className="btn-primary"
+            onClick={handleFetchRecommendations}
+            disabled={recommendationsLoading}
+            style={{ 
+              width: '100%', 
+              marginTop: 'var(--space-4)', 
+              padding: 'var(--space-3)'
+            }}
+          >
+            {recommendationsLoading ? '⏳ Generating...' : '✨ Generate Recommendations'}
+          </button>
+
+          {recommendationsLoading && (
+            <p style={{ 
+              textAlign: 'center', 
+              marginTop: 'var(--space-3)', 
+              color: 'var(--text-tertiary)', 
+              fontSize: 'var(--text-sm)' 
+            }}>
+              Analyzing your data... This may take up to 60 seconds
+            </p>
+          )}
+        </div>
+      ) : (
+        // Recommendations Display
+        <div style={{ padding: 'var(--space-4)' }}>
+          <div className="info-item" style={{ 
+            marginBottom: 'var(--space-4)', 
+            padding: 'var(--space-4)'
+          }}>
+            <h3 style={{ 
+              marginBottom: 'var(--space-2)',
+              color: 'var(--text-primary)',
+              fontSize: 'var(--text-xl)',
+              fontWeight: 700
+            }}>
+              {recommendations.restaurant_name}
+            </h3>
+            <p style={{ 
+              color: 'var(--text-secondary)', 
+              fontSize: 'var(--text-sm)' 
+            }}>
+              📅 {recommendations.recommendation_date} • 
+              Confidence: <strong>{recommendations.confidence_level}</strong>
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            {recommendations.recommendations?.map((rec, index) => (
+              <div
+                key={rec.campaign_id || index}
+                className="profile-card"
+                style={{
+                  padding: 'var(--space-4)',
+                  border: '2px solid var(--color-primary)'
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'start', 
+                  marginBottom: 'var(--space-3)' 
+                }}>
+                  <h4 style={{ 
+                    fontSize: 'var(--text-lg)', 
+                    fontWeight: 700,
+                    color: 'var(--text-primary)'
+                  }}>
+                    Campaign #{index + 1}
+                  </h4>
+                  <span className="badge-primary" style={{
+                    padding: '6px 16px',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 700
+                  }}>
+                    {rec.discount_percentage}% OFF
+                  </span>
+                </div>
+
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr', 
+                  gap: 'var(--space-3)', 
+                  marginBottom: 'var(--space-3)' 
+                }}>
+                  <div className="info-item">
+                    <p className="info-label">
+                      Start Date
+                    </p>
+                    <p className="info-value">
+                      {rec.start_date}
+                    </p>
+                  </div>
+                  <div className="info-item">
+                    <p className="info-label">
+                      End Date
+                    </p>
+                    <p className="info-value">
+                      {rec.end_date} ({rec.duration_days}d)
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr 1fr', 
+                  gap: 'var(--space-3)', 
+                  marginBottom: 'var(--space-3)'
+                }}>
+                  <div className="stat-item">
+                    <div className="stat-value">
+                      {rec.expected_uplift?.toFixed(1)}%
+                    </div>
+                    <div className="stat-label">
+                      Expected Uplift
+                    </div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value">
+                      {rec.expected_roi?.toFixed(1)}%
+                    </div>
+                    <div className="stat-label">
+                      Expected ROI
+                    </div>
+                  </div>
+                  <div className="stat-item">
+                    <div className="stat-value">
+                      ${rec.expected_revenue?.toFixed(0)}
+                    </div>
+                    <div className="stat-label">
+                      Expected Revenue
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 'var(--space-3)' }}>
+                  <p style={{ 
+                    fontSize: 'var(--text-sm)', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: 'var(--space-2)',
+                    fontWeight: 600
+                  }}>
+                    Items Included:
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    {rec.items?.map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="badge"
+                        style={{
+                          padding: '4px 12px',
+                          background: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {rec.reasoning && (
+                  <div className="alert-card alert-low" style={{ 
+                    padding: 'var(--space-3)',
+                    marginTop: 'var(--space-3)'
+                  }}>
+                    <p style={{ 
+                      fontSize: 'var(--text-sm)', 
+                      color: 'var(--text-primary)',
+                      margin: 0
+                    }}>
+                      <strong>💡 AI Insight:</strong> {rec.reasoning}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setRecommendations(null)
+              setShowRecommendationModal(false)
+            }}
+            style={{ width: '100%', marginTop: 'var(--space-4)' }}
+          >
+            Close
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
       </div>
     )
   }

@@ -1,16 +1,44 @@
 # ClockWise: Intelligent Shift Planning System
 
 ![Go](https://img.shields.io/badge/Go-1.25.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12.4-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Gin](https://img.shields.io/badge/Gin-1.11-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)
+
+---
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Technology Stack](#technology-stack)
+- [Backend (Go API)](#backend-go-api)
+- [ML Service (Python / FastAPI)](#ml-service-python--fastapi)
+  - [Demand Prediction](#1-demand-prediction)
+  - [Staff Scheduling (CP-SAT)](#2-staff-scheduling-cp-sat)
+  - [Surge Detection](#3-surge-detection-system)
+  - [Campaign Recommender](#4-campaign-recommendation-system)
+  - [Model Maintenance](#5-model-maintenance)
+- [Frontend (React)](#frontend-react)
+- [Database Schema](#database-schema)
+- [Installation & Setup](#installation--setup)
+- [Environment Variables](#environment-variables)
+- [API Documentation](#api-documentation)
+- [Development](#development)
+- [Project Structure](#project-structure)
+- [Team Members](#team-members)
+- [License](#license)
 
 ---
 
 ## Project Overview
 
-**ClockWise** is an intelligent shift planning and workforce optimization system designed for quick-service restaurants and hospitality businesses. It solves the critical challenge of accurately predicting and meeting wildly fluctuating customer demand to ensure optimal staffing on every shift.
+**ClockWise** is an end-to-end intelligent shift planning and workforce optimization platform designed for quick-service restaurants (QSR) and hospitality businesses. It combines a robust Go REST API, a Python ML service with multiple AI/ML models, and a React frontend to solve the critical challenge of accurately predicting and meeting wildly fluctuating customer demand to ensure optimal staffing on every shift.
 
 ### The Problem
 
@@ -20,432 +48,666 @@ Quick-service restaurants face constant staffing challenges:
 - **Labor cost pressures** that require balancing service quality with budget constraints
 - **Employee burnout** from understaffing during peak periods
 - **Inefficient manual scheduling** that fails to adapt to dynamic conditions
+- **Marketing inefficiency** from running campaigns without data-driven guidance
 
-ClockWise is the **Shift Wizard**—an intelligent system that monitors schedules, coverage, PTO, surprise events, and continuously recommends optimal staffing decisions.
+ClockWise is the **Shift Wizard** — an intelligent system that monitors schedules, coverage, PTO, surprise events, and continuously recommends optimal staffing and marketing decisions.
 
 ---
 
 ## Features
 
-### Core Capabilities
+### Workforce Management
+- **Multi-tenant Organizations**: Each organization gets isolated data, roles, and branding (custom hex colors)
+- **Role-Based Access Control**: Three tiers — Admin, Manager, Employee — each with tailored dashboards
+- **Employee Lifecycle**: Hiring, onboarding with auto-generated welcome emails, layoff tracking with archived records
+- **Bulk CSV Upload**: Import employees, orders, deliveries, campaigns, and items via CSV
+- **Request Management**: Employees submit call-off/holiday/resign requests; managers approve or decline
 
-- **Demand Forecasting**: Predict customer traffic patterns based on historical data, day-of-week trends, and external events
-- **Intelligent Shift Recommendations**: Real-time suggestions for optimal staffing levels with coverage analysis
-- **Call-Off Management**: Quickly identify coverage gaps and auto-suggest solutions when employees call out
-- **PTO & Leave Management**: Track employee time-off requests (calloff, holiday, resign) with approval workflow
-- **Schedule Optimization**: Generate balanced schedules that respect employee preferences while meeting business needs
-- **Labor Cost Analytics**: Monitor labor costs in real-time with predictive cost projections
-- **Employee Management**: Comprehensive employee profiles with layoff/hiring history tracking
-- **Organization Management**: Multi-tenant support with role-based access control (admin, manager, employee)
-- **Bulk Employee Upload**: CSV-based bulk employee import with automatic welcome emails
+### AI-Powered Demand Forecasting
+- **CatBoost v6 Model**: Predicts hourly item and order counts with 69 engineered features
+- **Quantile Loss (α=0.60)**: Biases predictions upward for safe staffing (MAE: 3.32, R²: 0.69)
+- **Weather & Holiday Integration**: Incorporates real-time weather and public holiday data
+- **Cyclical Time Encoding**: Properly handles hour-of-day and day-of-week periodicity
+
+### Intelligent Scheduling (CP-SAT Solver)
+- **Google OR-Tools CP-SAT**: Constraint-programming-based optimal schedule generation
+- **15+ Constraint Types**: Max hours/week, consecutive shift limits, role coverage, employee preferences
+- **Management Insights**: Automatically generates utilization analysis, coverage gap reports, hiring recommendations, and cost projections
+
+### Surge Detection & Alerts
+- **3-Layer Architecture**: Data collection → Surge detection → Alert system
+- **Real-Time Monitoring**: 5-minute resolution venue metrics with social media signal integration
+- **Configurable Thresholds**: 1.5x ratio threshold with 20-item minimum excess demand
+- **Multi-Channel Alerts**: SMS (Twilio), email, with optional LLM-powered analysis (Gemini)
+
+### Campaign Recommendation Engine
+- **Thompson Sampling**: Contextual bandit for exploration-exploitation balance
+- **XGBoost ROI Prediction**: 15+ contextual features for campaign performance prediction
+- **Item Affinity Analysis**: Co-purchase lift matrix for optimal item bundling
+- **Online Learning**: Continuous improvement from campaign feedback
+
+### Frontend Dashboards
+- **Admin Dashboard**: Full organizational control — staffing, scheduling, analytics, data uploads, demand heatmaps
+- **Manager Dashboard**: Team management, request approvals, schedule oversight
+- **Employee Dashboard**: Personal schedule view, preference submission, request management
 
 ---
 
-## Technologies Used
+## System Architecture
 
-### Backend
-- **Language**: Go 1.25.5
-- **Framework**: Gin Web Framework v1.11
-- **Database**: PostgreSQL 12.4 (Alpine)
-- **Authentication**: JWT with gin-jwt/v3
-- **Password Hashing**: bcrypt via golang.org/x/crypto
+```
+                              ┌──────────────────┐
+                              │     Browser      │
+                              │   (React App)    │
+                              └────────┬─────────┘
+                                       │
+                              ┌────────▼─────────┐
+                              │      Nginx       │
+                              │   (Port 80)      │
+                              │  Reverse Proxy   │
+                              │  Rate Limiting   │
+                              │  Gzip / Security │
+                              └──┬──────────┬────┘
+                    /api/*       │          │       /*
+                 ┌───────────────┘          └───────────────┐
+                 │                                          │
+        ┌────────▼─────────┐                    ┌───────────▼──────┐
+        │   Go Backend     │                    │  React Frontend  │
+        │   (Gin, :8080)   │                    │   (CRA, :3000)   │
+        │                  │                    │                  │
+        │  REST API        │                    │  AdminDashboard  │
+        │  JWT Auth        │                    │  ManagerDashboard│
+        │  Middleware      │                    │ EmployeeDashboard│
+        │  CSV Upload      │                    │  Login / Signup  │
+        └──┬─────┬────┬────┘                    └──────────────────┘
+           │     │    │
+     ┌─────┘     │    └──────────┐
+     │           │               │
+┌────▼────┐ ┌───▼────┐  ┌───────▼────────┐
+│  Redis  │ │Postgres│  │  ML Service    │
+│  :6379  │ │  :5432 │  │(FastAPI, :8000)│
+│  Cache  │ │21 migr.│  │                │
+│  LRU    │ │        │  │  CatBoost v6   │
+└─────────┘ └────────┘  │  CP-SAT Solver │
+                        │  Surge Detect. │
+                        │  Campaign Rec. │
+                        └────────────────┘
+```
+
+### Docker Compose Services
+
+| Container | Service | Port | Description |
+|-----------|---------|------|-------------|
+| `ClockwiseBackend` | `cw-app` | 8080 | Go REST API server |
+| `ClockwiseDB` | `db` | 5432 | PostgreSQL 12.4 with persistent volume |
+| `MLService` | `cw-ml-service` | 8000 | Python FastAPI ML service |
+| `ClockwiseFrontend` | `cw-web` | 3000 | React development server |
+| `ClockwiseNginx` | `nginx` | 80 | Reverse proxy & static assets |
+| `ClockwiseRedis` | `redis` | 6379 | Cache layer (256MB, LRU eviction) |
+
+---
+
+## Technology Stack
+
+### Backend (Go)
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Go | 1.25.5 | Primary language |
+| Gin | 1.11 | HTTP web framework |
+| gin-jwt/v3 | 3.4.1 | JWT authentication middleware |
+| pgx/v5 | 5.8.0 | PostgreSQL driver |
+| Goose v3 | 3.26.0 | SQL-based database migrations |
+| go-sqlmock | 1.5.2 | Database mock for testing |
+| testcontainers-go | 0.40.0 | Integration testing with real containers |
+| bcrypt | - | Password hashing via `golang.org/x/crypto` |
+| UUID | 1.6.0 | UUID generation (`google/uuid`) |
+| CORS | 1.7.6 | Cross-origin resource sharing |
+| Gzip | 1.2.5 | Response compression |
+
+### ML Service (Python)
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Python | 3.11 | Runtime |
+| FastAPI | 0.104.1 | REST API framework |
+| CatBoost | - | Demand prediction (via scikit-learn interface) |
+| XGBoost | 2.0.2 | Campaign ROI prediction |
+| OR-Tools | 9.8.3296 | CP-SAT constraint-programming scheduler |
+| pandas / numpy | latest | Data processing |
+| holidays | 0.37 | Public holiday detection |
+| pytrends | 4.9.2 | Google Trends for surge detection |
+| Twilio | 8.10.0 | SMS/voice alert delivery |
+
+### Frontend (React)
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| React | 18.3.1 | UI framework |
+| React Router DOM | 7.13.0 | Client-side routing |
+| Create React App | 5.0.1 | Build toolchain |
 
 ### Infrastructure
-- **Containerization**: Docker & Docker Compose (2 containers: API + Database)
-- **Database Migration**: Goose v3 (SQL-based migrations)
-- **Email Service**: SMTP-based notifications
-- **Database Driver**: pgx/v5
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Docker Compose | latest | Multi-container orchestration (6 services) |
+| Nginx | latest | Reverse proxy, rate limiting, gzip, security headers |
+| Redis | 7-alpine | Caching with LRU eviction (256MB limit) |
+| PostgreSQL | 12.4-alpine | Relational database with persistent volume |
 
-### Key Dependencies
-- `github.com/gin-gonic/gin` - HTTP web framework
-- `github.com/appleboy/gin-jwt/v3` - JWT middleware
-- `github.com/jackc/pgx/v5` - PostgreSQL driver
-- `github.com/pressly/goose/v3` - Database migrations
-- `github.com/google/uuid` - UUID generation
-- `github.com/gin-contrib/cors` - CORS middleware
+---
+
+## Backend (Go API)
+
+The backend is a layered Go application using the Gin web framework, located in `app/api/`.
+
+### Architecture Layers
+
+```
+Handlers (API Layer)     → HTTP request/response, validation
+    ↓
+Middleware               → JWT auth, org validation, CORS, logging
+    ↓
+Services                 → Business logic (email, CSV upload)
+    ↓
+Cache Layer (Redis)      → Wraps all stores, LRU with TTL
+    ↓
+Database Stores          → Direct PostgreSQL access via pgx
+```
+
+### Handlers
+
+| Handler | File | Responsibility |
+|---------|------|----------------|
+| Organization | `org_handler.go` | Org profile, delegation |
+| Staffing | `staffing_handler.go` | Summary, CSV upload, employee creation |
+| Employee | `employee_handler.go` | CRUD, layoff, requests approve/decline |
+| Schedule | `schedule_handler.go` | Schedule get/edit/refresh via ML solver |
+| Dashboard | `dashboard_handler.go` | Surge data, demand heatmap, ML predictions |
+| Insights | `insights_handler.go` | Staffing analytics |
+| Campaign | `campaign_handler.go` | Campaign CRUD, ML recommendation proxy |
+| Roles | `roles_handler.go` | Organization role management |
+| Rules | `rules_handler.go` | Scheduling rules & operating hours |
+| Preferences | `preferences_handler.go` | Employee shift preferences |
+| Profile | `profile_handler.go` | User profile, password change |
+| Alert | `alert_handler.go` | Surge alert management |
+
+### Database Stores (Data Access Layer)
+
+| Store | File | Tables |
+|-------|------|--------|
+| `OrgStore` | `org_store.go` | organizations |
+| `UserStore` | `user_store.go` | users, layoffs_hirings |
+| `OrderStore` | `order_store.go` | orders, order_items |
+| `CampaignStore` | `campaign_store.go` | marketing_campaigns |
+| `ScheduleStore` | `schedule_store.go` | schedules |
+| `RolesStore` | `roles_store.go` | organizations_roles |
+| `RulesStore` | `rules_store.go` | Organization rules |
+| `PreferencesStore` | `preferences_store.go` | preferences |
+| `RequestStore` | `request_store.go` | requests |
+| `DemandStore` | `demand_store.go` | demand |
+| `OperatingHoursStore` | `operating_hours_store.go` | Operating hours |
+| `AlertStore` | `alert_store.go` | alerts |
+| `InsightStore` | `insight_store.go` | Insights |
+
+### Authentication
+
+- **JWT** via `gin-jwt/v3` with `golang-jwt/v5`
+- **Access Token**: 15-minute expiry
+- **Refresh Token**: 7-day expiry
+- **Token Lookup**: `Authorization: Bearer <token>` header, query parameter, or cookie
+- Claims include: `id`, `full_name`, `email`, `user_role`, `organization_id`
+
+### Redis Caching
+
+All database stores are wrapped with a Redis cache layer providing:
+- Automatic cache invalidation on writes
+- LRU eviction policy (256MB max memory)
+- Append-only file persistence for durability
+- Health checks every 10 seconds
+
+### API Documentation
+
+Full backend REST API documentation with request/response examples is available at:
+
+**[`app/api/docs/API_DOCUMENTATION.md`](app/api/docs/API_DOCUMENTATION.md)**
+
+Covers all 14 endpoint categories: Health, Auth, Profile, Roles, Rules, Preferences, Staffing, Insights, Organization, Orders, Deliveries, Items, Campaigns, and Alerts.
+
+---
+
+## ML Service (Python / FastAPI)
+
+The ML service is a standalone Python FastAPI application located in `app/ml/`, providing four major subsystems. It runs as its own Docker container at `http://cw-ml-service:8000`.
+
+### ML API Documentation
+
+Full ML service REST API documentation is available at:
+
+**[`app/api/docs/data.md`](app/api/docs/data.md)** — Unified API docs covering Demand Prediction, Staff Scheduling, and Campaign Recommendations endpoints with complete request/response schemas.
+
+### 1. Demand Prediction
+
+**Model**: CatBoost v6 with Quantile Loss  
+**Files**: `src/deploy_model.py`, `src/v6_features.py`, `src/feature_engineering.py`, `src/api_feature_engineering.py`
+
+| Metric | Value |
+|--------|-------|
+| MAE | 3.32 items |
+| R² | 0.69 |
+| Bias | +0.26 (intentional upward) |
+| Improvement vs baseline | 42% |
+
+#### 69 Engineered Features
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| Cyclical Time | 6 | `hour_sin`, `hour_cos`, `dow_sin`, `dow_cos` |
+| Time Context | 21 | Rush hour flags, time-of-day bins, weekend indicators |
+| Lag Features | 7 | 3d, 7d, 14d, 30d rolling averages |
+| Venue-Specific | 7 | `venue_hour_avg`, `venue_volatility`, `venue_dow_avg` |
+| Weekend Patterns | 6 | Weekend-hour interactions |
+| Weather Interactions | 8 | Temperature, rain, wind interactions |
+| External | 14 | Weather, holidays, campaign overlap |
+
+#### Quantile Loss (α=0.60)
+
+The model uses **quantile regression** instead of MSE — it predicts the 60th percentile of demand rather than the mean. This provides a deliberate upward bias that is ideal for staffing: slightly over-predicting is cheaper than being short-staffed during rush hours.
+
+**Detailed documentation**: [`app/ml/docs/DEMAND_PREDICTION_MODEL.md`](app/ml/docs/DEMAND_PREDICTION_MODEL.md)  
+**Feature engineering details**: [`app/ml/docs/V6_MODEL_INTEGRATION.md`](app/ml/docs/V6_MODEL_INTEGRATION.md)  
+**Development history**: [`app/ml/docs/DEVELOPMENT_HISTORY.md`](app/ml/docs/DEVELOPMENT_HISTORY.md)
+
+---
+
+### 2. Staff Scheduling (CP-SAT)
+
+**Engine**: Google OR-Tools CP-SAT Solver  
+**File**: `src/scheduler_cpsat.py`
+
+The scheduling engine takes demand predictions and employee data to generate optimal shift assignments by solving a constraint satisfaction problem.
+
+#### Constraints Handled
+
+| Constraint | Description |
+|-----------|-------------|
+| Max hours/week | Per-employee weekly hour limits |
+| Consecutive shifts | Maximum consecutive working slots |
+| Role coverage | Minimum staff per role per shift |
+| Employee preferences | Day/time preferences with priority weighting |
+| Availability | Approved time-off and unavailability |
+| Demand matching | Staff levels matched to predicted demand |
+| Fairness | Balanced distribution across employees |
+
+#### Management Insights
+
+Each generated schedule comes with automated analysis:
+
+| Insight | Description |
+|---------|-------------|
+| **Utilization Analysis** | Per-employee hour utilization vs capacity |
+| **Coverage Gaps** | Shifts where staffing falls below demand |
+| **Hiring Recommendations** | Roles needing additional headcount |
+| **Cost Analysis** | Total labor cost projections by role |
+
+**Detailed documentation**: [`app/ml/docs/scheduler_api_usage.md`](app/ml/docs/scheduler_api_usage.md)
+
+---
+
+### 3. Surge Detection System
+
+**Files**: `src/data_collector.py`, `src/surge_detector.py`, `src/alert_system.py`, `src/surge_orchestrator.py`, `src/surge_api.py`
+
+A 3-layer real-time monitoring system that detects unexpected demand spikes and alerts management.
+
+```
+Layer 1: Data Collection        Layer 2: Detection          Layer 3: Alerts
+┌─────────────────────┐    ┌─────────────────────┐    ┌───────────────────┐
+│  ML Predictions     │    │  Ratio Analysis     │    │  SMS (Twilio)     │
+│  Social Media APIs  │───>│  1.5x threshold     │───>│  Email            │
+│  Historical Orders  │    │  20-item min excess  │    │  LLM Analysis     │
+│  5-min resolution   │    │  Trend detection     │    │  (Gemini optional)│
+└─────────────────────┘    └─────────────────────┘    └───────────────────┘
+```
+
+#### Surge Detection Criteria
+
+- **Ratio threshold**: actual/predicted > 1.5
+- **Minimum excess**: at least 20 items above prediction
+- **Social signal boost**: Twitter mentions and sentiment amplify surge scoring
+- **Trend detection**: Sustained growth over consecutive intervals
+
+**Detailed documentation**:
+- [`app/ml/docs/surge_detection_architecture.md`](app/ml/docs/surge_detection_architecture.md)
+- [`app/ml/docs/SURGE_ORCHESTRATION_GUIDE.md`](app/ml/docs/SURGE_ORCHESTRATION_GUIDE.md)
+- [`app/ml/docs/DATA_COLLECTION_API.md`](app/ml/docs/DATA_COLLECTION_API.md)
+
+---
+
+### 4. Campaign Recommendation System
+
+**Files**: `src/campaign_analyzer.py`, `src/campaign_recommender.py`, `src/train_campaign_model.py`
+
+An ML-powered marketing recommendation engine that suggests optimal promotional campaigns.
+
+#### Algorithm
+
+**Thompson Sampling** (contextual bandit) balances exploration of new campaign types with exploitation of proven performers.
+
+```
+Priority Score = 0.50 × Expected ROI (XGBoost)
+               + 0.30 × Thompson Sample × 100
+               + 0.20 × Confidence × 100
+```
+
+#### Features for ROI Prediction
+
+| Category | Features |
+|----------|----------|
+| Campaign | discount, duration_days, num_items |
+| Temporal | day_of_week, hour_of_day, is_weekend |
+| Seasonal | season_winter/spring/summer/fall |
+| Context | was_holiday, avg_temperature, weather |
+| Historical | avg_orders_before, past campaign performance |
+
+#### Recommendation Types
+
+| Type | Description |
+|------|-------------|
+| **Template-Based** | Proven campaign formats with tuned parameters |
+| **Affinity-Based** | Novel item combinations from co-purchase analysis |
+| **Seasonal** | Time-appropriate campaigns for holidays/seasons |
+
+#### Feedback Loop
+
+The system supports online learning — campaign results are fed back via the `/recommend/campaigns/feedback` endpoint to continuously improve recommendations through Thompson Sampling prior updates and XGBoost retraining.
+
+**Detailed documentation**: [`app/ml/docs/CAMPAIGN_RECOMMENDER.md`](app/ml/docs/CAMPAIGN_RECOMMENDER.md)
+
+---
+
+### 5. Model Maintenance
+
+**Files**: `src/model_monitor.py`, `src/fine_tune_model.py`, `src/model_manager.py`
+
+A 3-tier hybrid maintenance strategy ensures the demand prediction model stays accurate over time.
+
+| Tier | Trigger | Action |
+|------|---------|--------|
+| **Tier 1** | Weekly | Fine-tune on new data (CatBoost warm start, lower learning rate 0.03) |
+| **Tier 2** | Quarterly | Full model retraining with accumulated data |
+| **Tier 3** | Drift detected | Emergency retraining when degradation exceeds 15% |
+
+#### Model Monitor
+
+- Logs prediction vs actual outcomes in `logs/predictions_log.csv`
+- Tracks rolling performance metrics
+- **15% degradation** → suggests retraining
+- **25% degradation** → critical alert
+
+**Detailed documentation**: [`app/ml/docs/MODEL_MAINTENANCE.md`](app/ml/docs/MODEL_MAINTENANCE.md)
+
+---
+
+## Frontend (React)
+
+The frontend is a React 18 single-page application located in `web/`, built with Create React App. It communicates with the backend exclusively through the Nginx reverse proxy.
+
+### Routing
+
+| Path | Component | Access |
+|------|-----------|--------|
+| `/` | `App.jsx` | Public — landing page with Login/Signup modals |
+| `/admin` | `AdminDashboard.jsx` | Protected — admin users only |
+| `/manager` | `ManagerDashboard.jsx` | Protected — manager users only |
+| `/employee` | `EmployeeDashboard.jsx` | Protected — employee users only |
+
+All dashboard routes are wrapped with `ProtectedRoute.jsx` which checks for a valid `access_token` in `localStorage` before rendering.
+
+### API Service Layer
+
+The frontend API client (`src/services/api.js`, 1020 lines) provides organized API modules:
+
+| Module | Functions |
+|--------|-----------|
+| `authAPI` | `register`, `login`, `refreshToken`, `logout`, `getCurrentUser` |
+| `profileAPI` | `getProfile`, `changePassword` |
+| `staffingAPI` | `getStaffingSummary`, `createEmployee`, `getAllEmployees`, `getEmployee`, `layoffEmployee`, `bulkUploadEmployees` |
+| `requestsAPI` | `getEmployeeRequests`, `approveRequest`, `declineRequest` |
+| `rolesAPI` | `getAll`, `getRole`, `createRole`, `updateRole`, `deleteRole` |
+| `rulesAPI` | `getRules`, `saveRules` |
+| `ordersAPI` | `getOrderInsights`, `getAllOrders`, `getOrdersWeek`, `getOrdersToday`, `uploadOrdersCSV`, `uploadOrderItemsCSV` |
+| `preferencesAPI` | `getPreferences`, `savePreferences` |
+| `insightsAPI` | `getInsights` |
+| `deliveriesAPI` | `getDeliveryInsights`, `getAllDeliveries`, `getDeliveriesWeek`, `getDeliveriesToday`, `uploadDeliveriesCSV` |
+| `itemsAPI` | `getItemInsights`, `getAllItems`, `uploadItemsCSV` |
+| `campaignsAPI` | `getCampaignInsights`, `getAllCampaigns`, `getCampaignsWeek`, `uploadCampaignsCSV`, `uploadCampaignItemsCSV` |
+| `dashboardAPI` | `getSurgeInsights`, `getAllSurge`, `getSurgeWeek`, `getDemandHeatmap`, `generateDemandPrediction` |
+| `organizationAPI` | `getProfile` |
+| `healthAPI` | `checkHealth` |
+
+### Custom Hooks
+
+The `services/hooks.js` file provides React hooks for API state management:
+
+| Hook | Purpose |
+|------|---------|
+| `useAPI` | Generic hook with loading/error states, auto-fetch, and refetch |
+| `useAuth` | Authentication state management (user, login, logout, register) |
+
+### Token Management
+
+- Automatic **token refresh** on 401 responses with request queuing
+- Failed refresh clears all stored data and redirects to login
+- Tokens stored in `localStorage`: `access_token`, `refresh_token`, `org_id`, `user_id`
 
 ---
 
 ## Database Schema
 
-### Tables
+PostgreSQL 12.4 with **21 SQL migrations** managed by Goose v3. Migrations run automatically on API server startup.
 
-#### `organizations`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| name | VARCHAR(100) | Organization name (unique) |
-| address | TEXT | Physical address |
-| email | VARCHAR(100) | Contact email (unique) |
-| hex_code1, hex_code2, hex_code3 | VARCHAR(6) | Brand colors |
-| created_at | TIMESTAMP | Creation timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |
+### Core Tables
 
-#### `users`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| full_name | VARCHAR(255) | Employee full name |
-| email | VARCHAR(255) | Email address (unique) |
-| password_hash | VARCHAR(255) | bcrypt hashed password |
-| user_role | VARCHAR(50) | Role: admin, manager, employee |
-| organization_id | UUID | Foreign key to organizations |
-| created_at | TIMESTAMP | Creation timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |
+| Table | Description |
+|-------|-------------|
+| `organizations` | Multi-tenant orgs with branding (name, address, hex colors) |
+| `users` | Employees with role (admin/manager/employee), org FK, salary |
+| `organizations_roles` | Custom roles per org (role name, min_needed, items_per_hour) |
+| `schedules` | Generated shift schedules |
+| `orders` | Historical order records |
+| `delivery` | Delivery tracking |
+| `marketing_campaigns` | Campaign history with discount/date ranges |
+| `tables` | Restaurant table management |
+| `layoffs_hirings` | Archived employee lifecycle events |
+| `requests` | Employee time-off requests (calloff/holiday/resign) |
+| `preferences` | Employee shift preferences and constraints |
+| `demand` | Stored demand predictions |
+| `production_chains` | Production chain tracking |
+| `offers` | Special offers |
+| `alerts` | Surge and system alerts |
 
-#### `organizations_roles`
-| Column | Type | Description |
-|--------|------|-------------|
-| organization_id | UUID | Foreign key to organizations |
-| role | VARCHAR(50) | Role name (composite PK) |
+### Migration Files
 
-#### `organizations_managers`
-| Column | Type | Description |
-|--------|------|-------------|
-| organization_id | UUID | Foreign key to organizations |
-| manager_id | UUID | Foreign key to users |
-
-#### `requests`
-| Column | Type | Description |
-|--------|------|-------------|
-| request_id | UUID | Primary key |
-| employee_id | UUID | Foreign key to users |
-| type | VARCHAR(20) | Type: calloff, holiday, resign |
-| message | TEXT | Request message |
-| submitted_at | TIMESTAMP | Submission timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |
-| status | VARCHAR(10) | Status: accepted, declined, in queue |
-
-#### `layoffs_hirings`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| user_id | UUID | Employee ID |
-| user_name | VARCHAR(255) | Employee name (archived) |
-| user_email | VARCHAR(255) | Employee email (archived) |
-| organization_id | UUID | Foreign key to organizations |
-| action | VARCHAR(20) | Action: layoff, hiring |
-| reason | TEXT | Reason for action |
-| action_date | TIMESTAMP | Action timestamp |
-
-#### `schedules`
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
+```
+app/api/migrations/
+├── 00001_organizations.sql
+├── 00002_users.sql
+├── 00003_schedules.sql
+├── 00004_orders.sql
+├── 00005_delivery.sql
+├── 00006_marketing_campaigns.sql
+├── 00007_tables.sql
+├── 00008_layoffs_hirings.sql
+├── 00009_organizations_managers.sql
+├── 00010_requests.sql
+├── 00011_preferences.sql
+├── 00012_drop_organizations_managers.sql
+├── 00013_create_demand_table.sql
+├── 00014_production_chains.sql
+├── 00015_offers_table.sql
+├── 00016_update_users_table.sql
+├── 00017_alerts.sql
+├── 00018_add_shift_times.sql
+├── 00019_update_organizations.sql
+├── 00020_move_accepting_orders.sql
+├── 00021_fix_demand_day_constraint.sql
+└── fs.go                              # Embedded filesystem
+```
 
 ---
 
-## Installation
+## Installation & Setup
 
 ### Prerequisites
-- Docker and Docker Compose
 
-### Docker Containers
+- **Docker** and **Docker Compose** installed
+- Ports 80, 3000, 5432, 6379, 8000, 8080 available
 
-The application runs in two containers:
+### Quick Start
 
-| Container | Name | Description |
-|-----------|------|-------------|
-| **cw_app** | ClockwiseBackend | Go API server |
-| **db** | ClockwiseDB | PostgreSQL 12.4 database |
-
-### Step-by-Step Setup
-
-#### 1. Clone the Repository
 ```bash
+# 1. Clone the repository
 git clone <repository-url>
 cd ClockWise
-```
 
-#### 2. Configure Environment Variables
-Create a `.env` file in the project root:
-```env
-# Database Configuration
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=clockwise
-DB_PORT=5432
-DB_HOST=db
-DB_SCHEMA=public
+# 2. Create .env file (see Environment Variables section below)
+cp .env.example .env   # or create manually
 
-# API Configuration
-PORT=8080
+# 3. Start all 6 services
+docker-compose up -d --build
 
-# JWT Configuration
-JWT_SECRET=your_super_secret_jwt_key
-
-# SMTP Configuration (optional - falls back to mock emails if not set)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USERNAME=your_email
-SMTP_PASSWORD=your_email_password
-```
-
-#### 3. Start All Services
-```bash
-docker-compose up -d
-```
-This will:
-- Build the Go application from Dockerfile
-- Start PostgreSQL 12.4 container with persistent volume
-- Run database migrations automatically on startup
-- Start the API server
-
-#### 4. Verify Services
-```bash
-# Check container status
+# 4. Verify everything is running
 docker-compose ps
 
-# Check API health
-curl http://localhost:8080/health
-
-# View logs
-docker-compose logs -f cw_app
+# 5. The application is available at:
+#    Frontend:  http://localhost       (via Nginx)
+#    API:       http://localhost/api/  (via Nginx → Go backend)
+#    Health:    http://localhost/health
 ```
 
-The API will be available at `http://localhost:8080`
+### What Happens on Startup
+
+1. PostgreSQL starts with a persistent volume (`postgres-data`)
+2. Redis starts with append-only persistence (`redis-data`)
+3. Go backend starts, runs all 21 database migrations automatically, connects to Redis
+4. ML service loads the CatBoost model and starts the FastAPI server
+5. React dev server starts on port 3000
+6. Nginx starts and proxies: `/api/*` → Go backend, `/*` → React frontend
 
 ### Running Without Docker (Development)
 
 ```bash
-# Start only the database
-docker-compose up -d db
+# Start supporting services only
+docker-compose up -d db redis cw-ml-service
 
-# Set DB_HOST to localhost in .env
-DB_HOST=localhost
+# Backend (Go)
+cd app/api
+DB_HOST=localhost REDIS_ADDR=localhost:6379 go run cmd/api/main.go
 
-# Run the application
-go run cmd/api/main.go
+# Frontend (React)
+cd web
+npm install
+REACT_APP_API_BASE_URL=http://localhost:8080 npm start
+
+# ML Service (Python)
+cd app/ml
+pip install -r requirements.txt
+uvicorn api.app:app --host 0.0.0.0 --port 8000
 ```
 
 ---
 
-## API Endpoints
+## Environment Variables
 
-### Public Routes
+Create a `.env` file in the project root:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/login` | User authentication (returns JWT) |
-| POST | `/register` | Register new organization with admin |
-| GET | `/health` | Health check with DB stats |
+```env
+# ─── Nginx ───
+NGINX_PORT=80
 
-### Auth Routes (Protected)
+# ─── Backend API ───
+PORT=8080
+HOST=localhost
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/refresh_token` | Refresh JWT token |
-| POST | `/auth/logout` | Logout user |
-| GET | `/auth/me` | Get current user info & claims |
+# ─── Database ───
+DB_HOST=db
+DB_PORT=5432
+POSTGRES_DB=clockwise
+POSTGRES_USER=clockwise
+POSTGRES_PASSWORD=<your_password>
+DB_SCHEMA=public
 
-### Organization Routes (Protected)
+# ─── Redis ───
+REDIS_ADDR=redis:6379
+REDIS_PASSWORD=<your_password>
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/` | Get organization details |
-| POST | `/:org/request` | Submit call-off/leave request |
+# ─── Authentication ───
+JWT_SECRET=<your_secret_key>
 
-### Dashboard Routes
+# ─── Email (SMTP) ───
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=<your_email>
+SMTP_PASSWORD=<your_app_password>
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/dashboard/` | Get dashboard data |
-| GET | `/:org/dashboard/schedule/` | Get schedule |
-| PUT | `/:org/dashboard/schedule/` | Edit schedule |
-| POST | `/:org/dashboard/schedule/refresh` | Refresh/regenerate schedule |
+# ─── ML Service ───
+ML_PORT=8000
+ML_HOST=localhost
+ML_URL=http://cw-ml-service:8000
 
-### Insights Routes
+# ─── External APIs (ML) ───
+TWITTER_BEARER_TOKEN=<your_token>      # Surge detection social signals
+EVENTBRITE_API_KEY=<your_key>          # Event-based surge detection
+GEMINI_API_KEY=<your_key>              # Optional LLM surge analysis
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/insights/` | Get staffing insights |
-
-### Staffing Routes
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/staffing/` | Get staffing summary (total, by role) |
-| POST | `/:org/staffing/` | Delegate/create new user |
-| POST | `/:org/staffing/upload` | Bulk upload employees via CSV |
-| GET | `/:org/staffing/employees/` | Get all employees |
-
-### Employee Routes
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/staffing/employees/:id/` | Get employee details |
-| DELETE | `/:org/staffing/employees/:id/layoff` | Layoff employee |
-| GET | `/:org/staffing/employees/:id/schedule` | Get employee schedule |
-| PUT | `/:org/staffing/employees/:id/schedule` | Edit employee schedule |
-| GET | `/:org/staffing/employees/:id/requests` | Get employee requests |
-| POST | `/:org/staffing/employees/:id/requests/approve` | Approve request |
-| POST | `/:org/staffing/employees/:id/requests/decline` | Decline request |
-
-### Preferences Routes (Employees Only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/preferences/` | Get employee preferences |
-| PUT | `/:org/preferences/` | Update preferences |
-
-### Rules Routes
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/:org/rules/` | Get organization rules |
-| PUT | `/:org/rules/` | Update organization rules |
-
----
-
-## Authentication
-
-### JWT Token Structure
-
-Access tokens contain the following claims:
-```json
-{
-  "id": "user-uuid",
-  "full_name": "John Doe",
-  "email": "john@example.com",
-  "user_role": "admin",
-  "organization_id": "org-uuid"
-}
-```
-
-### Token Configuration
-- **Access Token Timeout**: 15 minutes
-- **Refresh Token Timeout**: 7 days
-- **Token Lookup**: Header (`Authorization: Bearer <token>`), Query (`?token=`), Cookie (`access_token`)
-
-### Example Login Request
-```bash
-curl -X POST http://localhost:8080/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "password123"}'
+# ─── Frontend ───
+WEB_PORT=3000
+WEB_HOST=cw-web
 ```
 
 ---
 
-## Architecture
+## API Documentation
 
-### System Overview
+### Backend REST API
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Client Applications                   │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────┐
-│           Docker Container: ClockwiseBackend             │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │               API Layer (Gin REST)                 │  │
-│  │    Organization | Staffing | Employee | Dashboard  │  │
-│  └────────────────────┬──────────────────────────────┘  │
-│                       │                                  │
-│  ┌────────────────────▼──────────────────────────────┐  │
-│  │              Middleware Layer                      │  │
-│  │   JWT Auth | Org Validation | CORS | Logging      │  │
-│  └────────────────────┬──────────────────────────────┘  │
-│                       │                                  │
-│  ┌────────────────────▼──────────────────────────────┐  │
-│  │          Business Logic Layer (Services)          │  │
-│  │     Email Service | CSV Upload | Scheduling       │  │
-│  └────────────────────┬──────────────────────────────┘  │
-│                       │                                  │
-│  ┌────────────────────▼──────────────────────────────┐  │
-│  │           Data Access Layer (Stores)              │  │
-│  │    OrgStore | UserStore | RequestStore | DB Pool  │  │
-│  └────────────────────┬──────────────────────────────┘  │
-└───────────────────────┼─────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────┐
-│            Docker Container: ClockwiseDB                 │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │           PostgreSQL 12.4 (Alpine)                │  │
-│  │  organizations | users | requests | schedules     │  │
-│  │  layoffs_hirings | organizations_roles            │  │
-│  └───────────────────────────────────────────────────┘  │
-│              Volume: postgres-data                       │
-└─────────────────────────────────────────────────────────┘
-```
+Comprehensive documentation with full request/response examples for all endpoints:
 
-### Project Structure
+**[`app/api/docs/API_DOCUMENTATION.md`](app/api/docs/API_DOCUMENTATION.md)** (3000+ lines)
 
-```
-ClockWise/
-├── cmd/
-│   └── api/
-│       └── main.go                 # Application entry point with graceful shutdown
-├── internal/
-│   ├── api/
-│   │   ├── org_handler.go          # Organization & delegation endpoints
-│   │   ├── staffing_handler.go     # Staffing summary & CSV upload
-│   │   ├── employee_handler.go     # Employee CRUD & request management
-│   │   ├── dashboard_handler.go    # Dashboard endpoints
-│   │   ├── insights_handler.go     # Analytics & insights
-│   │   ├── schedule_handler.go     # Schedule management
-│   │   └── rules_handler.go        # Organization rules
-│   ├── database/
-│   │   ├── database.go             # DB connection & health checks
-│   │   ├── org_store.go            # Organization data access
-│   │   ├── user_store.go           # User CRUD & layoff operations
-│   │   └── request_store.go        # Request data access
-│   ├── middleware/
-│   │   └── middleware.go           # JWT auth & ValidateOrgAccess
-│   ├── server/
-│   │   ├── server.go               # Server setup & dependency injection
-│   │   └── routes.go               # Route definitions
-│   ├── service/
-│   │   ├── email_service.go        # SMTP email (with mock fallback)
-│   │   └── uploadcsv_service.go    # CSV parsing service
-│   └── utils/
-│       └── utils.go                # Password generation utilities
-├── migrations/
-│   ├── 00001_organizations.sql
-│   ├── 00002_users.sql
-│   ├── 00004_schedules.sql
-│   ├── 00008_layoffs_hirings.sql
-│   ├── 00009_organizations_managers.sql
-│   ├── 00010_requests.sql
-│   └── fs.go                       # Embedded migrations filesystem
-├── Dockerfile                      # Multi-stage Go build
-├── docker-compose.yml              # 2-container orchestration
-├── go.mod                          # Go 1.25.5 dependencies
-└── README.md
-```
+Endpoint categories:
+| Category | Key Endpoints |
+|----------|--------------|
+| **Health** | `GET /health` |
+| **Auth** | `POST /api/login`, `POST /api/register`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| **Profile** | `GET /api/auth/profile`, `POST /api/auth/profile/changepassword` |
+| **Staffing** | `GET/POST /:org/staffing`, `POST /:org/staffing/upload` |
+| **Employees** | `GET/DELETE /:org/staffing/employees/:id/*` |
+| **Roles** | `GET/POST/PUT/DELETE /:org/roles` |
+| **Rules** | `GET/POST /:org/rules` |
+| **Preferences** | `GET/POST /:org/preferences` |
+| **Orders** | `GET /:org/orders/*`, `POST /:org/orders/upload/*` |
+| **Deliveries** | `GET /:org/deliveries/*`, `POST /:org/deliveries/upload` |
+| **Items** | `GET /:org/items/*`, `POST /:org/items/upload` |
+| **Campaigns** | `GET /:org/campaigns/*`, `POST /:org/campaigns/upload/*`, `POST /:org/campaigns/recommend`, `POST /:org/campaigns/feedback` |
+| **Dashboard** | `GET /:org/dashboard/surge/*`, `GET/POST /:org/dashboard/demand/*` |
+| **Insights** | `GET /:org/insights` |
+| **Alerts** | Alert management endpoints |
 
----
+### ML Service API
 
-## CSV Upload Format
+Unified ML API documentation with schemas for all ML endpoints:
 
-For bulk employee upload via `POST /:org/staffing/upload`:
+**[`app/api/docs/data.md`](app/api/docs/data.md)** (1350+ lines)
 
-```csv
-full_name,email,role
-John Doe,john@example.com,employee
-Jane Smith,jane@example.com,manager
-Bob Wilson,bob@example.com,staff
-```
-
-**Required columns:**
-- `full_name` - Employee's full name
-- `email` - Employee's email address
-- `role` - One of: `manager`, `staff`, `employee`
-
-**Response:**
-```json
-{
-  "message": "Bulk upload completed",
-  "created_count": 2,
-  "created": ["john@example.com", "jane@example.com"],
-  "failed_count": 1,
-  "failed": [{"email": "bob@example.com", "error": "duplicate key"}]
-}
-```
-
-Welcome emails are sent automatically to created users with temporary passwords.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `GET /` | GET | Health check & feature availability |
+| `GET /model/info` | GET | Model metadata & hyperparameters |
+| `POST /predict/demand` | POST | Hourly demand prediction (items + orders) |
+| `POST /schedule` | POST | Optimal staff schedule generation |
+| `POST /recommend/campaigns` | POST | AI campaign recommendations |
+| `POST /recommend/campaigns/feedback` | POST | Campaign feedback for online learning |
+| `POST /api/v1/collect/venue` | POST | Single venue surge metrics |
+| `POST /api/v1/collect/batch` | POST | Batch venue surge metrics |
 
 ---
 
@@ -457,25 +719,37 @@ Welcome emails are sent automatically to created users with temporary passwords.
 # Start all services
 docker-compose up -d
 
-# View logs
+# Rebuild and start
+docker-compose up -d --build
+
+# View logs (all services)
 docker-compose logs -f
 
-# Restart services
-docker-compose restart
+# View specific service logs
+docker-compose logs -f cw-app
+docker-compose logs -f cw-ml-service
+
+# Restart a single service
+docker-compose restart cw-app
 
 # Stop all services
 docker-compose down
 
-# Rebuild after code changes
-docker-compose up -d --build
+# Stop and remove volumes (destructive)
+docker-compose down -v
 
 # Access database shell
-docker exec -it ClockwiseDB psql -U postgres -d clockwise
+docker exec -it ClockwiseDB psql -U clockwise -d clockwise
+
+# Access Redis CLI
+docker exec -it ClockwiseRedis redis-cli
 ```
 
-### Running Tests
+### Running Backend Tests
 
 ```bash
+cd app/api
+
 # Run all tests
 go test ./...
 
@@ -483,45 +757,221 @@ go test ./...
 go test -cover ./...
 
 # Run specific package tests
-go test ./internal/database/...
+go test ./internal/api/tests/...
+go test ./internal/database/tests/...
+
+# Verbose output
+go test -v ./...
 ```
 
-### Building Locally
+The test suite uses `go-sqlmock` for unit tests and `testcontainers-go` for integration tests with real PostgreSQL containers.
+
+### Test Data Generation
 
 ```bash
-# Build binary
-go build -o clockwise cmd/api/main.go
-
-# Run binary
-./clockwise
+# Generate test data for the application
+python scripts/generate_test_data.py
 ```
+
+### CSV Upload Formats
+
+**Employees** (`POST /:org/staffing/upload`):
+```csv
+full_name,email,role
+John Doe,john@example.com,employee
+Jane Smith,jane@example.com,manager
+```
+
+**Orders** (`POST /:org/orders/upload/orders`):
+```csv
+time,items,status,total_amount,discount_amount
+2024-01-15T12:30:00,3,completed,45.50,5.00
+```
+
+**Campaigns** (`POST /:org/campaigns/upload`):
+```csv
+start_time,end_time,discount,items_included
+2024-01-10T00:00:00,2024-01-17T23:59:59,15.0,"pizza,cola"
+```
+
+---
+
+## Project Structure
+
+```
+ClockWise/
+├── .env                                # Environment configuration
+├── docker-compose.yml                  # 6-service orchestration
+├── README.md                           # This file
+│
+├── app/
+│   ├── api/                            # ─── GO BACKEND ───
+│   │   ├── Dockerfile                  # Multi-stage Go build
+│   │   ├── go.mod                      # Go 1.25.5 dependencies
+│   │   ├── go.sum
+│   │   ├── cmd/
+│   │   │   └── api/
+│   │   │       └── main.go            # Entry point, graceful shutdown
+│   │   ├── internal/
+│   │   │   ├── api/                   # HTTP handlers
+│   │   │   │   ├── org_handler.go
+│   │   │   │   ├── staffing_handler.go
+│   │   │   │   ├── employee_handler.go
+│   │   │   │   ├── schedule_handler.go
+│   │   │   │   ├── dashboard_handler.go
+│   │   │   │   ├── campaign_handler.go
+│   │   │   │   ├── orders_handler.go
+│   │   │   │   ├── roles_handler.go
+│   │   │   │   ├── rules_handler.go
+│   │   │   │   ├── preferences_handler.go
+│   │   │   │   ├── profile_handler.go
+│   │   │   │   ├── insights_handler.go
+│   │   │   │   ├── alert_handler.go
+│   │   │   │   └── tests/            # Handler unit tests
+│   │   │   ├── database/             # Data access stores
+│   │   │   │   ├── database.go       # Connection pool & health
+│   │   │   │   ├── org_store.go
+│   │   │   │   ├── user_store.go
+│   │   │   │   ├── order_store.go
+│   │   │   │   ├── campaign_store.go
+│   │   │   │   ├── schedule_store.go
+│   │   │   │   ├── roles_store.go
+│   │   │   │   ├── rules_store.go
+│   │   │   │   ├── preferences_store.go
+│   │   │   │   ├── request_store.go
+│   │   │   │   ├── demand_store.go
+│   │   │   │   ├── operating_hours_store.go
+│   │   │   │   ├── alert_store.go
+│   │   │   │   ├── insight_store.go
+│   │   │   │   ├── user_roles_store.go
+│   │   │   │   └── tests/
+│   │   │   ├── cache/                # Redis cache wrappers
+│   │   │   ├── middleware/
+│   │   │   │   └── middleware.go     # JWT auth, org validation
+│   │   │   ├── server/
+│   │   │   │   ├── server.go         # DI, initialization
+│   │   │   │   └── routes.go         # Route registration
+│   │   │   ├── service/
+│   │   │   │   ├── email_service.go  # SMTP (with mock fallback)
+│   │   │   │   └── uploadcsv_service.go
+│   │   │   └── utils/
+│   │   │       └── utils.go          # Password generation
+│   │   ├── migrations/               # 21 SQL migrations
+│   │   │   ├── 00001_organizations.sql
+│   │   │   ├── ...
+│   │   │   ├── 00021_fix_demand_day_constraint.sql
+│   │   │   └── fs.go                 # Embedded filesystem
+│   │   └── docs/
+│   │       ├── API_DOCUMENTATION.md  # Full REST API docs
+│   │       └── data.md               # ML API docs
+│   │
+│   └── ml/                            # ─── PYTHON ML SERVICE ───
+│       ├── Dockerfile
+│       ├── requirements.txt           # Python dependencies
+│       ├── README.md
+│       ├── data.md
+│       ├── api/                       # FastAPI application
+│       │   └── app.py
+│       ├── src/
+│       │   ├── deploy_model.py        # Model loading & prediction API
+│       │   ├── train_model.py         # CatBoost training pipeline
+│       │   ├── feature_engineering.py # Training feature engineering
+│       │   ├── api_feature_engineering.py  # API-time feature engineering
+│       │   ├── v6_features.py         # V6 69-feature pipeline
+│       │   ├── prediction_utils.py    # Prediction helpers
+│       │   ├── scheduler_cpsat.py     # CP-SAT schedule solver
+│       │   ├── campaign_analyzer.py   # Campaign performance analysis
+│       │   ├── campaign_recommender.py # Thompson Sampling recommender
+│       │   ├── train_campaign_model.py # XGBoost campaign model training
+│       │   ├── data_collector.py      # Surge data collection
+│       │   ├── surge_detector.py      # Surge detection logic
+│       │   ├── surge_orchestrator.py  # Surge system orchestration
+│       │   ├── surge_api.py           # Surge API endpoints
+│       │   ├── alert_system.py        # Multi-channel alert delivery
+│       │   ├── social_media_apis.py   # Twitter/Google Trends APIs
+│       │   ├── weather_api.py         # Weather data integration
+│       │   ├── holiday_api.py         # Holiday detection
+│       │   ├── model_monitor.py       # Performance tracking
+│       │   ├── fine_tune_model.py     # Incremental model updates
+│       │   ├── model_manager.py       # Hybrid training lifecycle
+│       │   ├── llm_analyzer_gemini.py # Optional Gemini LLM analysis
+│       │   └── config.py             # Configuration management
+│       ├── data/                      # Training data & models
+│       ├── notebooks/                 # Jupyter analysis notebooks
+│       ├── tests/                     # ML test suite
+│       ├── logs/                      # Prediction & performance logs
+│       └── docs/                      # ML documentation
+│           ├── Documentation.md       # System overview
+│           ├── DEMAND_PREDICTION_MODEL.md
+│           ├── V6_MODEL_INTEGRATION.md
+│           ├── DEVELOPMENT_HISTORY.md
+│           ├── scheduler_api_usage.md
+│           ├── surge_detection_architecture.md
+│           ├── SURGE_ORCHESTRATION_GUIDE.md
+│           ├── DATA_COLLECTION_API.md
+│           ├── CAMPAIGN_RECOMMENDER.md
+│           ├── MODEL_MAINTENANCE.md
+│           └── problem.md
+│
+├── web/                                # ─── REACT FRONTEND ───
+│   ├── Dockerfile
+│   ├── package.json                   # React 18.3 + React Router 7
+│   ├── public/
+│   │   └── index.html
+│   └── src/
+│       ├── index.js                   # Router setup (/, /admin, /manager, /employee)
+│       ├── App.jsx                    # Landing page with Login/Signup modals
+│       ├── Login.jsx                  # Login modal component
+│       ├── Signup.jsx                 # Registration modal component
+│       ├── ProtectedRoute.jsx         # JWT-based route guard
+│       ├── AdminDashboard.jsx         # Admin dashboard (full control)
+│       ├── ManagerDashboard.jsx       # Manager dashboard
+│       ├── EmployeeDashboard.jsx      # Employee dashboard
+│       ├── services/
+│       │   ├── api.js                 # API client (1020 lines, 15 modules)
+│       │   └── hooks.js              # Custom hooks (useAPI, useAuth)
+│       ├── *.css                      # Component stylesheets
+│       ├── Fonts/                     # Custom Ranade font family
+│       ├── Icons/                     # UI icons
+│       └── PICs/                      # Static images
+│
+├── nginx/
+│   └── nginx.conf                     # Reverse proxy configuration
+│
+├── scripts/
+│   └── generate_test_data.py          # Test data generation
+│
+└── test-data/                         # Sample CSV data files
+```
+
+---
+
+## Nginx Configuration
+
+The Nginx reverse proxy provides:
+
+- **Routing**: `/api/*` → Go backend (port 8080), `/*` → React frontend (port 3000)
+- **Rate Limiting**: 10 req/s per IP with burst of 20 (on API routes)
+- **Security Headers**: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`
+- **Gzip Compression**: Enabled for JSON, JS, CSS, HTML, SVG, fonts
+- **WebSocket Support**: Upgrade headers for React hot-reload
+- **Client Upload Limit**: 20MB max body size
+- **Health Endpoints**: `/health` and `/ml/health` (no rate limiting)
 
 ---
 
 ## Team Members
 
-### 💻 Backend Development
+### Backend Development
 - **Mohamed Hany**
 - **Ziad Eliwa**
 
-### 🤖 Machine Learning
+### Machine Learning
 - **Fares Osama**
 - **Hazem Nasr**
 
-### 🎨 Frontend Development
+### Frontend Development
 - **Mostafa Mohamed**
-
----
-
-## Future Roadmap
-
-- Machine learning models for advanced demand forecasting
-- Mobile app for employee scheduling
-- Automated scheduling optimization using AI
-- Integration with social media APIs for trend analysis
-- Real-time notifications and alerts (WebSocket)
-- Advanced analytics and reporting dashboard
-- Multi-language support
 
 ---
 
