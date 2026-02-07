@@ -1,0 +1,82 @@
+{
+  "Overall Metrics": {
+    "MAE": 5.443581889633905,
+    "RMSE": 9.46507078083081,
+    "R2": -0.2886525816978307,
+    "Bias": -4.470978016859613
+  },
+  "Demand Level Analysis": [
+    {
+      "Level": "Very Low (0-3)",
+      "Samples": 4546.0,
+      "MAE": 1.6852513002974223,
+      "Bias": 1.6852513002974223,
+      "R2": -11.62627224006852,
+      "MAPE": 75.4270549178987
+    },
+    {
+      "Level": "Low (3-7)",
+      "Samples": 5284.0,
+      "MAE": 1.256096755634945,
+      "Bias": -1.1366197490466474,
+      "R2": -1.1200626894212142,
+      "MAPE": 21.028169428618476
+    },
+    {
+      "Level": "Medium (7-15)",
+      "Samples": 4332.0,
+      "MAE": 6.526681204964978,
+      "Bias": -6.526681204964978,
+      "R2": -8.75960475078065,
+      "MAPE": 59.536427343327425
+    },
+    {
+      "Level": "High (15-25)",
+      "Samples": 1507.0,
+      "MAE": 15.253473920112693,
+      "Bias": -15.253473920112693,
+      "R2": -31.49778427920998,
+      "MAPE": 78.22928628234996
+    },
+    {
+      "Level": "Very High (25+)",
+      "Samples": 734.0,
+      "MAE": 32.332612929454655,
+      "Bias": -32.332612929454655,
+      "R2": -7.189153519089475,
+      "MAPE": 87.77019622252446
+    }
+  ],
+  "Recommendations": [
+    {
+      "Priority": "HIGH",
+      "Area": "Demand Segmentation",
+      "Issue": "Poor performance on 3 demand segments",
+      "Action": "Consider separate models for different demand ranges or use stratified sampling"
+    },
+    {
+      "Priority": "HIGH",
+      "Area": "Temporal Features",
+      "Issue": "High variance in performance across hours (std=2.27)",
+      "Action": "Add more time-based features (peak hours, meal periods, time since last order)"
+    },
+    {
+      "Priority": "MEDIUM",
+      "Area": "Restaurant Features",
+      "Issue": "20.7% of restaurants have MAE > 7",
+      "Action": "Add restaurant-specific features (cuisine type, price range, historical volatility)"
+    },
+    {
+      "Priority": "MEDIUM",
+      "Area": "Model Architecture",
+      "Issue": "Non-normal residuals suggest model assumptions violated",
+      "Action": "Try different models (e.g., quantile regression, LGBM) or transform target variable"
+    },
+    {
+      "Priority": "MEDIUM",
+      "Area": "Model Calibration",
+      "Issue": "Systematic bias detected (model is under-predicting)",
+      "Action": "Recalibrate model predictions or adjust sample weights during training"
+    }
+  ]
+}
