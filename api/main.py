@@ -16,7 +16,7 @@ Changes from v2.0:
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Union
 from datetime import datetime, date, timedelta
 from fastapi.openapi.docs import get_redoc_html  
@@ -119,8 +119,7 @@ class OpeningHoursDay(BaseModel):
     to: Optional[str] = Field(None, description="Closing time (HH:MM)")
     closed: Optional[bool] = Field(None, description="True if closed this day")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PlaceData(BaseModel):
@@ -186,8 +185,7 @@ class EmployeeHours(BaseModel):
     from_time: str = Field(..., alias="from", description="Start time (HH:MM)")
     to: str = Field(..., description="End time (HH:MM)")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class EmployeeData(BaseModel):
@@ -638,6 +636,78 @@ def align_features_with_model(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+
+def zero_out_closed_hours(
+    predictions: np.ndarray,
+    datetime_info: pd.DataFrame,
+    place: PlaceData
+) -> np.ndarray:
+    """
+    Post-processing filter to zero out predictions during closed hours.
+    
+    CRITICAL FIX: The model was trained without zeros, so it predicts phantom
+    demand during closed hours (e.g., 2-5 items/hour at 3 AM on closed Sundays).
+    This filter applies business logic to enforce zero demand when restaurant is closed.
+    
+    Args:
+        predictions: Model predictions array (n_rows, 2) for [item_count, order_count]
+        datetime_info: DataFrame with 'datetime', 'date', 'hour' columns
+        place: PlaceData containing opening_hours
+    
+    Returns:
+        Filtered predictions with zeros during closed hours
+    
+    Example:
+        Restaurant open Mon-Sat 10:00-22:00, closed Sunday
+        Before: Predicts 3 items/hour on Sunday at 2 AM
+        After: Predicts 0 items/hour (correctly)
+    """
+    predictions = predictions.copy()
+    
+    day_name_map = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    
+    for idx, row in datetime_info.iterrows():
+        # Get day of week and hour
+        day_of_week = row['datetime'].weekday()  # 0=Monday, 6=Sunday
+        hour = int(row['hour'])
+        day_name = day_name_map[day_of_week]
+        
+        # Get opening hours for this day
+        if day_name not in place.opening_hours:
+            # Day not specified, assume open (conservative)
+            continue
+        
+        opening_hours = place.opening_hours[day_name]
+        
+        # Check if closed all day
+        if opening_hours.closed:
+            predictions[idx, 0] = 0  # item_count = 0
+            predictions[idx, 1] = 0  # order_count = 0
+            continue
+        
+        # Check if closed at this specific hour
+        if opening_hours.from_time and opening_hours.to:
+            open_hour = parse_time_to_hour(opening_hours.from_time)
+            close_hour = parse_time_to_hour(opening_hours.to)
+            
+            # Handle overnight shifts (e.g., 22:00-06:00)
+            if close_hour < open_hour:
+                # Open if hour >= open OR hour < close
+                is_open = (hour >= open_hour) or (hour < close_hour)
+            else:
+                # Normal case: open if open_hour <= hour < close_hour
+                is_open = (open_hour <= hour < close_hour)
+            
+            if not is_open:
+                predictions[idx, 0] = 0  # item_count = 0
+                predictions[idx, 1] = 0  # order_count = 0
+    
+    zeroed_count = np.sum((predictions[:, 0] == 0) & (predictions[:, 1] == 0))
+    logger.info(f"Post-processing: Zeroed out {zeroed_count}/{len(predictions)} hours during closed periods")
+    
+    return predictions
+
+
 # ============================================================================
 # SCHEDULER HELPER FUNCTIONS
 # ============================================================================
@@ -1068,6 +1138,10 @@ def predict_demand_and_schedule(request: PredictionRequest):
         predictions = model.predict(X)
         predictions = np.maximum(predictions, 0).round().astype(int)
         
+        # CRITICAL FIX: Apply post-processing to zero out closed hours
+        # Model was trained without zeros, so it predicts phantom demand during closed hours
+        predictions = zero_out_closed_hours(predictions, datetime_info, request.demand_input.place)
+        
         # Add predictions to datetime info
         datetime_info['item_count'] = predictions[:, 0]
         datetime_info['order_count'] = predictions[:, 1]
@@ -1299,8 +1373,8 @@ class VenueRequest(BaseModel):
     latitude: float = Field(..., description="Venue latitude", ge=-90, le=90)
     longitude: float = Field(..., description="Venue longitude", ge=-180, le=180)
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "place_id": 123,
                 "name": "Sample Restaurant",
@@ -1308,6 +1382,7 @@ class VenueRequest(BaseModel):
                 "longitude": 12.5683
             }
         }
+    )
 
 
 class VenueMetrics(BaseModel):
@@ -1322,8 +1397,8 @@ class VenueMetrics(BaseModel):
     excess_demand: float
     social_signals: Dict[str, float]
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "place_id": 123,
                 "timestamp": "2026-02-06T14:30:00",
@@ -1340,14 +1415,15 @@ class VenueMetrics(BaseModel):
                 }
             }
         }
+    )
 
 
 class BatchVenueRequest(BaseModel):
     """Request model for batch venue metrics collection"""
     venues: List[VenueRequest] = Field(..., description="List of venues to collect data for")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "venues": [
                     {
@@ -1365,6 +1441,7 @@ class BatchVenueRequest(BaseModel):
                 ]
             }
         }
+    )
 
 
 class BatchMetricsResponse(BaseModel):
@@ -1372,8 +1449,8 @@ class BatchMetricsResponse(BaseModel):
     metrics: List[VenueMetrics]
     summary: Dict[str, Union[int, float]]
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "metrics": [
                     {
@@ -1397,6 +1474,7 @@ class BatchMetricsResponse(BaseModel):
                 }
             }
         }
+    )
 
 
 @app.post("/api/v1/collect/venue", 

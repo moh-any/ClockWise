@@ -12,7 +12,7 @@ Provides:
 """
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict
 from datetime import datetime
 from enum import Enum
@@ -35,8 +35,8 @@ class VenueInput(BaseModel):
     latitude: float = Field(default=55.6761, description="Venue latitude")
     longitude: float = Field(default=12.5683, description="Venue longitude")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "place_id": 123,
                 "name": "Pizza Paradise",
@@ -44,6 +44,7 @@ class VenueInput(BaseModel):
                 "longitude": 12.5683
             }
         }
+    )
 
 
 class OrchestratorConfigInput(BaseModel):
@@ -56,8 +57,8 @@ class OrchestratorConfigInput(BaseModel):
     llm_threshold: float = Field(default=0.7, description="Risk score threshold for LLM analysis")
     enable_llm: bool = Field(default=True, description="Enable LLM analysis for high-risk surges")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "check_interval_seconds": 300,
                 "surge_threshold": 1.5,
@@ -68,6 +69,7 @@ class OrchestratorConfigInput(BaseModel):
                 "enable_llm": True
             }
         }
+    )
 
 
 class SurgeMetricsInput(BaseModel):
@@ -77,8 +79,8 @@ class SurgeMetricsInput(BaseModel):
     predicted: float = Field(..., description="Predicted demand")
     social_signals: Dict[str, float] = Field(default_factory=dict, description="Social media signals")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "timestamp": "2024-01-15T14:00:00",
                 "actual": 250,
@@ -86,6 +88,7 @@ class SurgeMetricsInput(BaseModel):
                 "social_signals": {"composite_signal": 0.8, "twitter_virality": 0.6}
             }
         }
+    )
 
 
 class ManualSurgeCheckInput(BaseModel):
@@ -93,8 +96,8 @@ class ManualSurgeCheckInput(BaseModel):
     venue: VenueInput
     metrics: List[SurgeMetricsInput] = Field(..., min_length=1, description="At least 1 hour of metrics")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "venue": {"place_id": 123, "name": "Pizza Paradise"},
                 "metrics": [
@@ -104,6 +107,7 @@ class ManualSurgeCheckInput(BaseModel):
                 ]
             }
         }
+    )
 
 
 class OrchestratorStatus(BaseModel):
