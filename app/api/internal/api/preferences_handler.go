@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/clockwise/clockwise/backend/internal/database"
 	"github.com/clockwise/clockwise/backend/internal/middleware"
@@ -134,7 +135,7 @@ func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 	for _, dayPref := range req.Preferences {
 		if !database.IsValidDay(dayPref.Day) {
 			h.Logger.Warn("invalid day", "day", dayPref.Day)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid day: " + dayPref.Day + ". Valid days are: Sunday, Monday, Tuesday, Wednesday, Thursday, Friday, Saturday"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid day: " + dayPref.Day + ". Valid days are: sunday, monday, tuesday, wednesday, thursday, friday, saturday"})
 			return
 		}
 		if seenDays[dayPref.Day] {
@@ -150,7 +151,7 @@ func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 	for i, dayPref := range req.Preferences {
 		prefs[i] = &database.EmployeePreference{
 			EmployeeID:         user.ID,
-			Day:                dayPref.Day,
+			Day:                strings.ToLower(dayPref.Day),
 			PreferredStartTime: dayPref.PreferredStartTime,
 			PreferredEndTime:   dayPref.PreferredEndTime,
 			AvailableStartTime: dayPref.AvailableStartTime,

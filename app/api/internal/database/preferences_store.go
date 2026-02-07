@@ -11,7 +11,7 @@ import (
 // EmployeePreference represents a single day's preference for an employee
 type EmployeePreference struct {
 	EmployeeID         uuid.UUID `json:"employee_id"`
-	Day                string    `json:"day"`
+	Day                string    `json:"day" binding:"required,oneof=sunday monday tuesday wednesday thursday friday saturday"`
 	PreferredStartTime *string   `json:"preferred_start_time"`
 	PreferredEndTime   *string   `json:"preferred_end_time"`
 	AvailableStartTime *string   `json:"available_start_time"`
@@ -19,7 +19,7 @@ type EmployeePreference struct {
 }
 
 // ValidDays is the list of valid day values
-var ValidDays = []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
+var ValidDays = []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}
 
 // IsValidDay checks if a day string is valid
 func IsValidDay(day string) bool {

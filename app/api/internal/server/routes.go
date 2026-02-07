@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -15,11 +16,6 @@ import (
 
 // TODO: Add Caching
 // TODO: Add Nginx for rate limiting
-
-
-
-
-
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
@@ -133,18 +129,17 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.DELETE("/layoff", s.employeeHandler.LayoffEmployee)
 	employee.GET("", s.employeeHandler.GetEmployeeDetails)
 
-
 	employee.GET("/requests", s.employeeHandler.GetEmployeeRequests)
 
 	// TODO: Handle offers after accepting the request
 	employee.POST("/requests/approve", s.employeeHandler.ApproveRequest)
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
-	
+
 	// TODO: Schedule that retrieves the predicted scheduler from the model based on the given constraints (need to enforce adding settings)
 	schedule := dashboard.Group("/schedule")
 	schedule.GET("", s.scheduleHandler.GetScheduleHandler)              // Get Schedule for user, admin, manager
 	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
-	
+
 	// TODO Handle Get Employee Schedule
 	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
 
@@ -157,7 +152,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler) // Get All Campaigns for last week
 
 	// TODO Add connection to campaign model routes
-	
+
 	// TODO: Offers management to those on call and in the shift in the current shift
 	offers := organization.Group("/offers")
 	offers.GET("")          // Get all offers that start_time is before now
@@ -195,22 +190,33 @@ func (s *Server) notFoundHandler(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"error": "404 Not Found"})
 }
 
-func (s *Server) MLHealthHandler (c *gin.Context) {
+func (s *Server) MLHealthHandler(c *gin.Context) {
 	client := &http.Client{}
 
-    req, err := http.NewRequest("GET", "http://cw-ml-service:8000/", nil)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ML health check request"})
-        return
-    }
+	req, err := http.NewRequest("GET", "http://cw-ml-service:8000/", nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create ML health check request"})
+		return
+	}
 
-    resp, err := client.Do(req)
-    if err != nil {
-        c.JSON(http.StatusServiceUnavailable, gin.H{"error": "ML service is unavailable"})
-        return
-    }
-    defer resp.Body.Close()
+	resp, err := client.Do(req)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "ML service is unavailable"})
+		return
+	}
+	defer resp.Body.Close()
 
-    body, _ := io.ReadAll(resp.Body)
-    c.JSON(resp.StatusCode, gin.H{"ml_service": string(body)})
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read ML service response"})
+		return
+	}
+
+	var mlResponse interface{}
+	if err := json.Unmarshal(body, &mlResponse); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse ML service response"})
+		return
+	}
+
+	c.JSON(resp.StatusCode, gin.H{"ml_service": mlResponse})
 }
