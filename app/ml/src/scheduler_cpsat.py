@@ -107,6 +107,7 @@ class SchedulerCPSAT:
         self.start: Dict[Tuple[int, int, int], cp_model.IntVar] = {}  # (e, d, t) -> shift start indicator
         self.capacity: Dict[Tuple[int, int, int], cp_model.IntVar] = {}  # (r, d, t) -> capacity
         self.chain_output: Dict[Tuple[int, int, int], cp_model.IntVar] = {}  # (c, d, t) -> chain output
+        self.chain_contrib: Dict[Tuple[int, int, int], cp_model.IntVar] = {}  # (c, d, t) -> chain contribution to supply
         self.supply: Dict[Tuple[int, int], cp_model.IntVar] = {}  # (d, t) -> total supply
         
         self.avg_slots: Optional[cp_model.IntVar] = None
@@ -179,6 +180,12 @@ class SchedulerCPSAT:
             for d in D:
                 for t in T:
                     self.chain_output[c_idx, d, t] = self.model.NewIntVar(0, max_capacity, f'chain_out_{c_idx}_{d}_{t}')
+        
+        # Chain contribution (after scaling division)
+        for c_idx, chain in enumerate(data.chains):
+            for d in D:
+                for t in T:
+                    self.chain_contrib[c_idx, d, t] = self.model.NewIntVar(0, max_capacity, f'chain_contrib_{c_idx}_{d}_{t}')
         
         # Total supply per slot
         max_supply = max_capacity * len(data.roles)
@@ -374,7 +381,10 @@ class SchedulerCPSAT:
                     self.model.AddMinEquality(self.chain_output[c_idx, d, t], capacity_vars)
                     
                     contrib_scaled = int(chain.contrib_factor * SCALE)
-                    supply_terms.append((self.chain_output[c_idx, d, t] * contrib_scaled) // SCALE)
+                    # Use AddDivisionEquality for integer division: chain_contrib = (chain_output * contrib_scaled) // SCALE
+                    scaled_output = self.chain_output[c_idx, d, t] * contrib_scaled
+                    self.model.AddDivisionEquality(self.chain_contrib[c_idx, d, t], scaled_output, SCALE)
+                    supply_terms.append(self.chain_contrib[c_idx, d, t])
                 
                 if supply_terms:
                     self.model.Add(self.supply[d, t] == sum(supply_terms))
