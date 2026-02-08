@@ -105,15 +105,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
 	dashboard.POST("/demand/predict", s.dashboardHandler.PredictDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	// TODO: Surge ML Model Handling
-	surge := dashboard.Group("/surge")
-	surge.GET("", s.alertHandler.GetAlertInsightsHandler) // Get All Alerts
-	surge.GET("/all", s.alertHandler.GetAllAlertsHandler)
-	surge.GET("/week", s.alertHandler.GetAllAlertsForLastWeekHandler)
-
 	// Only called by external ML api
 	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
-	api.POST("/:org/surge/alert")      // Send alert from the ml model
 
 	staffing := organization.Group("/staffing")
 	staffing.GET("", s.staffingHandler.GetStaffingSummary)

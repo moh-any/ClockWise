@@ -33,7 +33,6 @@ type Server struct {
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
 	campaignHandler    *api.CampaignHandler
-	alertHandler       *api.AlertHandler
 
 	userStore        database.UserStore
 	orgStore         database.OrgStore
@@ -44,7 +43,6 @@ type Server struct {
 	orderStore       database.OrderStore
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
-	alertStore       database.AlertStore
 	scheduleStore    database.ScheduleStore
 
 	Logger *slog.Logger
@@ -88,7 +86,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	baseOrderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
 	baseCampaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	baseDemandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
-	baseAlertStore := database.NewPostgresAlertStore(dbService.GetDB(), Logger)
 	baseScheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
 
 	// Wrap stores with caching if Redis is available
@@ -104,7 +101,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	var orderStore database.OrderStore
 	var campaignStore database.CampaignStore
 	var demandStore database.DemandStore
-	var alertStore database.AlertStore
 	var scheduleStore database.ScheduleStore
 
 	if cacheService != nil {
@@ -121,7 +117,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		orderStore = cache.NewCachedOrderStore(baseOrderStore, cacheService)
 		campaignStore = cache.NewCachedCampaignStore(baseCampaignStore, cacheService)
 		demandStore = cache.NewCachedDemandStore(baseDemandStore, cacheService)
-		alertStore = cache.NewCachedAlertStore(baseAlertStore, cacheService)
 		scheduleStore = baseScheduleStore
 		Logger.Info("All stores wrapped with Redis caching layer")
 	} else {
@@ -138,7 +133,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		orderStore = baseOrderStore
 		campaignStore = baseCampaignStore
 		demandStore = baseDemandStore
-		alertStore = baseAlertStore
 		scheduleStore = baseScheduleStore
 		Logger.Warn("Running without cache layer - all requests will hit PostgreSQL directly")
 	}
@@ -181,7 +175,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rolesStore,
 		preferencesStore,
 	)
-	alertHandler := api.NewAlertHandler(alertStore, Logger)
 
 	NewServer := &Server{
 		port: port,
@@ -195,7 +188,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rolesStore:       rolesStore,
 		campaignStore:    campaignStore,
 		demandStore:      demandStore,
-		alertStore:       alertStore,
 		scheduleStore:    scheduleStore,
 
 		orgHandler:         orgHandler,
@@ -210,7 +202,6 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		dashboardHandler:   dashboardHandler,
 		scheduleHandler:    scheduleHandler,
 		campaignHandler:    campaignHandler,
-		alertHandler:       alertHandler,
 
 		Logger: Logger,
 	}
