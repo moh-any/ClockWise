@@ -146,16 +146,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
 	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)              // Get All Campaigns
 	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler)  // Get All Campaigns for last week
+
 	campaigns.POST("/recommend", s.campaignHandler.RecommendCampaignsHandler)    // Get AI recommendations
 	campaigns.POST("/feedback", s.campaignHandler.SubmitCampaignFeedbackHandler) // Submit campaign feedback
 
-	// TODO Add connection to campaign model routes
-
 	// TODO: Offers management to those on call and in the shift in the current shift
 	offers := organization.Group("/offers")
-	offers.GET("")          // Get all offers that start_time is before now
-	offers.POST("/accept")  // Accept an offer
-	offers.POST("/decline") // Decline an offer
+	offers.GET("", s.offerHandler.GetAllOffersForEmployeeHandler)          // Get all offers that start_time is before now
+	offers.POST("/accept",s.offerHandler.AcceptOfferHandler)  // Accept an offer
+	offers.POST("/decline",s.offerHandler.DeclineOfferHandler) // Decline an offer
 
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")
