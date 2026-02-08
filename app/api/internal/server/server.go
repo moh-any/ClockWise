@@ -33,6 +33,7 @@ type Server struct {
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
 	campaignHandler    *api.CampaignHandler
+	surgeHandler       *api.SurgeHandler
 
 	userStore        database.UserStore
 	orgStore         database.OrgStore
@@ -44,6 +45,7 @@ type Server struct {
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
 	scheduleStore    database.ScheduleStore
+	surgeStore       database.SurgeStore
 
 	Logger *slog.Logger
 }
@@ -141,6 +143,9 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
 
+	// Surge Store (no cache for now)
+	surgeStore := database.NewPostgresSurgeStore(dbService.GetDB(), Logger)
+
 	// Handlers for Endpoints
 	orgHandler := api.NewOrgHandler(orgStore, userStore, userRolesStore, rolesStore, emailService, Logger)
 	staffingHandler := api.NewStaffingHandler(userStore, orgStore, userRolesStore, rolesStore, uploadService, emailService, Logger)
@@ -161,6 +166,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		Logger,
 	)
 	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, orderStore, orgStore, operatingHoursStore, rulesStore, Logger)
+	surgeHandler := api.NewSurgeHandler(surgeStore, Logger)
 	scheduleHandler := api.NewScheduleHandler(
 		userStore,
 		scheduleStore,
@@ -189,6 +195,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore:    campaignStore,
 		demandStore:      demandStore,
 		scheduleStore:    scheduleStore,
+		surgeStore:       surgeStore,
 
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
@@ -202,6 +209,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		dashboardHandler:   dashboardHandler,
 		scheduleHandler:    scheduleHandler,
 		campaignHandler:    campaignHandler,
+		surgeHandler:       surgeHandler,
 
 		Logger: Logger,
 	}

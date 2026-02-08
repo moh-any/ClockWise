@@ -24,7 +24,7 @@ class SurgeMetrics:
 @dataclass
 class SurgeEvent:
     """Detected surge event with full context."""
-    place_id: int
+    place_id: str
     detected_at: datetime
     severity: str  # 'moderate', 'high', 'critical'
     risk_score: float
@@ -62,14 +62,14 @@ class SurgeDetector:
         self.cooldown_hours = cooldown_hours
         
         # Track alert history
-        self.alert_history: Dict[int, deque] = {}  # place_id -> timestamps
+        self.alert_history: Dict[str, deque] = {}  # place_id -> timestamps
     
-    def check_surge(self, place_id: int, metrics: List[SurgeMetrics]) -> Optional[SurgeEvent]:
+    def check_surge(self, place_id: str, metrics: List[SurgeMetrics]) -> Optional[SurgeEvent]:
         """
         Primary detection logic.
         
         Args:
-            place_id: Venue ID
+            place_id: Venue ID (UUID string)
             metrics: List of SurgeMetrics for last N hours
         
         Returns:
@@ -248,7 +248,7 @@ class SurgeDetector:
         else:
             return "Unknown - monitor closely"
     
-    def _in_cooldown(self, place_id: int) -> bool:
+    def _in_cooldown(self, place_id: str) -> bool:
         """Check if venue is in cooldown period after recent alert."""
         if place_id not in self.alert_history:
             return False
@@ -262,7 +262,7 @@ class SurgeDetector:
         
         return hours_since < self.cooldown_hours
     
-    def _record_alert(self, place_id: int):
+    def _record_alert(self, place_id: str):
         """Record alert timestamp for cooldown tracking."""
         if place_id not in self.alert_history:
             self.alert_history[place_id] = deque(maxlen=10)
