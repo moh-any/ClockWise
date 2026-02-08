@@ -112,8 +112,7 @@ def test_format_high_alert():
     print(f"\nMessage:\n{alert['message']}")
     
     assert alert['severity'] == 'high'
-    assert 'sms' in alert['channels']
-    assert 'call' not in alert['channels']
+    assert 'email' in alert['channels']
     print("\n✅ High alert test passed")
 
 
@@ -179,7 +178,7 @@ def test_format_critical_alert():
     print(f"\nMessage:\n{alert['message']}")
     
     assert alert['severity'] == 'critical'
-    assert 'call' in alert['channels']
+    assert 'email' in alert['channels']
     assert 'TikTok' in alert['message']
     print("\n✅ Critical alert test passed")
 

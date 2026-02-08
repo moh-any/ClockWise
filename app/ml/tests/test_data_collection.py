@@ -3,13 +3,17 @@ Test Suite for Layer 1: Data Collection Components
 Tests social media APIs and data collector.
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
 import json
 
-from src.social_media_apis import SocialMediaAggregator
-from src.data_collector import RealTimeDataCollector
+from social_media_apis import SocialMediaAggregator
+from data_collector import RealTimeDataCollector
 
 
 # ============================================================================

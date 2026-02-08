@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from api.main import (
     zero_out_closed_hours,
     PlaceData,
-    OpeningHoursDay
+    OpeningHoursDay,
+    ShiftTimeData
 )
 
 
@@ -33,17 +34,21 @@ class TestPostProcessingFilter:
             receiving_phone=True,
             delivery=True,
             opening_hours={
-                "monday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "tuesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "wednesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "thursday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "friday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "saturday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "sunday": OpeningHoursDay(closed=True)
+                "monday": OpeningHoursDay(weekday="monday", opening_time="10:00", closing_time="22:00"),
+                "tuesday": OpeningHoursDay(weekday="tuesday", opening_time="10:00", closing_time="22:00"),
+                "wednesday": OpeningHoursDay(weekday="wednesday", opening_time="10:00", closing_time="22:00"),
+                "thursday": OpeningHoursDay(weekday="thursday", opening_time="10:00", closing_time="22:00"),
+                "friday": OpeningHoursDay(weekday="friday", opening_time="10:00", closing_time="22:00"),
+                "saturday": OpeningHoursDay(weekday="saturday", opening_time="10:00", closing_time="22:00"),
+                "sunday": OpeningHoursDay(weekday="sunday", closed=True)
             },
             fixed_shifts=True,
             number_of_shifts_per_day=3,
-            shift_times=["10:00-14:00", "14:00-18:00", "18:00-22:00"],
+            shift_times=[
+                ShiftTimeData(**{"from": "10:00", "to": "14:00"}),
+                ShiftTimeData(**{"from": "14:00", "to": "18:00"}),
+                ShiftTimeData(**{"from": "18:00", "to": "22:00"})
+            ],
             rating=4.5,
             accepting_orders=True
         )
@@ -79,17 +84,21 @@ class TestPostProcessingFilter:
             receiving_phone=True,
             delivery=True,
             opening_hours={
-                "monday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "tuesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "wednesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "thursday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "friday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "saturday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "sunday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"})
+                "monday": OpeningHoursDay(weekday="monday", opening_time="10:00", closing_time="22:00"),
+                "tuesday": OpeningHoursDay(weekday="tuesday", opening_time="10:00", closing_time="22:00"),
+                "wednesday": OpeningHoursDay(weekday="wednesday", opening_time="10:00", closing_time="22:00"),
+                "thursday": OpeningHoursDay(weekday="thursday", opening_time="10:00", closing_time="22:00"),
+                "friday": OpeningHoursDay(weekday="friday", opening_time="10:00", closing_time="22:00"),
+                "saturday": OpeningHoursDay(weekday="saturday", opening_time="10:00", closing_time="22:00"),
+                "sunday": OpeningHoursDay(weekday="sunday", opening_time="10:00", closing_time="22:00")
             },
             fixed_shifts=True,
             number_of_shifts_per_day=3,
-            shift_times=["10:00-14:00", "14:00-18:00", "18:00-22:00"],
+            shift_times=[
+                ShiftTimeData(**{"from": "10:00", "to": "14:00"}),
+                ShiftTimeData(**{"from": "14:00", "to": "18:00"}),
+                ShiftTimeData(**{"from": "18:00", "to": "22:00"})
+            ],
             rating=4.5,
             accepting_orders=True
         )
@@ -132,17 +141,21 @@ class TestPostProcessingFilter:
             receiving_phone=True,
             delivery=True,
             opening_hours={
-                "monday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "tuesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "wednesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "thursday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "friday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "saturday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "sunday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"})
+                "monday": OpeningHoursDay(weekday="monday", opening_time="10:00", closing_time="22:00"),
+                "tuesday": OpeningHoursDay(weekday="tuesday", opening_time="10:00", closing_time="22:00"),
+                "wednesday": OpeningHoursDay(weekday="wednesday", opening_time="10:00", closing_time="22:00"),
+                "thursday": OpeningHoursDay(weekday="thursday", opening_time="10:00", closing_time="22:00"),
+                "friday": OpeningHoursDay(weekday="friday", opening_time="10:00", closing_time="22:00"),
+                "saturday": OpeningHoursDay(weekday="saturday", opening_time="10:00", closing_time="22:00"),
+                "sunday": OpeningHoursDay(weekday="sunday", opening_time="10:00", closing_time="22:00")
             },
             fixed_shifts=True,
             number_of_shifts_per_day=3,
-            shift_times=["10:00-14:00", "14:00-18:00", "18:00-22:00"],
+            shift_times=[
+                ShiftTimeData(**{"from": "10:00", "to": "14:00"}),
+                ShiftTimeData(**{"from": "14:00", "to": "18:00"}),
+                ShiftTimeData(**{"from": "18:00", "to": "22:00"})
+            ],
             rating=4.5,
             accepting_orders=True
         )
@@ -178,17 +191,19 @@ class TestPostProcessingFilter:
             receiving_phone=True,
             delivery=True,
             opening_hours={
-                "monday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),  # Overnight
-                "tuesday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),
-                "wednesday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),
-                "thursday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),
-                "friday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),
-                "saturday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"}),
-                "sunday": OpeningHoursDay(**{"from": "22:00", "to": "06:00"})
+                "monday": OpeningHoursDay(weekday="monday", opening_time="22:00", closing_time="06:00"),  # Overnight
+                "tuesday": OpeningHoursDay(weekday="tuesday", opening_time="22:00", closing_time="06:00"),
+                "wednesday": OpeningHoursDay(weekday="wednesday", opening_time="22:00", closing_time="06:00"),
+                "thursday": OpeningHoursDay(weekday="thursday", opening_time="22:00", closing_time="06:00"),
+                "friday": OpeningHoursDay(weekday="friday", opening_time="22:00", closing_time="06:00"),
+                "saturday": OpeningHoursDay(weekday="saturday", opening_time="22:00", closing_time="06:00"),
+                "sunday": OpeningHoursDay(weekday="sunday", opening_time="22:00", closing_time="06:00")
             },
             fixed_shifts=True,
             number_of_shifts_per_day=1,
-            shift_times=["22:00-06:00"],
+            shift_times=[
+                ShiftTimeData(**{"from": "22:00", "to": "06:00"})
+            ],
             rating=4.5,
             accepting_orders=True
         )
@@ -225,17 +240,21 @@ class TestPostProcessingFilter:
             receiving_phone=True,
             delivery=True,
             opening_hours={
-                "monday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "tuesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "wednesday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "thursday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "friday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "saturday": OpeningHoursDay(**{"from": "10:00", "to": "22:00"}),
-                "sunday": OpeningHoursDay(closed=True)
+                "monday": OpeningHoursDay(weekday="monday", opening_time="10:00", closing_time="22:00"),
+                "tuesday": OpeningHoursDay(weekday="tuesday", opening_time="10:00", closing_time="22:00"),
+                "wednesday": OpeningHoursDay(weekday="wednesday", opening_time="10:00", closing_time="22:00"),
+                "thursday": OpeningHoursDay(weekday="thursday", opening_time="10:00", closing_time="22:00"),
+                "friday": OpeningHoursDay(weekday="friday", opening_time="10:00", closing_time="22:00"),
+                "saturday": OpeningHoursDay(weekday="saturday", opening_time="10:00", closing_time="22:00"),
+                "sunday": OpeningHoursDay(weekday="sunday", closed=True)
             },
             fixed_shifts=True,
             number_of_shifts_per_day=3,
-            shift_times=["10:00-14:00", "14:00-18:00", "18:00-22:00"],
+            shift_times=[
+                ShiftTimeData(**{"from": "10:00", "to": "14:00"}),
+                ShiftTimeData(**{"from": "14:00", "to": "18:00"}),
+                ShiftTimeData(**{"from": "18:00", "to": "22:00"})
+            ],
             rating=4.5,
             accepting_orders=True
         )
