@@ -33,7 +33,6 @@ type Server struct {
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
 	campaignHandler    *api.CampaignHandler
-	alertHandler       *api.AlertHandler
 	offerHandler       *api.OfferHandler
 
 	userStore        database.UserStore
@@ -45,7 +44,6 @@ type Server struct {
 	orderStore       database.OrderStore
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
-	alertStore       database.AlertStore
 	scheduleStore    database.ScheduleStore
 	offerStore       database.OfferStore
 

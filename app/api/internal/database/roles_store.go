@@ -67,7 +67,7 @@ func (s *PostgresRolesStore) CreateRole(role *OrganizationRole) error {
 // GetRolesByOrganizationID retrieves all roles for a specific organization
 func (s *PostgresRolesStore) GetRolesByOrganizationID(orgID uuid.UUID) ([]OrganizationRole, error) {
 	query := `SELECT organization_id, role, min_needed_per_shift, items_per_role_per_hour, need_for_demand, independent 
-		FROM organizations_roles WHERE organization_id = $1 ORDER BY role`
+		FROM organizations_roles WHERE organization_id = $1 AND role != 'employee' AND role != 'admin' ORDER BY role`
 
 	rows, err := s.db.Query(query, orgID)
 	if err != nil {
