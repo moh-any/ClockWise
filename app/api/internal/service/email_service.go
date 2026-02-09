@@ -46,7 +46,7 @@ func (s *SMTPEmailService) SendWelcomeEmail(toEmail, fullName, password, role st
 
 	auth := smtp.PlainAuth("", s.username, s.password, s.host)
 
-	subject := "Subject: Welcome to ClockWise - Account Details\n"
+	subject := "Subject: Welcome to AntiClockWise - Account Details\n"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -238,7 +238,7 @@ func (s *SMTPEmailService) SendWelcomeEmail(toEmail, fullName, password, role st
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         
@@ -246,7 +246,7 @@ func (s *SMTPEmailService) SendWelcomeEmail(toEmail, fullName, password, role st
             <div class="greeting">Hello, %s! 👋</div>
             
             <p class="intro-text">
-                Welcome to ClockWise! You have been invited to join 
+                Welcome to AntiClockWise! You have been invited to join 
                 <span class="highlight">%s</span> as a 
                 <span class="highlight">%s</span>. 
                 We're excited to have you on board!
@@ -278,9 +278,9 @@ func (s *SMTPEmailService) SendWelcomeEmail(toEmail, fullName, password, role st
         </div>
         
         <div class="footer">
-            <p class="company-name">ClockWise</p>
+            <p class="company-name">AntiClockWise</p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p style="margin-top: 15px;">&copy; 2026 ClockWise. All rights reserved.</p>
+            <p style="margin-top: 15px;">&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -326,7 +326,7 @@ func (s *SMTPEmailService) SendRequestApprovedEmail(toEmail, fullName, requestTy
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -341,9 +341,9 @@ func (s *SMTPEmailService) SendRequestApprovedEmail(toEmail, fullName, requestTy
             <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">We hope this works out well for you!</p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise</strong></p>
+            <p><strong>AntiClockWise</strong></p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -388,7 +388,7 @@ func (s *SMTPEmailService) SendRequestDeclinedEmail(toEmail, fullName, requestTy
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -403,9 +403,9 @@ func (s *SMTPEmailService) SendRequestDeclinedEmail(toEmail, fullName, requestTy
             <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">Thank you for your understanding.</p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise</strong></p>
+            <p><strong>AntiClockWise</strong></p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -451,7 +451,7 @@ func (s *SMTPEmailService) SendLayoffEmail(toEmail, fullName, reason string) err
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -472,9 +472,9 @@ func (s *SMTPEmailService) SendLayoffEmail(toEmail, fullName, reason string) err
             <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">We wish you all the very best in your future endeavors.</p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise</strong></p>
+            <p><strong>AntiClockWise</strong></p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -522,7 +522,7 @@ func (s *SMTPEmailService) SendRequestSubmittedEmail(toEmail, fullName, requestT
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -541,9 +541,9 @@ func (s *SMTPEmailService) SendRequestSubmittedEmail(toEmail, fullName, requestT
             <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">Thank you for keeping us informed!</p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise</strong></p>
+            <p><strong>AntiClockWise</strong></p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -592,7 +592,7 @@ func (s *SMTPEmailService) SendRequestNotifyEmail(toEmails []string, employeeNam
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -608,14 +608,14 @@ func (s *SMTPEmailService) SendRequestNotifyEmail(toEmails []string, employeeNam
                 <div class="detail-value">%s</div>
             </div>
             <div class="action-note">
-                <strong>🔔 Action Needed:</strong> Please log in to ClockWise to review and respond to this request at your earliest convenience.
+                <strong>🔔 Action Needed:</strong> Please log in to AntiClockWise to review and respond to this request at your earliest convenience.
             </div>
             <p style="font-size: 14px; color: #6c757d; margin-top: 25px;">Timely responses help maintain a positive work environment.</p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise</strong></p>
+            <p><strong>AntiClockWise</strong></p>
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
