@@ -90,7 +90,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	baseOrderStore := &database.PostgresOrderStore{DB: dbService.GetDB(), Logger: Logger}
 	baseCampaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	baseDemandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
-	baseScheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
+	baseScheduleStore := database.NewPostgresScheduleStore(baseUserStore,dbService.GetDB(), Logger)
 	baseOfferStore := database.NewPostgresOfferStore(dbService.GetDB(), Logger)
 
 	// Wrap stores with caching if Redis is available

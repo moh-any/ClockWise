@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // Schedule represents a single employee's schedule entry
 type ScheduleEntry struct {
 	Date       time.Time `json:"schedule_date"`
 	Day        string    `json:"day"`
-	StartTime  time.Time `json:"start_time"`
-	EndTime    time.Time `json:"end_time"`
+	StartTime  string    `json:"start_time"`
+	EndTime    string    `json:"end_time"`
 	EmployeeID uuid.UUID `json:"employee_id"`
 }
 
@@ -21,8 +22,8 @@ type ScheduleEntry struct {
 type Schedule struct {
 	Date      time.Time `json:"schedule_date"`
 	Day       string    `json:"day"`
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
+	StartTime string    `json:"start_time"`
+	EndTime   string    `json:"end_time"`
 	Employees []string  `json:"employees"` // employee IDs
 }
 
@@ -33,14 +34,16 @@ type ScheduleStore interface {
 }
 
 type PostgresScheduleStore struct {
-	DB     *sql.DB
-	Logger *slog.Logger
+	UserStore UserStore
+	DB        *sql.DB
+	Logger    *slog.Logger
 }
 
-func NewPostgresScheduleStore(DB *sql.DB, Logger *slog.Logger) *PostgresScheduleStore {
+func NewPostgresScheduleStore(userStore UserStore, DB *sql.DB, Logger *slog.Logger) *PostgresScheduleStore {
 	return &PostgresScheduleStore{
-		DB:     DB,
-		Logger: Logger,
+		UserStore: userStore,
+		DB:        DB,
+		Logger:    Logger,
 	}
 }
 
@@ -112,7 +115,7 @@ func (s *PostgresScheduleStore) GetFullScheduleForSevenDays(org_id uuid.UUID) ([
 	var schedules []Schedule
 	for rows.Next() {
 		var schedule Schedule
-		var employees []string
+		var employees pq.StringArray
 
 		err := rows.Scan(
 			&schedule.Date,
@@ -126,7 +129,18 @@ func (s *PostgresScheduleStore) GetFullScheduleForSevenDays(org_id uuid.UUID) ([
 			return nil, err
 		}
 
-		schedule.Employees = employees
+		schedule.Employees = []string(employees)
+		var names []string
+		for _, empID := range schedule.Employees {
+			employeeID, _ := uuid.Parse(empID)
+			emp, err := s.UserStore.GetUserByID(employeeID)
+			if err != nil {
+				s.Logger.Error("failed to retrieve user id", "user", emp)
+				continue
+			}
+			names = append(names, emp.FullName)
+		}
+		schedule.Employees = names
 		schedules = append(schedules, schedule)
 	}
 
@@ -190,8 +204,6 @@ func (s *PostgresScheduleStore) GetScheduleForEmployeeForSevenDays(org_id uuid.U
 			s.Logger.Error("failed to scan schedule row", "error", err)
 			return nil, err
 		}
-
-		schedule.Employees = []string{employeeID.String()}
 		schedules = append(schedules, schedule)
 	}
 
