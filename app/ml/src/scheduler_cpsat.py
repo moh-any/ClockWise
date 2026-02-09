@@ -87,6 +87,10 @@ class SchedulerInput:
 
 class SchedulerCPSAT:
     def __init__(self, input_data: SchedulerInput):
+        # Safeguard against invalid slot_len_hour
+        if not input_data.slot_len_hour or input_data.slot_len_hour <= 0:
+            raise ValueError(f"slot_len_hour must be positive, got: {input_data.slot_len_hour}")
+        
         self.data = input_data
         self.model = cp_model.CpModel()
         

@@ -1106,6 +1106,11 @@ def convert_api_data_to_scheduler_input(
     
     config = schedule_input.scheduler_config or SchedulerConfig()
     
+    # Safeguard: Ensure slot_len_hour is valid (not 0, None, or negative)
+    if not config.slot_len_hour or config.slot_len_hour <= 0:
+        logger.warning(f"Invalid slot_len_hour value: {config.slot_len_hour}. Defaulting to 1.0")
+        config.slot_len_hour = 1.0
+    
     scheduler_roles = []
     for role_data in schedule_input.roles:
         scheduler_roles.append(Role(
