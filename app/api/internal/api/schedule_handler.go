@@ -355,7 +355,24 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error storing schedule"})
 		return
 	}
-
+	
+	for day, timeSlots := range scheduleResponse.ScheduleOutput {
+		for i, slotMap := range timeSlots {
+			for timeRange := range slotMap {
+				var names []string
+				for _, empID := range slotMap[timeRange] {
+					employeeID, _ := uuid.Parse(empID)
+					emp, err := sh.UserStore.GetUserByID(employeeID)
+					if err != nil {
+						sh.Logger.Error("failed to retrieve user id", "user", emp)
+						continue
+					}
+					names = append(names, emp.FullName)
+				}
+				scheduleResponse.ScheduleOutput[day][i][timeRange] = names
+			}
+		}
+	}
 	// Return the successfully decoded response
 	c.JSON(http.StatusOK, gin.H{
 		"message":             "schedule prediction retrieved successfully from API",
