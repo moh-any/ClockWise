@@ -5360,3 +5360,155 @@ body:has(.admin-profile-overlay.show) {
     flex: 1;
   }
 }
+
+/* ========================================
+   DARK MODE - SCHEDULE PREMIUM STYLES
+   ======================================== */
+
+.dashboard-wrapper.dark-mode .schedule-week-view-premium {
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .schedule-main-title {
+  color: #f1f5f9;
+}
+
+.dashboard-wrapper.dark-mode .schedule-subtitle {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .mini-stat {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .mini-stat-label {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .schedule-grid-premium {
+  background: rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .schedule-hour-label-premium {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  color: #f1f5f9;
+  border-right: 2px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .schedule-hour-label-premium,
+.dashboard-wrapper.dark-mode .schedule-header-cell-premium {
+  box-shadow: inset -2px 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .schedule-cell-premium {
+  background: #0f172a;
+  border: 2px solid rgba(71, 85, 105, 0.2);
+}
+
+.dashboard-wrapper.dark-mode .schedule-cell-premium.empty-slot-premium {
+  background: linear-gradient(145deg, #0a0f1a, #0f172a);
+}
+
+.dashboard-wrapper.dark-mode .staff-label {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .schedule-popup-overlay-premium {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.dashboard-wrapper.dark-mode .schedule-popup-premium {
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .popup-header-card {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border-bottom: 2px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .popup-title-premium {
+  color: #f1f5f9;
+}
+
+.dashboard-wrapper.dark-mode .popup-subtitle-premium {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .popup-close-premium {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 2px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .popup-close-premium:hover {
+  background: linear-gradient(145deg, #0f172a, #020617);
+  border-color: var(--color-primary);
+}
+
+.dashboard-wrapper.dark-mode .popup-close-premium svg {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .popup-close-premium:hover svg {
+  color: var(--color-primary);
+}
+
+.dashboard-wrapper.dark-mode .popup-content-premium {
+  background: linear-gradient(to bottom, #0f172a 0%, #020617 100%);
+}
+
+.dashboard-wrapper.dark-mode .shift-info-card {
+  background: #0f172a;
+  border: 2px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .shift-info-card:hover {
+  border-color: rgba(var(--color-primary-rgb, 74, 144, 226), 0.5);
+}
+
+.dashboard-wrapper.dark-mode .shift-time-badge {
+  background: linear-gradient(145deg, rgba(var(--color-primary-rgb, 74, 144, 226), 0.2), rgba(var(--color-secondary-rgb, 123, 104, 238), 0.15));
+  border-color: var(--color-primary);
+}
+
+.dashboard-wrapper.dark-mode .employee-card-mini {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 2px solid rgba(71, 85, 105, 0.3);
+}
+
+.dashboard-wrapper.dark-mode .employee-card-mini:hover {
+  border-color: var(--color-primary);
+}
+
+.dashboard-wrapper.dark-mode .employee-name-mini {
+  color: #f1f5f9;
+}
+
+.dashboard-wrapper.dark-mode .employee-role-mini {
+  color: #94a3b8;
+}
+
+.dashboard-wrapper.dark-mode .no-employees-card {
+  background: linear-gradient(145deg, #0f172a, #020617);
+  border: 2px dashed rgba(71, 85, 105, 0.4);
+}
+
+.dashboard-wrapper.dark-mode .no-employees-card span {
+  color: #64748b;
+}
+
+.dashboard-wrapper.dark-mode .no-data-card {
+  background: #0f172a;
+  border: 2px dashed rgba(71, 85, 105, 0.4);
+}
+
+.dashboard-wrapper.dark-mode .no-data-title {
+  color: #f1f5f9;
+}
+
+.dashboard-wrapper.dark-mode .no-data-text {
+  color: #94a3b8;
+}
