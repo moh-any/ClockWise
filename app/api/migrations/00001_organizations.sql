@@ -23,10 +23,10 @@ CREATE TABLE IF NOT EXISTS organizations_roles (
     min_needed_per_shift INTEGER DEFAULT 3,
     items_per_role_per_hour INTEGER DEFAULT 10,
     need_for_demand BOOLEAN NOT NULL DEFAULT true,
-    independent BOOLEAN DEFAULT false,
+    independent BOOLEAN DEFAULT true,
     PRIMARY KEY (organization_id, role),
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
-    CHECK ((role != 'manager' AND role != 'admin' AND min_needed_per_shift >= 0) OR 
+    CHECK ((role != 'manager' AND role != 'admin') OR 
            (role = 'manager' AND min_needed_per_shift = 1) OR 
            (role = 'admin' AND min_needed_per_shift = 0)),
     CHECK ((need_for_demand = true AND items_per_role_per_hour >= 0) OR 

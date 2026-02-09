@@ -33,6 +33,8 @@ type Server struct {
 	dashboardHandler   *api.DashboardHandler
 	scheduleHandler    *api.ScheduleHandler
 	campaignHandler    *api.CampaignHandler
+	offerHandler       *api.OfferHandler
+	surgeHandler       *api.SurgeHandler
 
 	userStore        database.UserStore
 	orgStore         database.OrgStore
@@ -44,6 +46,8 @@ type Server struct {
 	campaignStore    database.CampaignStore
 	demandStore      database.DemandStore
 	scheduleStore    database.ScheduleStore
+	offerStore       database.OfferStore
+	surgeStore       database.SurgeStore
 
 	Logger *slog.Logger
 }
@@ -87,6 +91,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	baseCampaignStore := database.NewPostgresCampaignStore(dbService.GetDB(), Logger)
 	baseDemandStore := database.NewPostgresDemandStore(dbService.GetDB(), Logger)
 	baseScheduleStore := database.NewPostgresScheduleStore(dbService.GetDB(), Logger)
+	baseOfferStore := database.NewPostgresOfferStore(dbService.GetDB(), Logger)
 
 	// Wrap stores with caching if Redis is available
 	var userStore database.UserStore
@@ -102,6 +107,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 	var campaignStore database.CampaignStore
 	var demandStore database.DemandStore
 	var scheduleStore database.ScheduleStore
+	var offerStore database.OfferStore
 
 	if cacheService != nil {
 		// Wrap with caching layer
@@ -118,6 +124,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore = cache.NewCachedCampaignStore(baseCampaignStore, cacheService)
 		demandStore = cache.NewCachedDemandStore(baseDemandStore, cacheService)
 		scheduleStore = baseScheduleStore
+		offerStore = baseOfferStore
 		Logger.Info("All stores wrapped with Redis caching layer")
 	} else {
 		// Use base stores directly (no caching)
@@ -134,12 +141,16 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore = baseCampaignStore
 		demandStore = baseDemandStore
 		scheduleStore = baseScheduleStore
+		offerStore = baseOfferStore
 		Logger.Warn("Running without cache layer - all requests will hit PostgreSQL directly")
 	}
 
 	// Services
 	emailService := service.NewSMTPEmailService(Logger)
 	uploadService := service.NewCSVUploadService(Logger)
+
+	// Surge Store (no cache for now)
+	surgeStore := database.NewPostgresSurgeStore(dbService.GetDB(), Logger)
 
 	// Handlers for Endpoints
 	orgHandler := api.NewOrgHandler(orgStore, userStore, userRolesStore, rolesStore, emailService, Logger)
@@ -161,6 +172,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		Logger,
 	)
 	campaignHandler := api.NewCampaignHandler(campaignStore, uploadService, orderStore, orgStore, operatingHoursStore, rulesStore, Logger)
+	surgeHandler := api.NewSurgeHandler(surgeStore, Logger)
 	scheduleHandler := api.NewScheduleHandler(
 		userStore,
 		scheduleStore,
@@ -175,6 +187,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		rolesStore,
 		preferencesStore,
 	)
+	offerHandler := api.NewOfferHandler(userStore, orgStore, offerStore, emailService, Logger)
 
 	NewServer := &Server{
 		port: port,
@@ -189,6 +202,7 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		campaignStore:    campaignStore,
 		demandStore:      demandStore,
 		scheduleStore:    scheduleStore,
+		surgeStore:       surgeStore,
 
 		orgHandler:         orgHandler,
 		staffingHandler:    staffingHandler,
@@ -202,6 +216,8 @@ func NewServer(Logger *slog.Logger) *http.Server {
 		dashboardHandler:   dashboardHandler,
 		scheduleHandler:    scheduleHandler,
 		campaignHandler:    campaignHandler,
+		offerHandler:       offerHandler,
+		surgeHandler:       surgeHandler,
 
 		Logger: Logger,
 	}

@@ -192,22 +192,34 @@ class SurgeOrchestrator:
                 self.status = TaskStatus.ERROR
                 await asyncio.sleep(60)  # Wait before retry
     
+    def _get_venue_manager_emails(self, org_id: str) -> List[str]:
+        """
+        Fetch manager and admin emails for an organization.
+        
+        Calls: GET /api/v1/surge/users?org_id={org_id}
+        """
+        import requests
+        try:
+            response = requests.get(
+                f"http://localhost:8000/api/v1/surge/users?org_id={org_id}",
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('emails', [])
+            else:
+                logger.warning(f"Failed to fetch emails for {org_id}: {response.status_code}")
+                return []
+        except Exception as e:
+            logger.warning(f"Error fetching emails for {org_id}: {e}")
+            return []
+
     async def run_detection_cycle(self, venues: Optional[List[Dict]] = None) -> OrchestrationResult:
         """
         Run a single detection cycle for all venues.
-        
-        This is the main orchestration method that:
-        1. Collects data for each venue (Layer 1)
-        2. Checks for surges (Layer 2)
-        3. Generates alerts for detected surges (Layer 3)
-        
-        Args:
-            venues: Optional list of venue dicts. If None, loads from database.
-        
-        Returns:
-            OrchestrationResult with cycle statistics
         """
         from src.surge_detector import SurgeMetrics
+        from src.email_sender import send_surge_email
         
         start_time = datetime.now()
         self._cycle_count += 1
@@ -229,6 +241,11 @@ class SurgeOrchestrator:
         # Process each venue
         for venue in venues:
             try:
+                # Ensure place_id is string (UUID)
+                place_id = str(venue.get('place_id', ''))
+                if not place_id:
+                    continue
+
                 # Layer 1: Collect data
                 metrics = await self._collect_venue_metrics(venue)
                 
@@ -237,7 +254,7 @@ class SurgeOrchestrator:
                 
                 # Layer 2: Check for surge
                 surge_event = self.surge_detector.check_surge(
-                    place_id=venue['place_id'],
+                    place_id=place_id,
                     metrics=metrics
                 )
                 
@@ -247,17 +264,44 @@ class SurgeOrchestrator:
                     # Layer 3: Generate alert
                     alert = self.alert_dispatcher.generate_alert(
                         surge_event=surge_event,
-                        venue_name=venue.get('name', f"Venue {venue['place_id']}")
+                        venue_name=venue.get('name', f"Venue {place_id}")
                     )
                     
                     result.alerts_generated += 1
                     
-                    # Deliver alert via callback
+                    # ---------------------------------------------------------
+                    # DIRECT EMAIL SENDING (New Requirement)
+                    # ---------------------------------------------------------
+                    
+                    # 1. Fetch recipient emails (Managers & Admins)
+                    emails = self._get_venue_manager_emails(place_id)
+                    
+                    if emails:
+                        # 2. Send Email
+                        send_surge_email(
+                            to_emails=emails,
+                            venue_name=venue.get('name', 'Unknown Venue'),
+                            alert_data={
+                                'severity': alert.get('severity', 'high'),
+                                'avg_ratio': surge_event.avg_ratio,
+                                'risk_score': surge_event.risk_score,
+                                'trend': surge_event.trend,
+                                'root_cause': surge_event.root_cause,
+                                'estimated_duration': surge_event.estimated_duration,
+                                'recommendations': surge_event.recommendations
+                            }
+                        )
+                        logger.info(f"📧 Email alert sent to {len(emails)} recipients for {place_id}")
+                    else:
+                        logger.warning(f"⚠️ No emails found for venue {place_id}, skipping email alert")
+
+                    
+                    # Deliver alert via callback (optional/legacy)
                     if self._alert_callback:
                         try:
                             self._alert_callback(alert, venue)
                         except Exception as e:
-                            result.errors.append(f"Alert callback failed for {venue['place_id']}: {e}")
+                            result.errors.append(f"Alert callback failed for {place_id}: {e}")
                     
             except Exception as e:
                 result.errors.append(f"Error processing venue {venue.get('place_id')}: {e}")
@@ -269,16 +313,10 @@ class SurgeOrchestrator:
     async def _collect_venue_metrics(self, venue: Dict) -> List['SurgeMetrics']:
         """
         Collect metrics for a single venue using Layer 1.
-        
-        Args:
-            venue: Venue dictionary with place_id, name, lat, lon
-        
-        Returns:
-            List of SurgeMetrics for the analysis window
         """
         from src.surge_detector import SurgeMetrics
         
-        place_id = venue['place_id']
+        place_id = str(venue['place_id'])
         time_window = timedelta(hours=self.config.window_hours)
         
         # Collect actual orders
@@ -289,7 +327,7 @@ class SurgeOrchestrator:
         
         # Collect social signals
         social_signals = self.data_collector.social.get_composite_signal(
-            place_id=place_id,
+            place_id=place_id, # passing string ID now
             venue_name=venue.get('name', ''),
             latitude=venue.get('latitude', 55.6761),
             longitude=venue.get('longitude', 12.5683)
@@ -322,10 +360,7 @@ class SurgeOrchestrator:
     def _get_active_venues(self) -> List[Dict]:
         """
         Get list of active venues to monitor via API endpoint.
-        
         Calls: GET /api/v1/venues/active
-        
-        Backend team implements the endpoint to return active venues.
         """
         import requests
         
@@ -349,8 +384,8 @@ class SurgeOrchestrator:
     def _get_fallback_venues(self) -> List[Dict]:
         """Fallback venues for demo/testing when API unavailable."""
         return [
-            {'place_id': 1, 'name': 'Demo Restaurant 1', 'latitude': 55.6761, 'longitude': 12.5683},
-            {'place_id': 2, 'name': 'Demo Restaurant 2', 'latitude': 55.6800, 'longitude': 12.5700},
+            {'place_id': 'demo-uuid-1', 'name': 'Demo Restaurant 1', 'latitude': 55.6761, 'longitude': 12.5683},
+            {'place_id': 'demo-uuid-2', 'name': 'Demo Restaurant 2', 'latitude': 55.6800, 'longitude': 12.5700},
         ]
     
     def get_status(self) -> Dict:

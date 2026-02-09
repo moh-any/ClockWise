@@ -150,7 +150,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		rolesStr := row["roles"]
 
 		// Validate role
-		if role != "admin" && role != "manager" && role != "staff" && role != "employee" {
+		if role != "admin" && role != "manager" && role != "employee" {
 			failed = append(failed, map[string]string{
 				"email": email,
 				"error": "Invalid role: " + role,
@@ -175,6 +175,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		// Parse roles JSON array
 		var userRoles []string
 		if rolesStr != "" {
+			// "["cook", "delivery", "host"]"
 			// Clean up the roles string (handle escaped quotes)
 			rolesStr = strings.ReplaceAll(rolesStr, `""`, `"`)
 			if err := json.Unmarshal([]byte(rolesStr), &userRoles); err != nil {
@@ -183,6 +184,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 				userRoles = []string{}
 			}
 		}
+		h.Logger.Debug("roles string", "roles", userRoles)
 
 		// Generate temporary password
 		tempPassword, err := utils.GenerateRandomPassword(8)
@@ -230,13 +232,15 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 
 				// If role doesn't exist, create it with default values
 				if existingRole == nil {
+					items := 3
+					independent := true
 					newRole := &database.OrganizationRole{
 						OrganizationID:      user.OrganizationID,
 						Role:                roleName,
-						MinNeededPerShift:   1,              // Default value
-						ItemsPerRolePerHour: nil,            // Default nil
-						NeedForDemand:       false,          // Default value
-						Independent:         nil,            // Default nil
+						MinNeededPerShift:   1,            // Default value
+						ItemsPerRolePerHour: &items,       // Default nil
+						NeedForDemand:       true,         // Default value
+						Independent:         &independent, // Default nil
 					}
 					if err := h.rolesStore.CreateRole(newRole); err != nil {
 						h.Logger.Error("failed to create role", "error", err, "role", roleName)
@@ -251,6 +255,14 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 				h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID, "roles", userRoles)
 			} else {
 				h.Logger.Info("user roles assigned", "user_id", newUser.ID, "roles", userRoles)
+			}
+			
+			if newUser.UserRole == "manager" {
+				if err := h.userRolesStore.AddUserRole(newUser.ID, user.OrganizationID, newUser.UserRole); err != nil {
+					h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID, "role", newUser.UserRole)
+				} else {
+					h.Logger.Info("user roles assigned", "user_id", newUser.ID, "roles", userRoles)
+				}
 			}
 		}
 

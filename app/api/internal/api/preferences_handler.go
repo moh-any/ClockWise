@@ -51,7 +51,7 @@ type PreferencesRequest struct {
 
 // PreferencesResponse represents the response for preferences GET
 type PreferencesResponse struct {
-	DayPreferences        []*database.EmployeePreference `json:"day_preferences"`
+	DayPreferences        []database.EmployeePreference `json:"day_preferences"`
 	UserRoles             []string                       `json:"user_roles"`
 	MaxHoursPerWeek       *int                           `json:"max_hours_per_week"`
 	PreferredHoursPerWeek *int                           `json:"preferred_hours_per_week"`
@@ -76,7 +76,7 @@ func (h *PreferencesHandler) GetCurrentEmployeePreferences(c *gin.Context) {
 		return
 	}
 	if prefs == nil {
-		prefs = []*database.EmployeePreference{}
+		prefs = []database.EmployeePreference{}
 	}
 
 	// Get user roles
@@ -147,9 +147,9 @@ func (h *PreferencesHandler) UpdateCurrentEmployeePreferences(c *gin.Context) {
 	}
 
 	// Convert request to database models
-	prefs := make([]*database.EmployeePreference, len(req.Preferences))
+	prefs := make([]database.EmployeePreference, len(req.Preferences))
 	for i, dayPref := range req.Preferences {
-		prefs[i] = &database.EmployeePreference{
+		prefs[i] = database.EmployeePreference{
 			EmployeeID:         user.ID,
 			Day:                strings.ToLower(dayPref.Day),
 			PreferredStartTime: dayPref.PreferredStartTime,

@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 	gin.SetMode(gin.DebugMode)
@@ -22,7 +21,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(gzip.Gzip(gzip.BestCompression))
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80","http://localhost:8000","http://localhost:8080"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:80", "http://localhost:8000", "http://localhost:8080"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type", "Content-Encoding"},
 		AllowCredentials: true,
@@ -101,12 +100,19 @@ func (s *Server) RegisterRoutes() http.Handler {
 	roles.PUT("/:role", s.rolesHandler.UpdateRole)    // Update role
 	roles.DELETE("/:role", s.rolesHandler.DeleteRole) // Delete role
 
+	// Public endpoint for orchestrator to discover venues
+	api.GET("/venues/active", s.surgeHandler.GetActiveVenues)
+
 	dashboard := organization.Group("/dashboard")
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
 	dashboard.POST("/demand/predict", s.dashboardHandler.PredictDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	// Only called by external ML api
 	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
+
+	// Surge Detection Endpoints
+	surge := api.Group("/surge")
+	surge.POST("/bulk-data", s.surgeHandler.GetBulkSurgeData)
+	surge.GET("/users", s.surgeHandler.GetSurgeUsers)
 
 	staffing := organization.Group("/staffing")
 	staffing.GET("", s.staffingHandler.GetStaffingSummary)
@@ -127,8 +133,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	employee.POST("/requests/decline", s.employeeHandler.DeclineRequest)
 
 	schedule := dashboard.Group("/schedule")
-	schedule.GET("/",s.scheduleHandler.GetCurrentUserScheduleHandler) // Show schedule for manager and employee
-	schedule.GET("/all", s.scheduleHandler.GetScheduleHandler)         // If admin or manager show full schedule, if employee do not allow
+	schedule.GET("/", s.scheduleHandler.GetCurrentUserScheduleHandler)  // Show schedule for manager and employee
+	schedule.GET("/all", s.scheduleHandler.GetScheduleHandler)          // If admin or manager show full schedule, if employee do not allow
 	schedule.POST("/predict", s.scheduleHandler.PredictScheduleHandler) // Refresh Schedule with the new weekly schedule
 
 	employee.GET("/schedule", s.scheduleHandler.GetEmployeeScheduleHandler) // Get Employee Schedule
@@ -139,16 +145,15 @@ func (s *Server) RegisterRoutes() http.Handler {
 	campaigns.POST("/upload/items", s.campaignHandler.UploadCampaignsItemsCSVHandlers)
 	campaigns.GET("/all", s.campaignHandler.GetAllCampaignsHandler)              // Get All Campaigns
 	campaigns.GET("/week", s.campaignHandler.GetAllCampaignsForLastWeekHandler)  // Get All Campaigns for last week
+
 	campaigns.POST("/recommend", s.campaignHandler.RecommendCampaignsHandler)    // Get AI recommendations
 	campaigns.POST("/feedback", s.campaignHandler.SubmitCampaignFeedbackHandler) // Submit campaign feedback
 
-	// TODO Add connection to campaign model routes
-
 	// TODO: Offers management to those on call and in the shift in the current shift
 	offers := organization.Group("/offers")
-	offers.GET("")          // Get all offers that start_time is before now
-	offers.POST("/accept")  // Accept an offer
-	offers.POST("/decline") // Decline an offer
+	offers.GET("", s.offerHandler.GetAllOffersForEmployeeHandler)          // Get all offers that start_time is before now
+	offers.POST("/accept",s.offerHandler.AcceptOfferHandler)  // Accept an offer
+	offers.POST("/decline",s.offerHandler.DeclineOfferHandler) // Decline an offer
 
 	// Insights that change from a user to another about general statistics & analytics
 	insights := organization.Group("/insights")

@@ -36,9 +36,9 @@ type PreferencesStore interface {
 	// Create or update a single day's preference
 	UpsertPreference(pref *EmployeePreference) error
 	// Create or update multiple day preferences at once
-	UpsertPreferences(employeeID uuid.UUID, prefs []*EmployeePreference) error
+	UpsertPreferences(employeeID uuid.UUID, prefs []EmployeePreference) error
 	// Get all preferences for an employee
-	GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]*EmployeePreference, error)
+	GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]EmployeePreference, error)
 	// Get preference for a specific day
 	GetPreferenceByDay(employeeID uuid.UUID, day string) (*EmployeePreference, error)
 	// Delete all preferences for an employee
@@ -90,7 +90,7 @@ func (s *PostgresPreferencesStore) UpsertPreference(pref *EmployeePreference) er
 }
 
 // UpsertPreferences creates or updates multiple day preferences at once
-func (s *PostgresPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs []*EmployeePreference) error {
+func (s *PostgresPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs []EmployeePreference) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		s.Logger.Error("failed to begin transaction", "error", err)
@@ -132,17 +132,17 @@ func (s *PostgresPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs
 }
 
 // GetPreferencesByEmployeeID retrieves all preferences for an employee
-func (s *PostgresPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]*EmployeePreference, error) {
+func (s *PostgresPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]EmployeePreference, error) {
 	query := `SELECT employee_id, day, preferred_start_time, preferred_end_time, available_start_time, available_end_time 
 		FROM employees_preferences WHERE employee_id = $1 ORDER BY 
 		CASE day 
-			WHEN 'Sunday' THEN 0 
-			WHEN 'Monday' THEN 1 
-			WHEN 'Tuesday' THEN 2 
-			WHEN 'Wednesday' THEN 3 
-			WHEN 'Thursday' THEN 4 
-			WHEN 'Friday' THEN 5 
-			WHEN 'Saturday' THEN 6 
+			WHEN 'sunday' THEN 0 
+			WHEN 'monday' THEN 1 
+			WHEN 'tuesday' THEN 2 
+			WHEN 'wednesday' THEN 3 
+			WHEN 'thursday' THEN 4 
+			WHEN 'friday' THEN 5 
+			WHEN 'saturday' THEN 6 
 		END`
 
 	rows, err := s.db.Query(query, employeeID)
@@ -152,7 +152,7 @@ func (s *PostgresPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UU
 	}
 	defer rows.Close()
 
-	var prefs []*EmployeePreference
+	var prefs []EmployeePreference
 	for rows.Next() {
 		var p EmployeePreference
 		if err := rows.Scan(
@@ -166,7 +166,7 @@ func (s *PostgresPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UU
 			s.Logger.Error("failed to scan preference", "error", err)
 			return nil, err
 		}
-		prefs = append(prefs, &p)
+		prefs = append(prefs, p)
 	}
 
 	return prefs, nil
