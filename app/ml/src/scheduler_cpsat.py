@@ -211,8 +211,15 @@ class SchedulerCPSAT:
             self.work_slots[e] = self.model.NewIntVar(0, max_slots, f'work_slots_{e}')
         
         # Hours deviation (in slots for simplicity)
+        # Domain must accommodate the case where pref_slots > max_slots
+        # (deviation = |work_slots - pref_slots|, which can be as large as pref_slots itself)
+        max_pref_slots = max(
+            (int(emp.pref_hours / data.slot_len_hour) for emp in data.employees),
+            default=0
+        )
+        max_hours_dev = max(max_slots, max_pref_slots)
         for e in E:
-            self.hours_dev[e] = self.model.NewIntVar(0, max_slots, f'hours_dev_{e}')
+            self.hours_dev[e] = self.model.NewIntVar(0, max_hours_dev, f'hours_dev_{e}')
         
         # Fairness: max and min slots for range-based fairness
         self.max_work_slots = self.model.NewIntVar(0, max_slots, 'max_work_slots')
@@ -258,15 +265,12 @@ class SchedulerCPSAT:
         
         # ----- Constraint 3: Minimum present per role -----
         # NOTE: This constraint must respect per-slot availability.
-        # Previously we enforced the minimum for all employees who could
-        # ever perform the role, regardless of whether they were available
-        # in a specific (day, slot). That made many realistic API inputs
-        # infeasible whenever *no* employee was available in a slot but
-        # the role had min_present > 0.
-        #
-        # We now restrict the eligible set to employees who are BOTH:
+        # We restrict the eligible set to employees who are BOTH:
         #   - eligible for the role, and
         #   - available in this particular (day, slot).
+        # We also cap the required minimum to the number of actually
+        # available employees so the constraint is never mathematically
+        # infeasible (you cannot require 3 staff when only 1 is present).
         for r_idx, role in enumerate(data.roles):
             for d in D:
                 for t in T:
@@ -276,9 +280,10 @@ class SchedulerCPSAT:
                         if role.id in emp.role_eligibility
                         and emp.availability.get((d, t), True)
                     ]
-                    if eligible and role.min_present > 0:
+                    actual_min = min(role.min_present, len(eligible))
+                    if actual_min > 0:
                         self.model.Add(
-                            sum(self.y[e, r_idx, d, t] for e in eligible) >= role.min_present
+                            sum(self.y[e, r_idx, d, t] for e in eligible) >= actual_min
                         )
         
         # ----- Constraint 5: Maximum hours per week -----

@@ -1133,13 +1133,14 @@ def convert_api_data_to_scheduler_input(
     num_days = len(unique_dates)
     num_slots_per_day = int(24 / config.slot_len_hour)
     
-    prediction_start = pd.to_datetime(prediction_start_date).date()
+    # Derive day-name mapping from the actual demand data dates so that
+    # employee availability (keyed by day name) lines up with the demand
+    # day indices.  Previously this used prediction_start_date which could
+    # differ from the first demand date and mis-align everything.
     calendar_day_to_pred_days = {}
-    
-    for i in range(num_days):
-        current_date = prediction_start + timedelta(days=i)
-        calendar_day_name = current_date.strftime('%A').lower()
-        
+    for i, d in enumerate(unique_dates):
+        d_as_date = pd.to_datetime(d).date() if not hasattr(d, 'strftime') else d
+        calendar_day_name = d_as_date.strftime('%A').lower()
         if calendar_day_name not in calendar_day_to_pred_days:
             calendar_day_to_pred_days[calendar_day_name] = []
         calendar_day_to_pred_days[calendar_day_name].append(i)
@@ -1287,18 +1288,30 @@ def format_schedule_output(
     place: PlaceData, 
     config: SchedulerConfig,
     prediction_start_date: str,
-    num_days: int
+    num_days: int,
+    demand_predictions_for_dates: Optional[List] = None
 ) -> ScheduleOutput:
     """Format scheduler solution to API output format"""
     
     day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     
-    prediction_start = pd.to_datetime(prediction_start_date).date()
+    # Build the day-index → calendar-day-name mapping from the actual
+    # demand prediction dates so it stays aligned with the scheduler's
+    # internal day indices (same fix as convert_api_data_to_scheduler_input).
     pred_day_to_calendar = {}
-    for i in range(num_days):
-        current_date = prediction_start + timedelta(days=i)
-        calendar_day_name = current_date.strftime('%A').lower()
-        pred_day_to_calendar[i] = calendar_day_name
+    if demand_predictions_for_dates:
+        unique_output_dates = sorted(set(
+            pd.to_datetime(dp.date).date() if hasattr(dp, 'date') else pd.to_datetime(dp).date()
+            for dp in demand_predictions_for_dates
+        ))
+        for i, d in enumerate(unique_output_dates):
+            pred_day_to_calendar[i] = d.strftime('%A').lower()
+    else:
+        # Fallback to prediction_start_date
+        prediction_start = pd.to_datetime(prediction_start_date).date()
+        for i in range(num_days):
+            current_date = prediction_start + timedelta(days=i)
+            pred_day_to_calendar[i] = current_date.strftime('%A').lower()
     
     schedule_by_day = {day: [] for day in day_names}
     
@@ -1337,6 +1350,45 @@ def format_schedule_output(
             if not existing:
                 schedule_by_day[calendar_day].append({
                     shift_key: [entry['employee']]
+                })
+    else:
+        # --- Slot-based (non-fixed-shift) scheduling output ---
+        from collections import defaultdict
+        
+        # Collect employees per (day, slot)
+        slot_employees = defaultdict(list)
+        for entry in solution['schedule']:
+            day_idx = entry['day']
+            slot = entry.get('slot', 0)
+            emp_id = entry['employee']
+            if emp_id not in slot_employees[(day_idx, slot)]:
+                slot_employees[(day_idx, slot)].append(emp_id)
+        
+        # Convert slots to time-range strings and group into the output
+        for (day_idx, slot), employees in sorted(slot_employees.items()):
+            calendar_day = pred_day_to_calendar.get(day_idx)
+            if not calendar_day:
+                continue
+            
+            start_hour = int(slot * config.slot_len_hour)
+            end_hour = int((slot + 1) * config.slot_len_hour)
+            if end_hour > 24:
+                end_hour = end_hour % 24
+            shift_key = f"{start_hour:02d}:00-{end_hour:02d}:00"
+            
+            # Merge into existing time-range entry if present
+            existing = False
+            for shift_dict in schedule_by_day[calendar_day]:
+                if shift_key in shift_dict:
+                    for emp_id in employees:
+                        if emp_id not in shift_dict[shift_key]:
+                            shift_dict[shift_key].append(emp_id)
+                    existing = True
+                    break
+            
+            if not existing:
+                schedule_by_day[calendar_day].append({
+                    shift_key: list(employees)
                 })
     
     return ScheduleOutput(**schedule_by_day)
@@ -1534,7 +1586,8 @@ def predict_schedule_only(request: SchedulingRequest):
                 place=request.place,
                 config=config,
                 prediction_start_date=prediction_start_date,
-                num_days=len(demand_predictions)
+                num_days=len(demand_predictions),
+                demand_predictions_for_dates=demand_predictions
             )
             
             logger.info("✓ Schedule generated successfully")
