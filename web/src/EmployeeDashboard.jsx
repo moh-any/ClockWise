@@ -152,6 +152,29 @@ function EmployeeDashboard() {
   }, [])
 
   useEffect(() => {
+    if (activeTab === "preferences") {
+      // Fetch roles when preferences tab is opened
+      const fetchRolesForPreferences = async () => {
+        try {
+          console.log("Fetching roles for preferences tab...")
+          const rolesResponse = await api.roles.getAll()
+          console.log("Roles API response:", rolesResponse)
+          if (rolesResponse && rolesResponse.data) {
+            console.log("Setting roles to:", rolesResponse.data)
+            setRoles(rolesResponse.data)
+            console.log("Roles array length:", rolesResponse.data.length)
+          } else {
+            console.log("No roles data in response")
+          }
+        } catch (err) {
+          console.error("Error fetching roles for preferences:", err)
+        }
+      }
+      fetchRolesForPreferences()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
     if (activeTab === "requests") {
       console.log("Requests tab activated, triggering fetchUserRequests")
       console.log("currentUser at tab activation:", currentUser)
@@ -238,8 +261,10 @@ function EmployeeDashboard() {
       // Fetch roles
       try {
         const rolesResponse = await api.roles.getAll()
+        console.log("Roles fetched:", rolesResponse)
         if (rolesResponse && rolesResponse.data) {
           setRoles(rolesResponse.data)
+          console.log("Roles set to:", rolesResponse.data)
         }
       } catch (err) {
         console.error("Error fetching roles:", err)
@@ -836,26 +861,47 @@ function EmployeeDashboard() {
           <div className="form-group">
             <label className="form-label">Roles You Can Perform</label>
             <div className="roles-checkboxes">
-              {roles
-                .filter(
-                  (role) => role.role !== "admin" && role.role !== "manager",
+              {(() => {
+                console.log("Rendering roles, total count:", roles.length)
+                console.log("All roles:", roles.map(r => r.role_id).join(", "))
+                const filteredRoles = roles.filter(
+                  (role) => {
+                    const roleName = role.role_id?.toLowerCase() || ""
+                    const shouldInclude = roleName !== "admin" && roleName !== "manager" && roleName !== "employee"
+                    console.log(`Role "${role.role_id}" (${roleName}): ${shouldInclude ? "INCLUDED" : "EXCLUDED"}`)
+                    return shouldInclude
+                  }
                 )
-                .map((role) => (
-                  <label key={role.role} className="checkbox-label">
+                console.log("Filtered roles count:", filteredRoles.length)
+                
+                if (filteredRoles.length === 0) {
+                  return (
+                    <div style={{ padding: "1rem", color: "#64748b", fontStyle: "italic" }}>
+                      {roles.length === 0 
+                        ? "Loading roles... If this persists, please refresh the page."
+                        : "No additional roles available (admin, manager, and employee roles are excluded)."}
+                    </div>
+                  )
+                }
+                
+                return filteredRoles.map((role) => (
+                  <label key={role.role_id} className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={userRoles.includes(role.role)}
+                      checked={userRoles.includes(role.role_id)}
                       onChange={(e) => {
+                        e.stopPropagation()
                         if (e.target.checked) {
-                          setUserRoles([...userRoles, role.role])
+                          setUserRoles([...userRoles, role.role_id])
                         } else {
-                          setUserRoles(userRoles.filter((r) => r !== role.role))
+                          setUserRoles(userRoles.filter((r) => r !== role.role_id))
                         }
                       }}
                     />
-                    <span>{role.role}</span>
+                    <span>{role.role_id}</span>
                   </label>
-                ))}
+                ))
+              })()}
             </div>
           </div>
 

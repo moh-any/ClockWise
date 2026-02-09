@@ -532,6 +532,24 @@ function AdminDashboard() {
     }
   }, [activeTab])
 
+  // Fetch fresh insights when admin profile is opened
+  useEffect(() => {
+    const fetchOrgStatsForProfile = async () => {
+      if (showAdminProfile && currentUser?.user_role === "admin") {
+        try {
+          const insightsResponse = await api.dashboard.getInsights()
+          if (insightsResponse && insightsResponse.data) {
+            setInsights(insightsResponse.data)
+          }
+        } catch (err) {
+          console.error("Error fetching organization stats:", err)
+        }
+      }
+    }
+    
+    fetchOrgStatsForProfile()
+  }, [showAdminProfile, currentUser?.user_role])
+
   const fetchSchedule = async () => {
     try {
       setScheduleLoading(true)
@@ -615,6 +633,8 @@ function AdminDashboard() {
         ...authData,
         ...userData,
         organization_name: userData.organization,
+        // Map salary_per_hour to hourly_salary for consistency
+        hourly_salary: userData.salary_per_hour || userData.hourly_salary || authData.salary_per_hour || authData.hourly_salary,
       }
 
       console.log("Complete user data:", completeUser)
@@ -4407,7 +4427,19 @@ function AdminDashboard() {
     try {
       setLoading(true)
       const data = await api.staffing.getAllEmployees()
-      setEmployees(data.employees || [])
+      // Map salary_per_hour to hourly_salary for display
+      const mappedEmployees = (data.employees || []).map(emp => ({
+        ...emp,
+        hourly_salary: emp.salary_per_hour || emp.hourly_salary
+      }))
+      setEmployees(mappedEmployees)
+      
+      // Calculate total labor cost from all employees (weekly: hourly_salary * 40 hours)
+      const totalWeeklyLabor = mappedEmployees.reduce((sum, emp) => {
+        const hourlyRate = parseFloat(emp.hourly_salary) || 0
+        return sum + (hourlyRate * 40) // Assuming 40 hours per week
+      }, 0)
+      setLaborCost(totalWeeklyLabor)
     } catch (err) {
       setError(err.message || "Failed to load employees")
     } finally {
