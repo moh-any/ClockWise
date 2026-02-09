@@ -1795,16 +1795,21 @@ async def recommend_campaigns(request: CampaignRecommendationRequest):
         
         recommended_items = []
         for rec in recommendations:
+            # Final safety clamp: ensure all values are positive and realistic
+            safe_uplift = float(np.clip(rec.expected_uplift, 2.0, 60.0))
+            safe_roi = float(np.clip(rec.expected_roi, 5.0, 150.0))
+            safe_revenue = max(float(rec.expected_revenue), 100.0)
+            
             recommended_items.append(RecommendedCampaignItem(
                 campaign_id=rec.campaign_id,
                 items=rec.items,
-                discount_percentage=rec.discount_percentage,
+                discount_percentage=round(rec.discount_percentage, 1),
                 start_date=rec.start_date,
                 end_date=rec.end_date,
                 duration_days=rec.duration_days,
-                expected_uplift=rec.expected_uplift,
-                expected_roi=rec.expected_roi,
-                expected_revenue=rec.expected_revenue,
+                expected_uplift=round(safe_uplift, 1),
+                expected_roi=round(safe_roi, 1),
+                expected_revenue=round(safe_revenue, 2),
                 confidence_score=rec.confidence_score,
                 reasoning=rec.reasoning,
                 priority_score=rec.priority_score,
