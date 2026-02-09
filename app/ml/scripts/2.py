@@ -59,7 +59,7 @@ plt.text(0.05, 0.95, textstr, transform=plt.gca().transAxes,
 
 plt.xlabel('Actual Item Count', fontsize=12)
 plt.ylabel('Predicted Item Count', fontsize=12)
-plt.title('Demand Prediction: Actual vs Predicted (Random Forest)', 
+plt.title('Demand Prediction: Actual vs Predicted (CatBoost)', 
           fontsize=14, fontweight='bold')
 plt.legend(loc='lower right', fontsize=10)
 plt.grid(True, alpha=0.3)
