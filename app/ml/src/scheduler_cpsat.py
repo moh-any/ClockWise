@@ -257,10 +257,25 @@ class SchedulerCPSAT:
                     self.model.Add(sum(self.y[e_idx, r, d, t] for r in R) <= 1)
         
         # ----- Constraint 3: Minimum present per role -----
+        # NOTE: This constraint must respect per-slot availability.
+        # Previously we enforced the minimum for all employees who could
+        # ever perform the role, regardless of whether they were available
+        # in a specific (day, slot). That made many realistic API inputs
+        # infeasible whenever *no* employee was available in a slot but
+        # the role had min_present > 0.
+        #
+        # We now restrict the eligible set to employees who are BOTH:
+        #   - eligible for the role, and
+        #   - available in this particular (day, slot).
         for r_idx, role in enumerate(data.roles):
             for d in D:
                 for t in T:
-                    eligible = [e for e, emp in enumerate(data.employees) if role.id in emp.role_eligibility]
+                    eligible = [
+                        e
+                        for e, emp in enumerate(data.employees)
+                        if role.id in emp.role_eligibility
+                        and emp.availability.get((d, t), True)
+                    ]
                     if eligible and role.min_present > 0:
                         self.model.Add(
                             sum(self.y[e, r_idx, d, t] for e in eligible) >= role.min_present
