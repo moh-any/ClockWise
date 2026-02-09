@@ -47,13 +47,15 @@ func (s *PostgresUserRolesStore) GetUserRoles(userID uuid.UUID, orgID uuid.UUID)
 	query := `SELECT user_role FROM user_roles WHERE user_id = $1 AND organization_id = $2 ORDER BY user_role`
 
 	rows, err := s.db.Query(query, userID, orgID)
+
 	if err != nil {
 		s.Logger.Error("failed to get user roles", "error", err, "user_id", userID, "organization_id", orgID)
 		return nil, err
 	}
+
 	defer rows.Close()
 
-	var roles []string
+	roles := []string{}
 	for rows.Next() {
 		var role string
 		if err := rows.Scan(&role); err != nil {

@@ -191,6 +191,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 	employees, err := sh.UserStore.GetUsersByOrganization(user.OrganizationID)
 
 	if err != nil {
+		sh.Logger.Debug("failed to retrieve employees for organization", "err", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get employees from organization"})
 		return
 	}
@@ -198,19 +199,29 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 	var Employees []Employee
 
 	for _, employee := range employees {
+		// Exclude Admin
+		if employee.UserRole == "admin" {
+			continue
+		}
+
 		// Get preferences for this employee
 		prefs, err := sh.PreferenceStore.GetPreferencesByEmployeeID(employee.ID)
+		sh.Logger.Info("got prefs for employee", "employee_id", employee.ID)
 		if err != nil {
 			sh.Logger.Warn("failed to get preferences for employee", "employee_id", employee.ID, "error", err)
 			// Continue without preferences for this employee
-			prefs = []*database.EmployeePreference{}
+			prefs = []database.EmployeePreference{}
 		}
 
 		// User Roles
-		userRoles, err := sh.UserRolesStore.GetUserRoles(user.OrganizationID, employee.ID)
+		userRoles, err := sh.UserRolesStore.GetUserRoles(employee.ID, user.OrganizationID)
 		if err != nil {
-			sh.Logger.Warn("failed to get user roles for employees", "employee_id", employee.ID, "error", err)
+			sh.Logger.Info("failed to get user roles for employees", "employee_id", employee.ID, "error", err)
 			continue
+		}
+
+		if len(userRoles) == 0 {
+			sh.Logger.Error("no user roles found", "user", employee.ID)
 		}
 
 		// Build available/preferred days and hours maps
@@ -257,7 +268,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		// Build Employee struct
 		emp := Employee{
 			EmployeeID:            employee.ID,
-			RoleNames:             userRoles, 
+			RoleNames:             userRoles,
 			AvailableDays:         availableDays,
 			Preferred_Days:        preferredDays,
 			AvailableHours:        availableHours,
@@ -301,7 +312,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		return
 	}
 
-	sh.Logger.Debug("json body in request","json",string(jsonPayload))
+	sh.Logger.Debug("json body in request", "json", string(jsonPayload))
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%v%v", os.Getenv("ML_URL"), "/predict/schedule"), bytes.NewBuffer(jsonPayload))
 	if err != nil {
@@ -341,8 +352,8 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 	err = sh.storeScheduleOutput(user.OrganizationID, scheduleResponse.ScheduleOutput)
 	if err != nil {
 		sh.Logger.Error("failed to store schedule", "error", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError,gin.H{"error":"error storing schedule"})
-		return 
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error storing schedule"})
+		return
 	}
 
 	// Return the successfully decoded response

@@ -15,6 +15,8 @@ type EmailService interface {
 	SendLayoffEmail(toEmail, fullName, reason string) error
 	SendRequestSubmittedEmail(toEmail, fullName, requestType, message string) error
 	SendRequestNotifyEmail(toEmails []string, employeeName, requestType, message string) error
+	SendOfferAcceptedEmailToManagerAndAdmin(toEmails []string, employeeName, offerStatus, starttime string) error
+	SendOfferDeclinedEmailToManagerAndAdmin(toEmails []string, employeeName, offerStatus, starttime string) error
 }
 
 type SMTPEmailService struct {
@@ -626,4 +628,12 @@ func (s *SMTPEmailService) SendRequestNotifyEmail(toEmails []string, employeeNam
 		return fmt.Errorf("failed to send request notification email: %w", err)
 	}
 	return nil
+}
+
+func (s *SMTPEmailService) SendOfferAcceptedEmailToManagerAndAdmin(toEmails []string, employeeName, offerStatus, starttime string) error {
+	return nil
+}
+
+func (s *SMTPEmailService) SendOfferDeclinedEmailToManagerAndAdmin(toEmails []string, employeeName, offerStatus, starttime string) error {
+    return nil 
 }
