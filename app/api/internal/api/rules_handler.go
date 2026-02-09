@@ -42,7 +42,7 @@ type RulesRequest struct {
 	FixedShifts          bool                    `json:"fixed_shifts"`
 	NumberOfShiftsPerDay *int                    `json:"number_of_shifts_per_day"`
 	MeetAllDemand        bool                    `json:"meet_all_demand"`
-	MinRestSlots         int                     `json:"min_rest_slots" binding:"required,min=0"`
+	MinRestSlots         int                     `json:"min_rest_slots"`
 	SlotLenHour          float64                 `json:"slot_len_hour" binding:"required,gt=0"`
 	MinShiftLengthSlots  int                     `json:"min_shift_length_slots" binding:"required,min=1"`
 	ReceivingPhone       *bool                   `json:"receiving_phone"`

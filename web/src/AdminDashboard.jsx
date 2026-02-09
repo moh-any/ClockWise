@@ -154,18 +154,18 @@ function AdminDashboard() {
   const [delegateError, setDelegateError] = useState("")
   const csvFileInput = useRef(null)
   // ADD THESE STATE VARIABLES:
-const [showRecommendationModal, setShowRecommendationModal] = useState(false)
-const [recommendationParams, setRecommendationParams] = useState({
-  recommendation_start_date: new Date().toISOString().split('T')[0],
-  num_recommendations: 5,
-  optimize_for: 'roi',
-  max_discount: 30,
-  min_campaign_duration_days: 3,
-  max_campaign_duration_days: 14,
-  available_items: []
-})
-const [recommendations, setRecommendations] = useState(null)
-const [recommendationsLoading, setRecommendationsLoading] = useState(false)
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false)
+  const [recommendationParams, setRecommendationParams] = useState({
+    recommendation_start_date: new Date().toISOString().split('T')[0],
+    num_recommendations: 5,
+    optimize_for: 'roi',
+    max_discount: 30,
+    min_campaign_duration_days: 3,
+    max_campaign_duration_days: 14,
+    available_items: []
+  })
+  const [recommendations, setRecommendations] = useState(null)
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false)
   // Role management state
   const [showAddRoleModal, setShowAddRoleModal] = useState(false)
   const [showEditRoleModal, setShowEditRoleModal] = useState(false)
@@ -223,11 +223,11 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
     for (let hour = 0; hour < 24; hour++) {
       for (let day = 0; day < 7; day++) {
         const roles = {}
-        
+
         // Different staffing levels based on time of day and day of week
         let staffingMultiplier = 1
         const isWeekend = day === 5 || day === 6
-        
+
         if (hour >= 11 && hour <= 14) {
           staffingMultiplier = isWeekend ? 2.5 : 2 // Lunch rush
         } else if (hour >= 18 && hour <= 21) {
@@ -248,26 +248,26 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
           else if (roleName === "Driver") {
             baseCount = isWeekend ? 2 : 1
           }
-          
+
           let count = Math.max(0, Math.round(baseCount * staffingMultiplier))
-          
+
           // Vary the count more - some roles might not be needed at all times
           if ((roleName === "Manager" && (hour < 8 || hour > 22)) ||
-              (roleName === "Cleaner" && hour >= 22 && hour <= 5)) {
+            (roleName === "Cleaner" && hour >= 22 && hour <= 5)) {
             count = Math.max(0, count - 1)
           }
-          
+
           if (count === 0) return // Skip roles with 0 count
-          
+
           const employees = []
           const availableEmployees = employeeNames[roleIndex]
-          
+
           for (let i = 0; i < count; i++) {
             // Add some variation - different employees on different days
             const employeeIndex = (i + day + Math.floor(hour / 8)) % availableEmployees.length
             employees.push(availableEmployees[employeeIndex])
           }
-          
+
           roles[roleName] = { count, employees }
         })
 
@@ -305,10 +305,10 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
     return result
       ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
       : null
   }
 
@@ -1195,7 +1195,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
     const renderWeekView = (weekOffset = 0) => {
       const headerGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
       const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
-      
+
       return (
         <div className="schedule-week-view">
           <div className="schedule-week-header">
@@ -1204,22 +1204,22 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
           </div>
           <div className="schedule-grid">
             {/* Header row with days */}
-            <div 
+            <div
               className="schedule-header-cell schedule-corner-cell"
               style={{ background: cornerGradient }}
             >
               <div className="corner-label">Time / Day</div>
             </div>
             {days.map((day, dayIndex) => (
-              <div 
-                key={dayIndex} 
+              <div
+                key={dayIndex}
                 className="schedule-header-cell"
                 style={{ background: headerGradient }}
               >
                 <span className="day-name">{day}</span>
               </div>
             ))}
-            
+
             {/* Hour rows */}
             {Array.from({ length: 24 }).map((_, hour) => (
               <>
@@ -1228,26 +1228,26 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
                 </div>
                 {days.map((_, day) => {
                   const slotData = getScheduleSlot(hour, day)
-                  const totalStaff = slotData 
+                  const totalStaff = slotData
                     ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
                     : 0
-                  
+
                   return (
-                    <div 
-                      key={`${hour}-${day}`} 
+                    <div
+                      key={`${hour}-${day}`}
                       className={`schedule-cell ${totalStaff === 0 ? 'empty-slot' : ''}`}
                       onClick={() => totalStaff > 0 && handleSlotClick(hour, day)}
                     >
                       {totalStaff > 0 ? (
                         <div className="schedule-cell-content">
                           {Object.entries(slotData.roles).map(([roleName, roleData]) => (
-                            <div 
-                              key={roleName} 
+                            <div
+                              key={roleName}
                               className="schedule-role-item"
                               style={{ borderLeftColor: primaryColor }}
                             >
                               <span className="role-name">{roleName}</span>
-                              <span 
+                              <span
                                 className="role-count"
                                 style={{ backgroundColor: primaryColor }}
                               >
@@ -1276,7 +1276,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
         { label: "Week 3", dates: "Feb 15-21" },
         { label: "Week 4", dates: "Feb 22-28" }
       ]
-      
+
       return (
         <div className="schedule-month-view">
           <div className="schedule-hardcoded-alert">
@@ -1291,8 +1291,8 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
           </div>
           <div className="month-grid">
             {weeks.map((week, weekIndex) => (
-              <div 
-                key={weekIndex} 
+              <div
+                key={weekIndex}
                 className="month-week-card"
                 onClick={() => {
                   setSelectedWeek(weekIndex)
@@ -1308,10 +1308,10 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
                   {days.map((day, dayIndex) => {
                     // Show total staff for peak hour (18:00)
                     const peakSlot = getScheduleSlot(18, dayIndex)
-                    const peakStaff = peakSlot 
+                    const peakStaff = peakSlot
                       ? Object.values(peakSlot.roles).reduce((sum, role) => sum + role.count, 0)
                       : 0
-                    
+
                     return (
                       <div key={dayIndex} className="week-preview-day">
                         <div className="day-label">{day}</div>
@@ -1333,15 +1333,15 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
 
     const renderSchedulePopup = () => {
       if (!showSchedulePopup || !selectedSlot) return null
-      
+
       const slotData = getScheduleSlot(selectedSlot.hour, selectedSlot.day)
-      const totalEmployees = slotData 
+      const totalEmployees = slotData
         ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
         : 0
-      
+
       const popupHeaderGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
       const employeeNumberGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
-      
+
       return (
         <div className="schedule-popup-overlay" onClick={() => setShowSchedulePopup(false)}>
           <div className="schedule-popup" onClick={(e) => e.stopPropagation()}>
@@ -1352,8 +1352,8 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
                 </h3>
                 <p className="popup-subtitle">{totalEmployees} employees scheduled</p>
               </div>
-              <button 
-                className="popup-close" 
+              <button
+                className="popup-close"
                 onClick={() => setShowSchedulePopup(false)}
                 aria-label="Close"
               >
@@ -1363,14 +1363,14 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
             <div className="popup-content">
               {slotData && Object.keys(slotData.roles).length > 0 ? (
                 Object.entries(slotData.roles).map(([roleName, roleData]) => (
-                  <div 
-                    key={roleName} 
+                  <div
+                    key={roleName}
                     className="popup-role-section"
                     style={{ borderLeftColor: primaryColor }}
                   >
                     <div className="role-header">
                       <h4>{roleName}</h4>
-                      <span 
+                      <span
                         className="role-badge"
                         style={{ backgroundColor: primaryColor }}
                       >
@@ -1380,7 +1380,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
                     <ul className="employee-list">
                       {roleData.employees.map((employeeName, idx) => (
                         <li key={idx}>
-                          <span 
+                          <span
                             className="employee-number"
                             style={{ background: employeeNumberGradient }}
                           >
@@ -1426,7 +1426,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
           </div>
           <div className="schedule-buttons">
             {scheduleView !== "none" && (
-              <button 
+              <button
                 className="btn-secondary"
                 onClick={handleBackClick}
               >
@@ -1435,7 +1435,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
             )}
             {scheduleView === "none" && (
               <>
-                <button 
+                <button
                   className="btn-primary"
                   onClick={() => {
                     setScheduleView("week")
@@ -1444,7 +1444,7 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
                 >
                   <img src={ScheduleIcon} alt="" className="btn-icon-svg" /> Generate Week Schedule
                 </button>
-                <button 
+                <button
                   className="btn-primary"
                   onClick={() => setScheduleView("month")}
                 >
@@ -1675,11 +1675,11 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
           >
             {currentUser?.full_name
               ? currentUser.full_name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2)
               : "..."}
           </div>
           <div>
@@ -2000,49 +2000,49 @@ const [recommendationsLoading, setRecommendationsLoading] = useState(false)
       }
     }
 
-const handleGetRecommendations = async () => {
-  setShowRecommendationModal(true)
-}
+    const handleGetRecommendations = async () => {
+      setShowRecommendationModal(true)
+    }
 
-const handleFetchRecommendations = async () => {
-  try {
-    setRecommendationsLoading(true)
-    const response = await api.campaigns.recommendCampaigns(recommendationParams)
-    setRecommendations(response)
-    setActionMessage({
-      type: "success",
-      text: `Generated ${response.recommendations?.length || 0} recommendations`,
-    })
-    setTimeout(() => setActionMessage(null), 4000)
-  } catch (err) {
-    console.error("Failed to fetch recommendations:", err)
-    setActionMessage({
-      type: "error",
-      text: err.message || "Failed to generate recommendations. Ensure sufficient historical data exists.",
-    })
-    setTimeout(() => setActionMessage(null), 6000)
-  } finally {
-    setRecommendationsLoading(false)
-  }
-}
+    const handleFetchRecommendations = async () => {
+      try {
+        setRecommendationsLoading(true)
+        const response = await api.campaigns.recommendCampaigns(recommendationParams)
+        setRecommendations(response)
+        setActionMessage({
+          type: "success",
+          text: `Generated ${response.recommendations?.length || 0} recommendations`,
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+      } catch (err) {
+        console.error("Failed to fetch recommendations:", err)
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to generate recommendations. Ensure sufficient historical data exists.",
+        })
+        setTimeout(() => setActionMessage(null), 6000)
+      } finally {
+        setRecommendationsLoading(false)
+      }
+    }
 
-const handleSubmitFeedback = async (feedback) => {
-  try {
-    await api.campaigns.submitCampaignFeedback(feedback)
-    setActionMessage({
-      type: "success",
-      text: "Feedback submitted successfully",
-    })
-    setTimeout(() => setActionMessage(null), 4000)
-  } catch (err) {
-    console.error("Failed to submit feedback:", err)
-    setActionMessage({
-      type: "error",
-      text: err.message || "Failed to submit feedback",
-    })
-    setTimeout(() => setActionMessage(null), 4000)
-  }
-}
+    const handleSubmitFeedback = async (feedback) => {
+      try {
+        await api.campaigns.submitCampaignFeedback(feedback)
+        setActionMessage({
+          type: "success",
+          text: "Feedback submitted successfully",
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+      } catch (err) {
+        console.error("Failed to submit feedback:", err)
+        setActionMessage({
+          type: "error",
+          text: err.message || "Failed to submit feedback",
+        })
+        setTimeout(() => setActionMessage(null), 4000)
+      }
+    }
     const downloadCSV = () => {
       if (!campaignsData || campaignsData.length === 0) {
         setActionMessage({ type: "error", text: "No campaigns to download" })
@@ -2417,7 +2417,7 @@ const handleSubmitFeedback = async (feedback) => {
                         }}
                       >
                         {campaign.items_included &&
-                        campaign.items_included.length > 0 ? (
+                          campaign.items_included.length > 0 ? (
                           <span
                             title={campaign.items_included
                               .map((item) => item.name)
@@ -2542,348 +2542,348 @@ const handleSubmitFeedback = async (feedback) => {
             </div>
           </div>
         )}
-{/* Campaign Recommendation Modal */}
-{showRecommendationModal && (
-  <div
-    className="modal-overlay"
-    onClick={() => !recommendationsLoading && setShowRecommendationModal(false)}
-  >
-    <div 
-      className="modal-content" 
-      style={{ 
-        maxWidth: '900px', 
-        maxHeight: '90vh', 
-        overflow: 'auto'
-      }} 
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="modal-header">
-        <h2 className="section-title">
-          🎯 AI Campaign Recommendations
-        </h2>
-        <button
-          className="collapse-btn"
-          onClick={() => setShowRecommendationModal(false)}
-          disabled={recommendationsLoading}
-        >
-          ×
-        </button>
-      </div>
-      
-      {!recommendations ? (
-        // Configuration Form
-        <div style={{ padding: 'var(--space-4)' }}>
-          <h3 style={{ 
-            marginBottom: 'var(--space-4)', 
-            fontSize: 'var(--text-lg)',
-            color: 'var(--text-primary)'
-          }}>
-            Configure Parameters
-          </h3>
-          
-          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-            <div>
-              <label className="form-label">
-                Campaign Start Date
-              </label>
-              <input
-                type="date"
-                className="form-input"
-                value={recommendationParams.recommendation_start_date}
-                onChange={(e) => setRecommendationParams({
-                  ...recommendationParams,
-                  recommendation_start_date: e.target.value
-                })}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-              <div>
-                <label className="form-label">
-                  Number of Recommendations
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  className="form-input"
-                  value={recommendationParams.num_recommendations}
-                  onChange={(e) => setRecommendationParams({
-                    ...recommendationParams,
-                    num_recommendations: parseInt(e.target.value)
-                  })}
-                />
-              </div>
-
-              <div>
-                <label className="form-label">
-                  Optimize For
-                </label>
-                <select
-                  className="form-input"
-                  value={recommendationParams.optimize_for}
-                  onChange={(e) => setRecommendationParams({
-                    ...recommendationParams,
-                    optimize_for: e.target.value
-                  })}
-                >
-                  <option value="roi">ROI</option>
-                  <option value="revenue">Revenue</option>
-                  <option value="uplift">Uplift</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="form-label">
-                Maximum Discount (%)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="5"
-                className="form-input"
-                value={recommendationParams.max_discount}
-                onChange={(e) => setRecommendationParams({
-                  ...recommendationParams,
-                  max_discount: parseFloat(e.target.value)
-                })}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
-              <div>
-                <label className="form-label">
-                  Min Duration (days)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  className="form-input"
-                  value={recommendationParams.min_campaign_duration_days}
-                  onChange={(e) => setRecommendationParams({
-                    ...recommendationParams,
-                    min_campaign_duration_days: parseInt(e.target.value)
-                  })}
-                />
-              </div>
-              <div>
-                <label className="form-label">
-                  Max Duration (days)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  className="form-input"
-                  value={recommendationParams.max_campaign_duration_days}
-                  onChange={(e) => setRecommendationParams({
-                    ...recommendationParams,
-                    max_campaign_duration_days: parseInt(e.target.value)
-                  })}
-                />
-              </div>
-            </div>
-          </div>
-
-          <button
-            className="btn-primary"
-            onClick={handleFetchRecommendations}
-            disabled={recommendationsLoading}
-            style={{ 
-              width: '100%', 
-              marginTop: 'var(--space-4)', 
-              padding: 'var(--space-3)'
-            }}
+        {/* Campaign Recommendation Modal */}
+        {showRecommendationModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => !recommendationsLoading && setShowRecommendationModal(false)}
           >
-            {recommendationsLoading ? '⏳ Generating...' : '✨ Generate Recommendations'}
-          </button>
+            <div
+              className="modal-content"
+              style={{
+                maxWidth: '900px',
+                maxHeight: '90vh',
+                overflow: 'auto'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2 className="section-title">
+                  🎯 AI Campaign Recommendations
+                </h2>
+                <button
+                  className="collapse-btn"
+                  onClick={() => setShowRecommendationModal(false)}
+                  disabled={recommendationsLoading}
+                >
+                  ×
+                </button>
+              </div>
 
-          {recommendationsLoading && (
-            <p style={{ 
-              textAlign: 'center', 
-              marginTop: 'var(--space-3)', 
-              color: 'var(--text-tertiary)', 
-              fontSize: 'var(--text-sm)' 
-            }}>
-              Analyzing your data... This may take up to 60 seconds
-            </p>
-          )}
-        </div>
-      ) : (
-        // Recommendations Display
-        <div style={{ padding: 'var(--space-4)' }}>
-          <div className="info-item" style={{ 
-            marginBottom: 'var(--space-4)', 
-            padding: 'var(--space-4)'
-          }}>
-            <h3 style={{ 
-              marginBottom: 'var(--space-2)',
-              color: 'var(--text-primary)',
-              fontSize: 'var(--text-xl)',
-              fontWeight: 700
-            }}>
-              {recommendations.restaurant_name}
-            </h3>
-            <p style={{ 
-              color: 'var(--text-secondary)', 
-              fontSize: 'var(--text-sm)' 
-            }}>
-              📅 {recommendations.recommendation_date} • 
-              Confidence: <strong>{recommendations.confidence_level}</strong>
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-            {recommendations.recommendations?.map((rec, index) => (
-              <div
-                key={rec.campaign_id || index}
-                className="profile-card"
-                style={{
-                  padding: 'var(--space-4)',
-                  border: '2px solid var(--color-primary)'
-                }}
-              >
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'start', 
-                  marginBottom: 'var(--space-3)' 
-                }}>
-                  <h4 style={{ 
-                    fontSize: 'var(--text-lg)', 
-                    fontWeight: 700,
+              {!recommendations ? (
+                // Configuration Form
+                <div style={{ padding: 'var(--space-4)' }}>
+                  <h3 style={{
+                    marginBottom: 'var(--space-4)',
+                    fontSize: 'var(--text-lg)',
                     color: 'var(--text-primary)'
                   }}>
-                    Campaign #{index + 1}
-                  </h4>
-                  <span className="badge-primary" style={{
-                    padding: '6px 16px',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 700
+                    Configure Parameters
+                  </h3>
+
+                  <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                    <div>
+                      <label className="form-label">
+                        Campaign Start Date
+                      </label>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={recommendationParams.recommendation_start_date}
+                        onChange={(e) => setRecommendationParams({
+                          ...recommendationParams,
+                          recommendation_start_date: e.target.value
+                        })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                      <div>
+                        <label className="form-label">
+                          Number of Recommendations
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          className="form-input"
+                          value={recommendationParams.num_recommendations}
+                          onChange={(e) => setRecommendationParams({
+                            ...recommendationParams,
+                            num_recommendations: parseInt(e.target.value)
+                          })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="form-label">
+                          Optimize For
+                        </label>
+                        <select
+                          className="form-input"
+                          value={recommendationParams.optimize_for}
+                          onChange={(e) => setRecommendationParams({
+                            ...recommendationParams,
+                            optimize_for: e.target.value
+                          })}
+                        >
+                          <option value="roi">ROI</option>
+                          <option value="revenue">Revenue</option>
+                          <option value="uplift">Uplift</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="form-label">
+                        Maximum Discount (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="5"
+                        className="form-input"
+                        value={recommendationParams.max_discount}
+                        onChange={(e) => setRecommendationParams({
+                          ...recommendationParams,
+                          max_discount: parseFloat(e.target.value)
+                        })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                      <div>
+                        <label className="form-label">
+                          Min Duration (days)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          className="form-input"
+                          value={recommendationParams.min_campaign_duration_days}
+                          onChange={(e) => setRecommendationParams({
+                            ...recommendationParams,
+                            min_campaign_duration_days: parseInt(e.target.value)
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <label className="form-label">
+                          Max Duration (days)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="30"
+                          className="form-input"
+                          value={recommendationParams.max_campaign_duration_days}
+                          onChange={(e) => setRecommendationParams({
+                            ...recommendationParams,
+                            max_campaign_duration_days: parseInt(e.target.value)
+                          })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    className="btn-primary"
+                    onClick={handleFetchRecommendations}
+                    disabled={recommendationsLoading}
+                    style={{
+                      width: '100%',
+                      marginTop: 'var(--space-4)',
+                      padding: 'var(--space-3)'
+                    }}
+                  >
+                    {recommendationsLoading ? '⏳ Generating...' : '✨ Generate Recommendations'}
+                  </button>
+
+                  {recommendationsLoading && (
+                    <p style={{
+                      textAlign: 'center',
+                      marginTop: 'var(--space-3)',
+                      color: 'var(--text-tertiary)',
+                      fontSize: 'var(--text-sm)'
+                    }}>
+                      Analyzing your data... This may take up to 60 seconds
+                    </p>
+                  )}
+                </div>
+              ) : (
+                // Recommendations Display
+                <div style={{ padding: 'var(--space-4)' }}>
+                  <div className="info-item" style={{
+                    marginBottom: 'var(--space-4)',
+                    padding: 'var(--space-4)'
                   }}>
-                    {rec.discount_percentage}% OFF
-                  </span>
-                </div>
+                    <h3 style={{
+                      marginBottom: 'var(--space-2)',
+                      color: 'var(--text-primary)',
+                      fontSize: 'var(--text-xl)',
+                      fontWeight: 700
+                    }}>
+                      {recommendations.restaurant_name}
+                    </h3>
+                    <p style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: 'var(--text-sm)'
+                    }}>
+                      📅 {recommendations.recommendation_date} •
+                      Confidence: <strong>{recommendations.confidence_level}</strong>
+                    </p>
+                  </div>
 
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr', 
-                  gap: 'var(--space-3)', 
-                  marginBottom: 'var(--space-3)' 
-                }}>
-                  <div className="info-item">
-                    <p className="info-label">
-                      Start Date
-                    </p>
-                    <p className="info-value">
-                      {rec.start_date}
-                    </p>
-                  </div>
-                  <div className="info-item">
-                    <p className="info-label">
-                      End Date
-                    </p>
-                    <p className="info-value">
-                      {rec.end_date} ({rec.duration_days}d)
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 1fr', 
-                  gap: 'var(--space-3)', 
-                  marginBottom: 'var(--space-3)'
-                }}>
-                  <div className="stat-item">
-                    <div className="stat-value">
-                      {rec.expected_uplift?.toFixed(1)}%
-                    </div>
-                    <div className="stat-label">
-                      Expected Uplift
-                    </div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-value">
-                      {rec.expected_roi?.toFixed(1)}%
-                    </div>
-                    <div className="stat-label">
-                      Expected ROI
-                    </div>
-                  </div>
-                  <div className="stat-item">
-                    <div className="stat-value">
-                      ${rec.expected_revenue?.toFixed(0)}
-                    </div>
-                    <div className="stat-label">
-                      Expected Revenue
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 'var(--space-3)' }}>
-                  <p style={{ 
-                    fontSize: 'var(--text-sm)', 
-                    color: 'var(--text-secondary)', 
-                    marginBottom: 'var(--space-2)',
-                    fontWeight: 600
-                  }}>
-                    Items Included:
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                    {rec.items?.map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="badge"
+                  <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                    {recommendations.recommendations?.map((rec, index) => (
+                      <div
+                        key={rec.campaign_id || index}
+                        className="profile-card"
                         style={{
-                          padding: '4px 12px',
-                          background: 'var(--bg-secondary)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border-color)'
+                          padding: 'var(--space-4)',
+                          border: '2px solid var(--color-primary)'
                         }}
                       >
-                        {item}
-                      </span>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'start',
+                          marginBottom: 'var(--space-3)'
+                        }}>
+                          <h4 style={{
+                            fontSize: 'var(--text-lg)',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)'
+                          }}>
+                            Campaign #{index + 1}
+                          </h4>
+                          <span className="badge-primary" style={{
+                            padding: '6px 16px',
+                            fontSize: 'var(--text-sm)',
+                            fontWeight: 700
+                          }}>
+                            {rec.discount_percentage}% OFF
+                          </span>
+                        </div>
+
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: 'var(--space-3)',
+                          marginBottom: 'var(--space-3)'
+                        }}>
+                          <div className="info-item">
+                            <p className="info-label">
+                              Start Date
+                            </p>
+                            <p className="info-value">
+                              {rec.start_date}
+                            </p>
+                          </div>
+                          <div className="info-item">
+                            <p className="info-label">
+                              End Date
+                            </p>
+                            <p className="info-value">
+                              {rec.end_date} ({rec.duration_days}d)
+                            </p>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr 1fr',
+                          gap: 'var(--space-3)',
+                          marginBottom: 'var(--space-3)'
+                        }}>
+                          <div className="stat-item">
+                            <div className="stat-value">
+                              {rec.expected_uplift?.toFixed(1)}%
+                            </div>
+                            <div className="stat-label">
+                              Expected Uplift
+                            </div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-value">
+                              {rec.expected_roi?.toFixed(1)}%
+                            </div>
+                            <div className="stat-label">
+                              Expected ROI
+                            </div>
+                          </div>
+                          <div className="stat-item">
+                            <div className="stat-value">
+                              ${rec.expected_revenue?.toFixed(0)}
+                            </div>
+                            <div className="stat-label">
+                              Expected Revenue
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 'var(--space-3)' }}>
+                          <p style={{
+                            fontSize: 'var(--text-sm)',
+                            color: 'var(--text-secondary)',
+                            marginBottom: 'var(--space-2)',
+                            fontWeight: 600
+                          }}>
+                            Items Included:
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                            {rec.items?.map((item, idx) => (
+                              <span
+                                key={idx}
+                                className="badge"
+                                style={{
+                                  padding: '4px 12px',
+                                  background: 'var(--bg-secondary)',
+                                  color: 'var(--text-primary)',
+                                  border: '1px solid var(--border-color)'
+                                }}
+                              >
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {rec.reasoning && (
+                          <div className="alert-card alert-low" style={{
+                            padding: 'var(--space-3)',
+                            marginTop: 'var(--space-3)'
+                          }}>
+                            <p style={{
+                              fontSize: 'var(--text-sm)',
+                              color: 'var(--text-primary)',
+                              margin: 0
+                            }}>
+                              <strong>💡 AI Insight:</strong> {rec.reasoning}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setRecommendations(null)
+                      setShowRecommendationModal(false)
+                    }}
+                    style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                  >
+                    Close
+                  </button>
                 </div>
-
-                {rec.reasoning && (
-                  <div className="alert-card alert-low" style={{ 
-                    padding: 'var(--space-3)',
-                    marginTop: 'var(--space-3)'
-                  }}>
-                    <p style={{ 
-                      fontSize: 'var(--text-sm)', 
-                      color: 'var(--text-primary)',
-                      margin: 0
-                    }}>
-                      <strong>💡 AI Insight:</strong> {rec.reasoning}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setRecommendations(null)
-              setShowRecommendationModal(false)
-            }}
-            style={{ width: '100%', marginTop: 'var(--space-4)' }}
-          >
-            Close
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+        )}
       </div>
     )
   }
@@ -3908,8 +3908,8 @@ const handleSubmitFeedback = async (feedback) => {
                             >
                               {delivery.out_for_delivery_time
                                 ? new Date(
-                                    delivery.out_for_delivery_time,
-                                  ).toLocaleString()
+                                  delivery.out_for_delivery_time,
+                                ).toLocaleString()
                                 : "—"}
                             </td>
                             <td
@@ -3921,8 +3921,8 @@ const handleSubmitFeedback = async (feedback) => {
                             >
                               {delivery.delivered_time
                                 ? new Date(
-                                    delivery.delivered_time,
-                                  ).toLocaleString()
+                                  delivery.delivered_time,
+                                ).toLocaleString()
                                 : "—"}
                             </td>
                           </tr>
@@ -4192,7 +4192,7 @@ const handleSubmitFeedback = async (feedback) => {
 
       // Parse header
       const headers = lines[0].split(",").map((h) => h.trim())
-      const requiredHeaders = ["full_name", "email", "role", "hourly_salary"]
+      const requiredHeaders = ["full_name", "email", "role", "hourly_salary", "roles"]
       const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
 
       if (missingHeaders.length > 0) {
@@ -4204,66 +4204,26 @@ const handleSubmitFeedback = async (feedback) => {
         return
       }
 
-      // Parse and upload employees
-      let successCount = 0
-      let errorCount = 0
-      const failedEmployees = []
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",").map((v) => v.trim())
-        if (values.length !== headers.length) continue
-
-        const employee = {}
-        headers.forEach((header, index) => {
-          employee[header] = values[index]
-        })
-
-        try {
-          console.log(
-            `Attempting to create employee: ${employee.full_name} with role: ${employee.role}`,
-          )
-          await api.staffing.createEmployee({
-            full_name: employee.full_name,
-            email: employee.email,
-            role: employee.role,
-            hourly_salary: parseFloat(employee.hourly_salary),
-            max_hours_per_week: employee.max_hours_per_week
-              ? parseInt(employee.max_hours_per_week)
-              : undefined,
-            preferred_hours_per_week: employee.preferred_hours_per_week
-              ? parseInt(employee.preferred_hours_per_week)
-              : undefined,
-          })
-          console.log(`✓ Successfully created: ${employee.full_name}`)
-          successCount++
-        } catch (err) {
-          console.error(
-            `✗ Failed to create employee ${employee.full_name}:`,
-            err,
-          )
-          failedEmployees.push({
-            name: employee.full_name,
-            role: employee.role,
-            error: err.response?.data?.error || err.message || "Unknown error",
-          })
-          errorCount++
-        }
+      try {
+        console.log(
+          `Attempting to upload employees: ${file.name}`,
+        )
+        await api.staffing.bulkUploadEmployees(file)
+        console.log(`✓ Successfully uploaded: ${file.name}`)
+      } catch (err) {
+        console.error(
+          `✗ Failed to upload file ${file.name}:`,
+          err,
+        )
       }
 
       // Refresh employee list
       await fetchEmployees()
 
       // Build detailed message
-      let message = `Uploaded ${successCount} employee(s).`
-      if (errorCount > 0) {
-        message += ` ${errorCount} failed:\n`
-        failedEmployees.forEach((emp) => {
-          message += `\n• ${emp.name} (${emp.role}): ${emp.error}`
-        })
-      }
+      let message = `Uploaded employees.`
 
       setActionMessage({
-        type: successCount > 0 ? "success" : "error",
         text: message,
       })
       setTimeout(() => setActionMessage(null), 8000)
@@ -5141,11 +5101,10 @@ const handleSubmitFeedback = async (feedback) => {
 
         {requestActionMessage && (
           <div
-            className={`alert ${
-              requestActionMessage.type === "success"
+            className={`alert ${requestActionMessage.type === "success"
                 ? "alert-success"
                 : "alert-error"
-            }`}
+              }`}
             style={{ marginBottom: "var(--space-4)" }}
           >
             {requestActionMessage.text}
@@ -6684,11 +6643,11 @@ const handleSubmitFeedback = async (feedback) => {
 
     const userInitials = currentUser?.full_name
       ? currentUser.full_name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
       : "AD"
 
     // Get data from currentUser
@@ -6725,7 +6684,7 @@ const handleSubmitFeedback = async (feedback) => {
         return {
           stat1: {
             label: "Total Employees",
-            value: getInsightValue("Number of Employees"),
+            value: getInsightValue("Number of Staff"),
           },
           stat2: { label: "Active Roles", value: roles.length },
           stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
@@ -6941,7 +6900,7 @@ const handleSubmitFeedback = async (feedback) => {
                       <span className="info-label">Utilization Rate</span>
                       <span className="info-value">
                         {currentUser?.max_hours_per_week &&
-                        profileData.hours_worked_this_week
+                          profileData.hours_worked_this_week
                           ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
                           : "N/A"}
                       </span>
@@ -6953,7 +6912,7 @@ const handleSubmitFeedback = async (feedback) => {
                         style={{ color: "var(--color-accent)" }}
                       >
                         {currentUser?.hourly_salary &&
-                        profileData.hours_worked_this_week
+                          profileData.hours_worked_this_week
                           ? `$${(currentUser.hourly_salary * profileData.hours_worked_this_week).toFixed(2)}`
                           : "N/A"}
                       </span>
@@ -7360,11 +7319,11 @@ const handleSubmitFeedback = async (feedback) => {
             >
               {currentUser?.full_name
                 ? currentUser.full_name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
                 : "..."}
             </div>
             {!sidebarCollapsed && (

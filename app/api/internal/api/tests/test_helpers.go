@@ -409,40 +409,6 @@ func (m *MockUploadService) ParseCSV(file multipart.File) (*service.CSVData, err
 	return args.Get(0).(*service.CSVData), args.Error(1)
 }
 
-// MockAlertStore
-type MockAlertStore struct {
-	mock.Mock
-}
-
-func (m *MockAlertStore) StoreAlert(orgID uuid.UUID, alert *database.Alert) error {
-	args := m.Called(orgID, alert)
-	return args.Error(0)
-}
-
-func (m *MockAlertStore) GetAllAlerts(orgID uuid.UUID) ([]database.Alert, error) {
-	args := m.Called(orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]database.Alert), args.Error(1)
-}
-
-func (m *MockAlertStore) GetAllAlertsForLastWeek(orgID uuid.UUID) ([]database.Alert, error) {
-	args := m.Called(orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]database.Alert), args.Error(1)
-}
-
-func (m *MockAlertStore) GetAlertInsights(orgID uuid.UUID) ([]database.Insight, error) {
-	args := m.Called(orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]database.Insight), args.Error(1)
-}
-
 // MockCampaignStore
 type MockCampaignStore struct {
 	mock.Mock
