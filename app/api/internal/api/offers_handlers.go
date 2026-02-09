@@ -29,19 +29,53 @@ func NewOfferHandler(userStore database.UserStore, orgStore database.OrgStore, o
 	}
 }
 
-type OfferHandleroffer struct {
-}
-
-type OfferHandlerResponse struct {
-}
-
 type OfferActionBody struct {
 	OfferID string `json:"offer_id"`
-	
 }
 
 func (oh *OfferHandler) GetAllOffersForEmployeeHandler(c *gin.Context) {
+	oh.Logger.Info("get employee offers received")
 
+	user := middleware.ValidateOrgAccess(c)
+	if user == nil {
+		return
+	}
+
+	// Verify access - can only view own requests or if admin/manager
+	if user.UserRole != "employee" {
+		oh.Logger.Warn("forbidden offers access attempt", "user_id", user.ID)
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Verify employee belongs to same organization
+	employee, err := oh.UserStore.GetUserByID(user.ID)
+
+	if err != nil {
+		oh.Logger.Error("failed to get employee", "error", err, "employee_id", user.ID)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Employee not found"})
+		return
+	}
+
+	if employee.OrganizationID != user.OrganizationID {
+		oh.Logger.Warn("attempted to access offers from different organization")
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	offers, err := oh.OfferStore.GetAllOffersForEmployee(user.ID)
+	if err != nil {
+		oh.Logger.Error("failed to get offers", "error", err, "employee_id", user.ID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve offers"})
+		return
+	}
+
+	oh.Logger.Info("employee requests retrieved", "employee_id", user.ID, "count", len(offers))
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Employee offers retrieved successfully",
+		"offers": offers,
+		"total":    len(offers),
+	})
 }
 
 func (oh *OfferHandler) AcceptOfferHandler(c *gin.Context) {
@@ -94,7 +128,7 @@ func (oh *OfferHandler) AcceptOfferHandler(c *gin.Context) {
 		return
 	}
 	
-	//TODO: Send update schedule and redirect to the schedule
+	//TODO: Send update schedule swap in start_time 
 
 	go func() {
 		

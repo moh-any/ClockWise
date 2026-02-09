@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS organizations_managers (
     manager_id UUID, 
     PRIMARY KEY (organization_id,manager_id), 
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
-    FOREIGN KEY (manager_id) REFERENCES users(id)   
+    FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE CASCADE  
 );
 
 -- +goose StatementEnd

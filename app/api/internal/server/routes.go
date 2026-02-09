@@ -107,7 +107,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	dashboard.GET("/demand", s.dashboardHandler.GetDemandHeatMapHandler)
 	dashboard.POST("/demand/predict", s.dashboardHandler.PredictDemandHeatMapHandler) // Send data and fetch demand from demand service
 
-	api.GET("/:org/surge/demand_data") // Get demand data for the ml model
 
 	// Surge Detection Endpoints
 	surge := api.Group("/surge")
