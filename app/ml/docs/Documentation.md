@@ -29,7 +29,7 @@ The **Restaurant Demand Prediction & Scheduling System** is an AI-powered platfo
 
 ### Key Features
 
-✅ **Hourly Demand Forecasting** - ML-powered predictions using Random Forest  
+✅ **Hourly Demand Forecasting** - ML-powered predictions using CatBoost with Quantile Loss  
 ✅ **Intelligent Scheduling** - CP-SAT optimization considering 15+ constraints  
 ✅ **Weather Integration** - Automatic weather feature enrichment from Open-Meteo  
 ✅ **Holiday Detection** - Geographic holiday identification via reverse geocoding  
@@ -40,8 +40,8 @@ The **Restaurant Demand Prediction & Scheduling System** is an AI-powered platfo
 
 ### Technology Stack
 
-- **Backend**: Python 3.12, FastAPI 0.115+
-- **ML Model**: scikit-learn Random Forest (600 trees)
+- **Backend**: Python 3.11, FastAPI 0.104.1
+- **ML Model**: CatBoost with Quantile Loss (α=0.60), 69 engineered features
 - **Optimization**: Google OR-Tools CP-SAT Solver
 - **APIs**: Open-Meteo (weather), Nominatim (geocoding), holidays library
 - **Data Processing**: pandas, numpy
@@ -74,8 +74,9 @@ The **Restaurant Demand Prediction & Scheduling System** is an AI-powered platfo
 └─────────────────────────────────────────────────────────────────┘
                             │
                    ┌────────▼────────┐
-                   │  Random Forest  │
-                   │  ML Model (.pkl) │
+                   │    CatBoost    │
+                   │ Quantile Loss  │
+                   │ (α=0.60)       │
                    └─────────────────┘
 ```
 
@@ -107,10 +108,10 @@ The **Restaurant Demand Prediction & Scheduling System** is an AI-powered platfo
 - Batched API calls to reduce latency
 
 #### 5. **ML Model** (`data/models/rf_model.joblib`)
-- Random Forest Regressor (600 estimators)
+- CatBoost with Quantile Loss (α=0.60)
 - Multi-output: predicts both `item_count` and `order_count`
-- Log transformation for target variables
-- StandardScaler for feature normalization
+- 69 engineered features
+- Deliberate upward bias for safe staffing
 
 #### 6. **Scheduler** (`src/scheduler_cpsat.py`)
 - Google OR-Tools CP-SAT constraint solver
@@ -127,7 +128,7 @@ The **Restaurant Demand Prediction & Scheduling System** is an AI-powered platfo
 
 ```bash
 # System requirements
-Python 3.12+
+Python 3.11+
 pip 24.0+
 8GB RAM (for OR-Tools solver)
 ```
@@ -154,16 +155,17 @@ ls data/models/rf_model_metadata.json
 ### Required Dependencies
 
 ```txt
-fastapi==0.115.0
-uvicorn==0.30.6
-pydantic==2.9.0
-pandas==2.2.2
-numpy==1.26.4
-scikit-learn==1.5.1
-joblib==1.4.2
-ortools==9.10.4067
-requests==2.32.3
-holidays==0.56
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0
+pandas>=2.1.3
+numpy>=1.26.2
+scikit-learn>=1.3.2
+xgboost==2.0.2
+joblib==1.3.2
+ortools==9.8.3296
+requests==2.31.0
+holidays==0.37
 ```
 
 ### Running the Server
@@ -214,7 +216,7 @@ Once running, access:
   "scheduler_available": true,
   "weather_api_available": true,
   "holiday_api_available": true,
-  "version": "3.0.0"
+  "version": "3.1.0"
 }
 ```
 
@@ -227,19 +229,19 @@ Once running, access:
 **Response**:
 ```json
 {
-  "python_version": "3.12.3",
-  "sklearn_version": "1.5.1",
-  "model_type": "RandomForestRegressor",
+  "python_version": "3.11.0",
+  "sklearn_version": "1.3.2",
+  "model_type": "CatBoostRegressor",
   "features": ["place_id", "hour", "day_of_week", ...],
   "hyperparameters": {
-    "max_depth": 12,
-    "min_samples_leaf": 7,
-    "max_features": 0.5,
-    "n_estimators": 600,
-    "bootstrap": true
+    "depth": 8,
+    "learning_rate": 0.03,
+    "iterations": 3000,
+    "l2_leaf_reg": 2.5,
+    "loss_function": "Quantile:alpha=0.60"
   },
-  "training_size": 123456,
-  "test_size": 30864
+  "training_size": 65608,
+  "test_size": 16403
 }
 ```
 
@@ -912,9 +914,9 @@ Once running, access:
 
 ### Model Architecture
 
-**Type**: Random Forest Regressor (Multi-Output)
+**Type**: CatBoost with Quantile Loss (α=0.60)
 
-**Framework**: scikit-learn 1.5.1
+**Framework**: CatBoost (via scikit-learn interface)
 
 **Outputs**: 
 - `item_count`: Total items ordered per hour
@@ -926,20 +928,20 @@ Once running, access:
 
 ```python
 {
-  "n_estimators": 600,           # Number of trees
-  "max_depth": 12,                # Maximum tree depth
-  "min_samples_leaf": 7,          # Minimum samples per leaf
-  "max_features": 0.5,            # Features per split
-  "bootstrap": True,              # Bootstrap sampling
-  "random_state": 42              # Reproducibility
+  "depth": 8,                      # Maximum tree depth
+  "learning_rate": 0.03,           # Gradient step size
+  "iterations": 3000,              # Number of boosting rounds
+  "l2_leaf_reg": 2.5,              # L2 regularization
+  "loss_function": "Quantile:alpha=0.60",  # Quantile regression
+  "random_seed": 42                # Reproducibility
 }
 ```
 
 #### Target Transformation
 
-- **Function**: `log1p` (log(1 + x))
-- **Inverse**: `expm1` (exp(x) - 1)
-- **Reason**: Handles skewed target distribution, prevents negative predictions
+- **Quantile Regression**: Predicts 60th percentile instead of mean
+- **Deliberate upward bias**: Over-prediction is safer than under-prediction for staffing
+- **Sample weighting**: High-demand samples weighted more (log-based), recent data emphasized
 
 #### Feature Scaling
 
@@ -952,9 +954,11 @@ Once running, access:
 - Categorical: place_id, type_id, hour, day_of_week, month, week_of_year
 - Binary: delivery, accepting_orders, is_holiday, is_rainy, is_snowy, is_cold, is_hot, is_cloudy, is_windy, good_weather
 
-### Feature List (35 Features)
+### Feature List (69 Features)
 
-#### 1. **Temporal Features** (5)
+The v6 model uses 69 engineered features across multiple categories:
+
+#### 1. **Temporal Features** (13)
 - `hour`: Hour of day (0-23)
 - `day_of_week`: Day of week (0=Monday, 6=Sunday)
 - `month`: Month (1-12)

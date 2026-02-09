@@ -75,20 +75,20 @@ Currently, the API does not require authentication. For production deployment, i
 
 ```json
 {
-  "python_version": "3.12.0",
-  "sklearn_version": "1.3.0",
-  "model_type": "RandomForestRegressor",
+  "python_version": "3.11.0",
+  "sklearn_version": "1.3.2",
+  "model_type": "CatBoostRegressor",
   "features": ["place_id", "hour", "day_of_week", "..."],
   "hyperparameters": {
-    "max_depth": 12,
-    "min_samples_leaf": 7,
-    "max_features": 0.5,
-    "n_estimators": 600,
-    "bootstrap": true
+    "depth": 8,
+    "learning_rate": 0.03,
+    "iterations": 3000,
+    "l2_leaf_reg": 2.5,
+    "loss_function": "Quantile:alpha=0.60"
   },
   "training_size": 65608,
   "test_size": 16403,
-  "version": "2.1_fixed_lag_features"
+  "version": "v6_optimized"
 }
 ```
 

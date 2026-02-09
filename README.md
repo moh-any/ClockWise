@@ -222,18 +222,20 @@ Database Stores          → Direct PostgreSQL access via pgx
 
 | Handler | File | Responsibility |
 |---------|------|----------------|
-| Organization | `org_handler.go` | Org profile, delegation |
-| Staffing | `staffing_handler.go` | Summary, CSV upload, employee creation |
+| Organization | `org_handler.go` | Org profile, registration, delegation |
+| Staffing | `staffing_handler.go` | Summary, CSV upload, employee listing |
 | Employee | `employee_handler.go` | CRUD, layoff, requests approve/decline |
-| Schedule | `schedule_handler.go` | Schedule get/edit/refresh via ML solver |
-| Dashboard | `dashboard_handler.go` | Surge data, demand heatmap, ML predictions |
+| Schedule | `schedule_handler.go` | Schedule get/predict via ML solver |
+| Dashboard | `dashboard_handler.go` | Demand heatmap, ML predictions |
 | Insights | `insights_handler.go` | Staffing analytics |
 | Campaign | `campaign_handler.go` | Campaign CRUD, ML recommendation proxy |
+| Orders | `orders_handler.go` | Orders, deliveries, items CRUD & CSV upload |
 | Roles | `roles_handler.go` | Organization role management |
 | Rules | `rules_handler.go` | Scheduling rules & operating hours |
 | Preferences | `preferences_handler.go` | Employee shift preferences |
 | Profile | `profile_handler.go` | User profile, password change |
-| Alert | `alert_handler.go` | Surge alert management |
+| Offers | `offers_handlers.go` | Shift offer management (accept/decline) |
+| Surge | `surge_handler.go` | Surge data retrieval, active venues |
 
 ### Database Stores (Data Access Layer)
 
@@ -250,8 +252,10 @@ Database Stores          → Direct PostgreSQL access via pgx
 | `RequestStore` | `request_store.go` | requests |
 | `DemandStore` | `demand_store.go` | demand |
 | `OperatingHoursStore` | `operating_hours_store.go` | Operating hours |
-| `AlertStore` | `alert_store.go` | alerts |
 | `InsightStore` | `insight_store.go` | Insights |
+| `UserRolesStore` | `user_roles_store.go` | User-role assignments |
+| `OfferStore` | `offer_store.go` | offers |
+| `SurgeStore` | `surge_store.go` | Surge detection data |
 
 ### Authentication
 
@@ -275,7 +279,7 @@ Full backend REST API documentation with request/response examples is available 
 
 **[`app/api/docs/API_DOCUMENTATION.md`](app/api/docs/API_DOCUMENTATION.md)**
 
-Covers all 14 endpoint categories: Health, Auth, Profile, Roles, Rules, Preferences, Staffing, Insights, Organization, Orders, Deliveries, Items, Campaigns, and Alerts.
+Covers all 16 endpoint categories: Health, Auth, Profile, Roles, Rules, Preferences, Staffing, Insights, Organization, Orders, Deliveries, Items, Campaigns, Schedule, Surge, and Offers.
 
 ---
 
@@ -469,14 +473,14 @@ All dashboard routes are wrapped with `ProtectedRoute.jsx` which checks for a va
 
 ### API Service Layer
 
-The frontend API client (`src/services/api.js`, 1020 lines) provides organized API modules:
+The frontend API client (`src/services/api.js`, 1092 lines) provides organized API modules:
 
 | Module | Functions |
 |--------|-----------|
 | `authAPI` | `register`, `login`, `refreshToken`, `logout`, `getCurrentUser` |
 | `profileAPI` | `getProfile`, `changePassword` |
 | `staffingAPI` | `getStaffingSummary`, `createEmployee`, `getAllEmployees`, `getEmployee`, `layoffEmployee`, `bulkUploadEmployees` |
-| `requestsAPI` | `getEmployeeRequests`, `approveRequest`, `declineRequest` |
+| `requestsAPI` | `getEmployeeRequests`, `approveRequest`, `declineRequest`, `submitRequest`, `getAllRequests` |
 | `rolesAPI` | `getAll`, `getRole`, `createRole`, `updateRole`, `deleteRole` |
 | `rulesAPI` | `getRules`, `saveRules` |
 | `ordersAPI` | `getOrderInsights`, `getAllOrders`, `getOrdersWeek`, `getOrdersToday`, `uploadOrdersCSV`, `uploadOrderItemsCSV` |
@@ -484,8 +488,8 @@ The frontend API client (`src/services/api.js`, 1020 lines) provides organized A
 | `insightsAPI` | `getInsights` |
 | `deliveriesAPI` | `getDeliveryInsights`, `getAllDeliveries`, `getDeliveriesWeek`, `getDeliveriesToday`, `uploadDeliveriesCSV` |
 | `itemsAPI` | `getItemInsights`, `getAllItems`, `uploadItemsCSV` |
-| `campaignsAPI` | `getCampaignInsights`, `getAllCampaigns`, `getCampaignsWeek`, `uploadCampaignsCSV`, `uploadCampaignItemsCSV` |
-| `dashboardAPI` | `getSurgeInsights`, `getAllSurge`, `getSurgeWeek`, `getDemandHeatmap`, `generateDemandPrediction` |
+| `campaignsAPI` | `getCampaignInsights`, `getAllCampaigns`, `getCampaignsWeek`, `uploadCampaignsCSV`, `uploadCampaignItemsCSV`, `recommendCampaigns`, `submitCampaignFeedback` |
+| `dashboardAPI` | `getSurgeInsights`, `getAllSurge`, `getSurgeWeek`, `getDemandHeatmap`, `generateDemandPrediction`, `getMySchedule`, `getAllSchedule`, `generateSchedule` |
 | `organizationAPI` | `getProfile` |
 | `healthAPI` | `checkHealth` |
 
@@ -497,10 +501,8 @@ The `services/hooks.js` file provides React hooks for API state management:
 |------|---------|
 | `useAPI` | Generic hook with loading/error states, auto-fetch, and refetch |
 | `useAuth` | Authentication state management (user, login, logout, register) |
-
-### Token Management
-
-- Automatic **token refresh** on 401 responses with request queuing
+| `useStaffing` | Staffing data management (summary, employees, create, layoff, bulk upload) |
+| `useRequests` | Employee request management (fetch, approve, decline with auto-refetch) |
 - Failed refresh clears all stored data and redirects to login
 - Tokens stored in `localStorage`: `access_token`, `refresh_token`, `org_id`, `user_id`
 
@@ -508,7 +510,7 @@ The `services/hooks.js` file provides React hooks for API state management:
 
 ## Database Schema
 
-PostgreSQL 12.4 with **21 SQL migrations** managed by Goose v3. Migrations run automatically on API server startup.
+PostgreSQL 12.4 with **23 SQL migrations** managed by Goose v3. Migrations run automatically on API server startup.
 
 ### Core Tables
 
@@ -528,7 +530,7 @@ PostgreSQL 12.4 with **21 SQL migrations** managed by Goose v3. Migrations run a
 | `demand` | Stored demand predictions |
 | `production_chains` | Production chain tracking |
 | `offers` | Special offers |
-| `alerts` | Surge and system alerts |
+| `offers` | Shift offers for employees |
 
 ### Migration Files
 
@@ -555,6 +557,8 @@ app/api/migrations/
 ├── 00019_update_organizations.sql
 ├── 00020_move_accepting_orders.sql
 ├── 00021_fix_demand_day_constraint.sql
+├── 00022_drop_alerts_table.sql
+├── 00023_drop_schedule_check.sql
 └── fs.go                              # Embedded filesystem
 ```
 
@@ -593,7 +597,7 @@ docker-compose ps
 
 1. PostgreSQL starts with a persistent volume (`postgres-data`)
 2. Redis starts with append-only persistence (`redis-data`)
-3. Go backend starts, runs all 21 database migrations automatically, connects to Redis
+3. Go backend starts, runs all 23 database migrations automatically, connects to Redis
 4. ML service loads the CatBoost model and starts the FastAPI server
 5. React dev server starts on port 3000
 6. Nginx starts and proxies: `/api/*` → Go backend, `/*` → React frontend
@@ -616,7 +620,7 @@ REACT_APP_API_BASE_URL=http://localhost:8080 npm start
 # ML Service (Python)
 cd app/ml
 pip install -r requirements.txt
-uvicorn api.app:app --host 0.0.0.0 --port 8000
+uvicorn api.main:app --host 0.0.0.0 --port 8000
 ```
 
 ---
@@ -682,10 +686,10 @@ Comprehensive documentation with full request/response examples for all endpoint
 Endpoint categories:
 | Category | Key Endpoints |
 |----------|--------------|
-| **Health** | `GET /health` |
+| **Health** | `GET /health`, `GET /ml/health` |
 | **Auth** | `POST /api/login`, `POST /api/register`, `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | **Profile** | `GET /api/auth/profile`, `POST /api/auth/profile/changepassword` |
-| **Staffing** | `GET/POST /:org/staffing`, `POST /:org/staffing/upload` |
+| **Staffing** | `GET/POST /:org/staffing`, `POST /:org/staffing/upload`, `GET /:org/staffing/employees` |
 | **Employees** | `GET/DELETE /:org/staffing/employees/:id/*` |
 | **Roles** | `GET/POST/PUT/DELETE /:org/roles` |
 | **Rules** | `GET/POST /:org/rules` |
@@ -694,9 +698,11 @@ Endpoint categories:
 | **Deliveries** | `GET /:org/deliveries/*`, `POST /:org/deliveries/upload` |
 | **Items** | `GET /:org/items/*`, `POST /:org/items/upload` |
 | **Campaigns** | `GET /:org/campaigns/*`, `POST /:org/campaigns/upload/*`, `POST /:org/campaigns/recommend`, `POST /:org/campaigns/feedback` |
-| **Dashboard** | `GET /:org/dashboard/surge/*`, `GET/POST /:org/dashboard/demand/*` |
+| **Dashboard** | `GET/POST /:org/dashboard/demand/*` |
+| **Schedule** | `GET /:org/dashboard/schedule/*`, `POST /:org/dashboard/schedule/predict` |
 | **Insights** | `GET /:org/insights` |
-| **Alerts** | Alert management endpoints |
+| **Surge** | `POST /api/surge/bulk-data`, `GET /api/surge/users`, `GET /api/venues/active` |
+| **Offers** | `GET /:org/offers`, `POST /:org/offers/accept`, `POST /:org/offers/decline` |
 
 ### ML Service API
 
@@ -709,7 +715,7 @@ Unified ML API documentation with schemas for all ML endpoints:
 | `GET /` | GET | Health check & feature availability |
 | `GET /model/info` | GET | Model metadata & hyperparameters |
 | `POST /predict/demand` | POST | Hourly demand prediction (items + orders) |
-| `POST /schedule` | POST | Optimal staff schedule generation |
+| `POST /predict/schedule` | POST | Optimal staff schedule generation |
 | `POST /recommend/campaigns` | POST | AI campaign recommendations |
 | `POST /recommend/campaigns/feedback` | POST | Campaign feedback for online learning |
 | `POST /api/v1/collect/venue` | POST | Single venue surge metrics |
@@ -832,7 +838,8 @@ ClockWise/
 │   │   │   │   ├── preferences_handler.go
 │   │   │   │   ├── profile_handler.go
 │   │   │   │   ├── insights_handler.go
-│   │   │   │   ├── alert_handler.go
+│   │   │   │   ├── offers_handlers.go
+│   │   │   │   ├── surge_handler.go
 │   │   │   │   └── tests/            # Handler unit tests
 │   │   │   ├── database/             # Data access stores
 │   │   │   │   ├── database.go       # Connection pool & health
@@ -847,9 +854,10 @@ ClockWise/
 │   │   │   │   ├── request_store.go
 │   │   │   │   ├── demand_store.go
 │   │   │   │   ├── operating_hours_store.go
-│   │   │   │   ├── alert_store.go
 │   │   │   │   ├── insight_store.go
 │   │   │   │   ├── user_roles_store.go
+│   │   │   │   ├── offer_store.go
+│   │   │   │   ├── surge_store.go
 │   │   │   │   └── tests/
 │   │   │   ├── cache/                # Redis cache wrappers
 │   │   │   ├── middleware/
@@ -862,10 +870,10 @@ ClockWise/
 │   │   │   │   └── uploadcsv_service.go
 │   │   │   └── utils/
 │   │   │       └── utils.go          # Password generation
-│   │   ├── migrations/               # 21 SQL migrations
+│   │   ├── migrations/               # 23 SQL migrations
 │   │   │   ├── 00001_organizations.sql
 │   │   │   ├── ...
-│   │   │   ├── 00021_fix_demand_day_constraint.sql
+│   │   │   ├── 00023_drop_schedule_check.sql
 │   │   │   └── fs.go                 # Embedded filesystem
 │   │   └── docs/
 │   │       ├── API_DOCUMENTATION.md  # Full REST API docs
@@ -877,7 +885,8 @@ ClockWise/
 │       ├── README.md
 │       ├── data.md
 │       ├── api/                       # FastAPI application
-│       │   └── app.py
+│       │   ├── main.py
+│       │   └── campaign_models.py
 │       ├── src/
 │       │   ├── deploy_model.py        # Model loading & prediction API
 │       │   ├── train_model.py         # CatBoost training pipeline
@@ -901,7 +910,8 @@ ClockWise/
 │       │   ├── fine_tune_model.py     # Incremental model updates
 │       │   ├── model_manager.py       # Hybrid training lifecycle
 │       │   ├── llm_analyzer_gemini.py # Optional Gemini LLM analysis
-│       │   └── config.py             # Configuration management
+│       │   ├── config.py             # Configuration management
+│       │   └── email_sender.py       # Email sending utility
 │       ├── data/                      # Training data & models
 │       ├── notebooks/                 # Jupyter analysis notebooks
 │       ├── tests/                     # ML test suite
@@ -934,8 +944,8 @@ ClockWise/
 │       ├── ManagerDashboard.jsx       # Manager dashboard
 │       ├── EmployeeDashboard.jsx      # Employee dashboard
 │       ├── services/
-│       │   ├── api.js                 # API client (1020 lines, 15 modules)
-│       │   └── hooks.js              # Custom hooks (useAPI, useAuth)
+│       │   ├── api.js                 # API client (1092 lines, 15 modules)
+│       │   └── hooks.js              # Custom hooks (useAPI, useAuth, useStaffing, useRequests)
 │       ├── *.css                      # Component stylesheets
 │       ├── Fonts/                     # Custom Ranade font family
 │       ├── Icons/                     # UI icons

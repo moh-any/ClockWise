@@ -2,7 +2,7 @@
 
 **Component:** Real-time Surge Detection with Social Media Integration  
 **Purpose:** Detect and respond to unexpected demand spikes from viral events  
-**Status:** Implementation Plan  
+**Status:** Implemented  
 **Date:** February 6, 2026
 
 ---
@@ -128,9 +128,9 @@ Social media can cause **unpredictable demand surges** that exceed normal predic
 │  │  Alert Dispatcher (src/alert_system.py)                 │            │
 │  │                                                          │            │
 │  │  Severity Levels:                                       │            │
-│  │  ├─ MODERATE (1.5-2.0x): SMS to shift manager          │            │
-│  │  ├─ HIGH (2.0-3.0x): SMS + Call + Dashboard alert      │            │
-│  │  └─ CRITICAL (>3.0x): Multi-channel + Escalation       │            │
+│  │  ├─ MODERATE (1.5-2.0x): Email to shift manager         │            │
+│  │  ├─ HIGH (2.0-3.0x): Email + Dashboard alert            │            │
+│  │  └─ CRITICAL (>3.0x): Email + Escalation                │            │
 │  │                                                          │            │
 │  │  Alert Contents:                                        │            │
 │  │  • Surge magnitude and trend                            │            │

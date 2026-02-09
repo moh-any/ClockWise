@@ -293,7 +293,6 @@ For HTTP API usage, the scheduler is exposed through FastAPI endpoints:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/predict/schedule` | POST | Generate schedule from demand predictions |
-| `/predict/demand-and-schedule` | POST | Combined demand prediction + scheduling |
 
 **Full API Documentation:**
 - **[Documentation.md](Documentation.md)** - Complete request/response schemas and examples
