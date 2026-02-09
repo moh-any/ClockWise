@@ -3,7 +3,6 @@
 This documentation provides an overview of the unit tests for the PostgreSQL storage layer in the **Clockwise** backend. These tests utilize `go-sqlmock` to simulate database interactions, ensuring that queries are constructed correctly, transactions are handled properly, and data scanning logic works as expected without requiring a live database connection.
 
 ## Table of Contents
-- [Alert Store Tests](#alert-store-tests)
 - [Campaign Store Tests](#campaign-store-tests)
 - [Demand Store Tests](#demand-store-tests)
 - [Insight Store Tests](#insight-store-tests)
@@ -17,19 +16,6 @@ This documentation provides an overview of the unit tests for the PostgreSQL sto
 - [Schedule Store Tests](#schedule-store-tests)
 - [User Roles Store Tests](#user-roles-store-tests)
 - [User Store Tests](#user-store-tests)
-
----
-
-## Alert Store Tests
-**File:** `alert_store_test.go`  
-**Focus:** Alert storage and analytics for organization-level notifications.
-
-| Test Function | Description | Key Verifications |
-| :--- | :--- | :--- |
-| **`TestStoreAlert`** | Placeholder for alert creation. | Currently a no-op; reserved for future implementation. |
-| **`TestGetAllAlerts`** | Retrieves all alerts for an organization. | **Success:** Verifies correct mapping of severity, type, message, and timestamp.<br>**Empty:** Returns empty slice when no alerts exist.<br>**DBError:** Handles query failure gracefully. |
-| **`TestGetAllAlertsForLastWeek`** | Retrieves alerts from the past 7 days. | **Success:** Verifies time-filtered query returns correct alerts.<br>**DBError:** Handles query failure gracefully. |
-| **`TestGetAlertInsights`** | Aggregates alert statistics by severity. | **Success:** Verifies 4 insight values — Total Alerts, High Severity, Medium Severity, Low Severity counts.<br>**NoAlerts:** Returns all-zero insights when no alerts exist.<br>**DBError:** Handles query failure gracefully. |
 
 ---
 

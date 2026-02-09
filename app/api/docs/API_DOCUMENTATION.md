@@ -36,7 +36,8 @@ Authorization: Bearer <access_token>
 12. [Items](#items-endpoints)
 13. [Campaigns](#campaigns-endpoints)
 14. [Schedule](#schedule-endpoints)
-15. [Alerts](#alerts-endpoints)
+15. [Surge](#surge-endpoints)
+16. [Offers](#offers-endpoints)
 
 ---
 
@@ -2784,7 +2785,7 @@ Content-Type: application/json
 **Process:**
 1. ML service processes historical orders and campaigns
 2. Extracts features: time, weather, holidays, demand patterns
-3. Applies Random Forest model for hourly predictions
+3. Applies CatBoost model (Quantile Loss α=0.60) for hourly predictions
 4. Zeros out predictions during closed business hours
 5. Stores results in the `demand` table
 6. Returns predictions for display
@@ -3027,157 +3028,140 @@ Authorization: Bearer <access_token>
 
 ---
 
-## Alerts Endpoints
+## Surge Endpoints
 
-### GET /api/:org/dashboard/surge
+> **Note:** The alerts table was dropped in migration 00022. Surge detection data is now managed through the following endpoints.
 
-Get alert insights for the organization (analytics).
+### POST /api/surge/bulk-data
 
-**Authentication:** Required (admin or manager only)
+Retrieve bulk surge detection data for multiple venues.
+
+**Authentication:** Required
 
 **Request:**
 ```http
-GET /api/{org_id}/dashboard/surge
+POST /api/surge/bulk-data
 Authorization: Bearer <access_token>
 ```
 
-**Path Parameters:**
-- `org` - Organization UUID
-
-**Response (200 OK):**
-```json
-{
-  "message": "Alert insights retrieved successfully",
-  "data": [
-    {
-      "title": "Total Alerts",
-      "statistic": "45"
-    },
-    {
-      "title": "Critical Alerts",
-      "statistic": "5"
-    },
-    {
-      "title": "High Severity Alerts",
-      "statistic": "12"
-    },
-    {
-      "title": "Most Common Severity",
-      "statistic": "high"
-    }
-  ]
-}
-```
+**Description:** Fetches surge detection data including orders, predictions, venue info, and campaigns for multiple venues in a single call. Used by the ML surge detection system.
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied (not admin or manager)
-- `500 Internal Server Error` - Failed to retrieve insights
+- `500 Internal Server Error` - Server error
 
 ---
 
-### GET /api/:org/dashboard/surge/all
+### GET /api/surge/users
 
-Get all alerts for the organization.
+Retrieve users relevant to surge detection alerts.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Required
 
 **Request:**
 ```http
-GET /api/{org_id}/dashboard/surge/all
+GET /api/surge/users
 Authorization: Bearer <access_token>
 ```
 
-**Path Parameters:**
-- `org` - Organization UUID
-
-**Response (200 OK):**
-```json
-{
-  "message": "Alerts retrieved successfully",
-  "data": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
-      "severity": "critical",
-      "subject": "High Order Volume Alert",
-      "message": "Order volume has exceeded normal threshold by 40%"
-    },
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440002",
-      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
-      "severity": "high",
-      "subject": "Staff Shortage Warning",
-      "message": "Current staffing level is 30% below recommended minimum"
-    }
-  ]
-}
-```
-
-**Severity Levels:**
-- `critical` - Urgent action required
-- `high` - Immediate attention needed
-- `moderate` - Monitor the situation
-
-**Response Order:** Alerts are ordered by ID (newest first)
-
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied (not admin or manager)
-- `500 Internal Server Error` - Failed to retrieve alerts
+- `500 Internal Server Error` - Server error
 
 ---
 
-### GET /api/:org/dashboard/surge/week
+### GET /api/venues/active
 
-Get all alerts from the last 7 days for the organization.
+Get all active venues for surge monitoring.
 
-**Authentication:** Required (admin or manager only)
+**Authentication:** Not required
 
 **Request:**
 ```http
-GET /api/{org_id}/dashboard/surge/week
+GET /api/venues/active
+```
+
+**Description:** Returns a list of active venues that the surge detection system should monitor. This endpoint is called by the ML service's surge orchestrator.
+
+**Error Responses:**
+- `500 Internal Server Error` - Server error
+
+---
+
+## Offers Endpoints
+
+### GET /api/:org/offers
+
+Get all shift offers for the current employee.
+
+**Authentication:** Required (employee)
+
+**Request:**
+```http
+GET /api/{org_id}/offers
 Authorization: Bearer <access_token>
 ```
 
 **Path Parameters:**
 - `org` - Organization UUID
 
-**Response (200 OK):**
-```json
-{
-  "message": "Alerts for last week retrieved successfully",
-  "data": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "organization_id": "660e8400-e29b-41d4-a716-446655440001",
-      "severity": "high",
-      "subject": "Peak Hour Alert",
-      "message": "System detected peak traffic during 7-9 PM window"
-    }
-  ]
-}
-```
-
-**Filter Criteria:**
-- Returns alerts generated within the last 7 days
-- Ordered by ID (newest first)
-- Only alerts belonging to the specified organization
-
-**Notes:**
-- "Last week" means the last 7 days from the current timestamp
-- Returns empty array if no alerts were generated in the last 7 days
+**Description:** Returns all pending shift offers available to the authenticated employee.
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Access denied (not admin or manager)
-- `500 Internal Server Error` - Failed to retrieve alerts
+- `500 Internal Server Error` - Server error
+
+---
+
+### POST /api/:org/offers/accept
+
+Accept a shift offer.
+
+**Authentication:** Required (employee)
+
+**Request:**
+```http
+POST /api/{org_id}/offers/accept
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Error Responses:**
+- `400 Bad Request` - Invalid offer data
+- `401 Unauthorized` - Missing or invalid token
+- `500 Internal Server Error` - Server error
+
+---
+
+### POST /api/:org/offers/decline
+
+Decline a shift offer.
+
+**Authentication:** Required (employee)
+
+**Request:**
+```http
+POST /api/{org_id}/offers/decline
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `org` - Organization UUID
+
+**Error Responses:**
+- `400 Bad Request` - Invalid offer data
+- `401 Unauthorized` - Missing or invalid token
+- `500 Internal Server Error` - Server error
 
 ---
 
 ## Rate Limiting
 
-Currently, no rate limiting is implemented. This may be added in future versions.
+Rate limiting is implemented via Nginx reverse proxy: 10 requests/second per IP with a burst of 20 on API routes.
 
 ## CORS
 

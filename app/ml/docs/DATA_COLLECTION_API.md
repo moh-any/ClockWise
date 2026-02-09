@@ -295,7 +295,7 @@ except requests.exceptions.RequestException as e:
 
 ### Start the API server:
 ```bash
-cd c:\Users\Lenovo\deloitte
+cd app/ml
 python -m uvicorn api.main:app --reload --port 8000
 ```
 

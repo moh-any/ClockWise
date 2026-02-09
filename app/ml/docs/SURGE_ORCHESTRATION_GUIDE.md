@@ -37,7 +37,7 @@ The surge detection system communicates **exclusively via API endpoints** - ther
 ### 1. Start the API Server
 
 ```bash
-cd c:\Users\Lenovo\deloitte
+cd app/ml
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
