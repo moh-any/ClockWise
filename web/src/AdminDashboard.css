@@ -328,7 +328,7 @@ textarea {
 }
 
 .logo {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 800;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -348,7 +348,7 @@ textarea {
 }
 
 .logo-svg:hover {
-  transform: rotate(360deg);
+  transform: rotate(-360deg);
 }
 
 @keyframes logoFadeIn {
@@ -3720,7 +3720,6 @@ body:has(.admin-profile-overlay.show) {
   }
 }
 
-
 /* ========================================
    CAMPAIGN RECOMMENDATIONS DARK MODE
    ======================================== */
@@ -3832,20 +3831,27 @@ body:has(.admin-profile-overlay.show) {
   background: linear-gradient(145deg, #f8fafc 0%, #ffffff 100%);
   border-radius: var(--radius-xl);
   padding: 2.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.2);
   position: relative;
   overflow: hidden;
 }
 
 .schedule-week-view-premium::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary),
+    var(--color-accent)
+  );
   opacity: 0.8;
 }
 
@@ -3870,7 +3876,11 @@ body:has(.admin-profile-overlay.show) {
   font-size: var(--text-3xl);
   margin-bottom: 0.5rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -3908,7 +3918,11 @@ body:has(.admin-profile-overlay.show) {
 .mini-stat-value {
   font-size: var(--text-2xl);
   font-weight: 800;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -3950,13 +3964,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .schedule-header-cell-premium::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
   pointer-events: none;
 }
 
@@ -4012,7 +4030,11 @@ body:has(.admin-profile-overlay.show) {
   font-variant-numeric: tabular-nums;
   font-size: var(--text-lg);
   font-weight: 800;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4041,13 +4063,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .schedule-cell-premium::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   opacity: 0;
   transition: opacity var(--transition-base);
   pointer-events: none;
@@ -4057,7 +4083,9 @@ body:has(.admin-profile-overlay.show) {
   transform: translateY(-2px) scale(1.02);
   z-index: 10;
   border-color: var(--color-primary);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .schedule-cell-premium.active-slot-premium:hover::before {
@@ -4214,7 +4242,7 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .month-week-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -4351,7 +4379,9 @@ body:has(.admin-profile-overlay.show) {
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25), 0 15px 30px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.25),
+    0 15px 30px rgba(0, 0, 0, 0.15);
   animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -4361,13 +4391,18 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .schedule-popup-premium::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary), var(--color-accent));
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary),
+    var(--color-accent)
+  );
   opacity: 0.9;
   z-index: 2;
 }
@@ -4381,13 +4416,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .popup-header-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--color-primary)05, var(--color-secondary)03);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 05,
+    var(--color-secondary) 03
+  );
   pointer-events: none;
 }
 
@@ -4413,13 +4452,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .popup-icon-wrapper::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
   pointer-events: none;
 }
 
@@ -4443,7 +4486,11 @@ body:has(.admin-profile-overlay.show) {
   font-size: var(--text-3xl);
   font-weight: 800;
   line-height: 1.2;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4507,7 +4554,9 @@ body:has(.admin-profile-overlay.show) {
   border-radius: var(--radius-xl);
   padding: 2rem;
   margin-bottom: 2rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.04);
   border: 2px solid rgba(148, 163, 184, 0.1);
   transition: all var(--transition-base);
   position: relative;
@@ -4515,13 +4564,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .shift-info-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    90deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   transform: scaleX(0);
   transition: transform var(--transition-slow);
   transform-origin: left;
@@ -4529,7 +4582,9 @@ body:has(.admin-profile-overlay.show) {
 
 .shift-info-card:hover {
   border-color: rgba(var(--color-primary-rgb), 0.3);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.06);
   transform: translateY(-4px);
 }
 
@@ -4590,13 +4645,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .employee-card-mini::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   opacity: 0;
   transition: opacity var(--transition-base);
   pointer-events: none;
@@ -4626,13 +4685,17 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .employee-avatar::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
   border-radius: inherit;
   pointer-events: none;
 }
@@ -4963,12 +5026,12 @@ body:has(.admin-profile-overlay.show) {
     font-size: 0.85rem;
     grid-template-columns: 80px repeat(7, minmax(120px, 1fr));
   }
-  
+
   .schedule-cell {
     min-height: 60px;
     padding: 0.4rem;
   }
-  
+
   .month-grid {
     gap: 1rem;
   }
@@ -4986,50 +5049,50 @@ body:has(.admin-profile-overlay.show) {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .schedule-buttons button {
     width: 100%;
   }
-  
+
   .schedule-week-view {
     padding: 1rem;
   }
-  
+
   .schedule-grid {
     grid-template-columns: 70px repeat(7, minmax(100px, 1fr));
     font-size: 0.75rem;
   }
-  
+
   .schedule-cell {
     min-height: 50px;
     padding: 0.25rem;
   }
-  
+
   .schedule-role-item {
     padding: 0.25rem 0.4rem;
   }
-  
+
   .month-week-card {
     padding: 1.5rem;
   }
-  
+
   .week-preview {
     gap: 0.5rem;
   }
-  
+
   .schedule-popup {
     width: 95%;
     max-height: 90vh;
   }
-  
+
   .popup-header {
     padding: 1.5rem;
   }
-  
+
   .popup-content {
     padding: 1rem;
   }
-  
+
   .popup-title h3 {
     font-size: var(--text-xl);
   }
@@ -5063,11 +5126,7 @@ body:has(.admin-profile-overlay.show) {
   justify-content: space-between;
   align-items: center;
   padding: var(--space-5);
-  background: linear-gradient(
-    135deg,
-    var(--primary-50),
-    var(--secondary-50)
-  );
+  background: linear-gradient(135deg, var(--primary-50), var(--secondary-50));
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -5368,7 +5427,9 @@ body:has(.admin-profile-overlay.show) {
 .dashboard-wrapper.dark-mode .schedule-week-view-premium {
   background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
   border: 1px solid rgba(71, 85, 105, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .dashboard-wrapper.dark-mode .schedule-main-title {
@@ -5470,7 +5531,11 @@ body:has(.admin-profile-overlay.show) {
 }
 
 .dashboard-wrapper.dark-mode .shift-time-badge {
-  background: linear-gradient(145deg, rgba(var(--color-primary-rgb, 74, 144, 226), 0.2), rgba(var(--color-secondary-rgb, 123, 104, 238), 0.15));
+  background: linear-gradient(
+    145deg,
+    rgba(var(--color-primary-rgb, 74, 144, 226), 0.2),
+    rgba(var(--color-secondary-rgb, 123, 104, 238), 0.15)
+  );
   border-color: var(--color-primary);
 }
 

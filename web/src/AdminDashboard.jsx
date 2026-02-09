@@ -224,15 +224,28 @@ function AdminDashboard() {
 
     scheduleData.forEach((shift) => {
       // Handle new backend format: { schedule_date, day, start_time, end_time, employees }
-      if (shift.day && shift.start_time && shift.end_time && Array.isArray(shift.employees)) {
+      if (
+        shift.day &&
+        shift.start_time &&
+        shift.end_time &&
+        Array.isArray(shift.employees)
+      ) {
         // Parse start and end times (format: "HH:MM:SS")
         const startHour = parseInt(shift.start_time.split(":")[0], 10)
         const endHour = parseInt(shift.end_time.split(":")[0], 10)
-        
+
         // Map day name to day index (0=Monday, 6=Sunday)
-        const dayMap = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 }
+        const dayMap = {
+          monday: 0,
+          tuesday: 1,
+          wednesday: 2,
+          thursday: 3,
+          friday: 4,
+          saturday: 5,
+          sunday: 6,
+        }
         const dayOfWeek = dayMap[shift.day.toLowerCase()] ?? 0
-        
+
         // Mark all hours in this shift
         for (let hour = startHour; hour < endHour; hour++) {
           const key = `${dayOfWeek}-${hour}`
@@ -546,7 +559,7 @@ function AdminDashboard() {
         }
       }
     }
-    
+
     fetchOrgStatsForProfile()
   }, [showAdminProfile, currentUser?.user_role])
 
@@ -583,16 +596,16 @@ function AdminDashboard() {
       console.log("Generating schedule...")
       const response = await api.dashboard.generateSchedule()
       console.log("Schedule generation response:", response)
-      
+
       setScheduleGenerateSuccess(
         response.schedule_message ||
           response.message ||
           "Schedule generated successfully!",
       )
-      
+
       // Fetch the newly generated schedule from backend
       await fetchSchedule()
-      
+
       // DON'T auto-navigate - let user click to view
       // setScheduleView(viewType) - REMOVED
 
@@ -634,7 +647,11 @@ function AdminDashboard() {
         ...userData,
         organization_name: userData.organization,
         // Map salary_per_hour to hourly_salary for consistency
-        hourly_salary: userData.salary_per_hour || userData.hourly_salary || authData.salary_per_hour || authData.hourly_salary,
+        hourly_salary:
+          userData.salary_per_hour ||
+          userData.hourly_salary ||
+          authData.salary_per_hour ||
+          authData.hourly_salary,
       }
 
       console.log("Complete user data:", completeUser)
@@ -1270,8 +1287,12 @@ function AdminDashboard() {
         <div className="schedule-week-view-premium">
           <div className="schedule-week-header-premium">
             <div className="schedule-title-section">
-              <h3 className="schedule-main-title">Week {weekOffset + 1} Schedule</h3>
-              <p className="schedule-subtitle">Click any time slot to view employee details</p>
+              <h3 className="schedule-main-title">
+                Week {weekOffset + 1} Schedule
+              </h3>
+              <p className="schedule-subtitle">
+                Click any time slot to view employee details
+              </p>
             </div>
             <div className="schedule-stats-mini">
               <div className="mini-stat">
@@ -1279,7 +1300,12 @@ function AdminDashboard() {
                 <span className="mini-stat-label">Shifts</span>
               </div>
               <div className="mini-stat">
-                <span className="mini-stat-value">{scheduleData.reduce((sum, s) => sum + (s.employees?.length || 0), 0)}</span>
+                <span className="mini-stat-value">
+                  {scheduleData.reduce(
+                    (sum, s) => sum + (s.employees?.length || 0),
+                    0,
+                  )}
+                </span>
                 <span className="mini-stat-label">Staff</span>
               </div>
             </div>
@@ -1290,8 +1316,18 @@ function AdminDashboard() {
               className="schedule-header-cell-premium schedule-corner-cell-premium"
               style={{ background: cornerGradient }}
             >
-              <svg className="corner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="corner-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span className="corner-label">Time</span>
             </div>
@@ -1309,11 +1345,14 @@ function AdminDashboard() {
             {/* Hour rows */}
             {Array.from({ length: 24 }).map((_, hour) => (
               <>
-                <div key={`hour-${hour}`} className="schedule-hour-label-premium">
+                <div
+                  key={`hour-${hour}`}
+                  className="schedule-hour-label-premium"
+                >
                   <span className="hour-time-large">
                     {hour.toString().padStart(2, "0")}
                   </span>
-                  <span className="hour-period">{hour < 12 ? 'AM' : 'PM'}</span>
+                  <span className="hour-period">{hour < 12 ? "AM" : "PM"}</span>
                 </div>
                 {days.map((_, day) => {
                   const slotData = getScheduleSlot(hour, day)
@@ -1327,14 +1366,32 @@ function AdminDashboard() {
                         totalStaff > 0 && handleSlotClick(hour, day)
                       }
                       style={{
-                        background: totalStaff > 0 ? `linear-gradient(135deg, ${primaryColor}08, ${secondaryColor}05)` : undefined
+                        background:
+                          totalStaff > 0
+                            ? `linear-gradient(135deg, ${primaryColor}08, ${secondaryColor}05)`
+                            : undefined,
                       }}
                     >
                       {totalStaff > 0 ? (
                         <div className="schedule-cell-content-premium">
-                          <div className="staff-count-badge" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
-                            <svg className="staff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          <div
+                            className="staff-count-badge"
+                            style={{
+                              background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                            }}
+                          >
+                            <svg
+                              className="staff-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                              />
                             </svg>
                             <span className="staff-count">{totalStaff}</span>
                           </div>
@@ -1342,8 +1399,18 @@ function AdminDashboard() {
                         </div>
                       ) : (
                         <div className="empty-indicator-premium">
-                          <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          <svg
+                            className="empty-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                            />
                           </svg>
                         </div>
                       )}
@@ -1451,21 +1518,42 @@ function AdminDashboard() {
           className="schedule-popup-overlay-premium"
           onClick={() => setShowSchedulePopup(false)}
         >
-          <div className="schedule-popup-premium" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="schedule-popup-premium"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Profile-style header card */}
             <div className="popup-header-card">
               <div className="popup-header-content">
-                <div className="popup-icon-wrapper" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
-                  <svg className="popup-main-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div
+                  className="popup-icon-wrapper"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
+                  <svg
+                    className="popup-main-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                 </div>
                 <div className="popup-title-section">
                   <h3 className="popup-title-premium">
-                    {days[selectedSlot.day]}, {selectedSlot.hour.toString().padStart(2, "0")}:00
+                    {days[selectedSlot.day]},{" "}
+                    {selectedSlot.hour.toString().padStart(2, "0")}:00
                   </h3>
                   <p className="popup-subtitle-premium">
-                    {totalEmployees} {totalEmployees === 1 ? "Staff Member" : "Staff Members"} Scheduled
+                    {totalEmployees}{" "}
+                    {totalEmployees === 1 ? "Staff Member" : "Staff Members"}{" "}
+                    Scheduled
                   </p>
                 </div>
               </div>
@@ -1475,7 +1563,12 @@ function AdminDashboard() {
                 aria-label="Close"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -1488,34 +1581,80 @@ function AdminDashboard() {
                   {slotData.shifts.map((shift, idx) => (
                     <div key={idx} className="shift-info-card">
                       <div className="shift-card-header">
-                        <div className="shift-time-badge" style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}10)`, borderColor: primaryColor }}>
-                          <svg className="time-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <div
+                          className="shift-time-badge"
+                          style={{
+                            background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}10)`,
+                            borderColor: primaryColor,
+                          }}
+                        >
+                          <svg
+                            className="time-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
                           </svg>
-                          <span>{shift.start_time} - {shift.end_time}</span>
+                          <span>
+                            {shift.start_time} - {shift.end_time}
+                          </span>
                         </div>
                       </div>
-                      
+
                       {/* Employee grid - profile style */}
                       <div className="employees-grid-premium">
                         {shift.employees && shift.employees.length > 0 ? (
                           shift.employees.map((emp, empIdx) => (
                             <div key={empIdx} className="employee-card-mini">
-                              <div className="employee-avatar" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              <div
+                                className="employee-avatar"
+                                style={{
+                                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                                }}
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  />
                                 </svg>
                               </div>
                               <div className="employee-info-mini">
-                                <span className="employee-name-mini">{emp}</span>
-                                <span className="employee-role-mini">Staff Member</span>
+                                <span className="employee-name-mini">
+                                  {emp}
+                                </span>
+                                <span className="employee-role-mini">
+                                  Staff Member
+                                </span>
                               </div>
                             </div>
                           ))
                         ) : (
                           <div className="no-employees-card">
-                            <svg className="no-emp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            <svg
+                              className="no-emp-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                              />
                             </svg>
                             <span>No employees assigned</span>
                           </div>
@@ -1526,13 +1665,28 @@ function AdminDashboard() {
                 </>
               ) : (
                 <div className="no-data-card">
-                  <div className="no-data-icon" style={{ background: `${accentColor}15` }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ stroke: accentColor }}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  <div
+                    className="no-data-icon"
+                    style={{ background: `${accentColor}15` }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      style={{ stroke: accentColor }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                      />
                     </svg>
                   </div>
                   <h4 className="no-data-title">No Staff Scheduled</h4>
-                  <p className="no-data-text">There are no staff members assigned to this time slot yet.</p>
+                  <p className="no-data-text">
+                    There are no staff members assigned to this time slot yet.
+                  </p>
                 </div>
               )}
             </div>
@@ -1626,7 +1780,14 @@ function AdminDashboard() {
                 : "Generate a schedule first, then click Week or Month to view it"}
             </p>
             {scheduleData.length > 0 && (
-              <div style={{ marginTop: "var(--space-4)", display: "flex", gap: "var(--space-3)", justifyContent: "center" }}>
+              <div
+                style={{
+                  marginTop: "var(--space-4)",
+                  display: "flex",
+                  gap: "var(--space-3)",
+                  justifyContent: "center",
+                }}
+              >
                 <button
                   className="btn-secondary"
                   onClick={() => setScheduleView("week")}
@@ -4428,16 +4589,16 @@ function AdminDashboard() {
       setLoading(true)
       const data = await api.staffing.getAllEmployees()
       // Map salary_per_hour to hourly_salary for display
-      const mappedEmployees = (data.employees || []).map(emp => ({
+      const mappedEmployees = (data.employees || []).map((emp) => ({
         ...emp,
-        hourly_salary: emp.salary_per_hour || emp.hourly_salary
+        hourly_salary: emp.salary_per_hour || emp.hourly_salary,
       }))
       setEmployees(mappedEmployees)
-      
+
       // Calculate total labor cost from all employees (weekly: hourly_salary * 40 hours)
       const totalWeeklyLabor = mappedEmployees.reduce((sum, emp) => {
         const hourlyRate = parseFloat(emp.hourly_salary) || 0
-        return sum + (hourlyRate * 40) // Assuming 40 hours per week
+        return sum + hourlyRate * 40 // Assuming 40 hours per week
       }, 0)
       setLaborCost(totalWeeklyLabor)
     } catch (err) {
@@ -7657,7 +7818,7 @@ function AdminDashboard() {
               </svg>
             ) : (
               <>
-                <h1 className="logo">ClockWise</h1>
+                <h1 className="logo">AntiClockWise</h1>
                 <span className="logo-badge">Admin</span>
               </>
             )}
