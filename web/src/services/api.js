@@ -997,6 +997,39 @@ export const dashboardAPI = {
       method: "POST",
     })
   },
+
+  /**
+   * Get current user's schedule for next 7 days
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getMySchedule: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/schedule/`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Get full organization schedule for next 7 days (admin/manager only)
+   * @returns {Promise<{data: Array, message: string}>}
+   */
+  getAllSchedule: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/schedule/all`, {
+      method: "GET",
+    })
+  },
+
+  /**
+   * Generate a new weekly schedule using ML service
+   * @returns {Promise<{message: string, schedule_status: string, schedule_output: Object}>}
+   */
+  generateSchedule: async () => {
+    const orgId = getOrgId()
+    return apiRequest(`/api/${orgId}/dashboard/schedule/predict`, {
+      method: "POST",
+    })
+  },
 }
 
 // ============================================================================

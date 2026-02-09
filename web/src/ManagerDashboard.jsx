@@ -79,6 +79,11 @@ function ManagerDashboard() {
   const [mgrRequestActionLoading, setMgrRequestActionLoading] = useState(false)
   const [mgrRequestActionMessage, setMgrRequestActionMessage] = useState(null)
 
+  // Schedule state
+  const [mgrScheduleData, setMgrScheduleData] = useState([])
+  const [mgrScheduleLoading, setMgrScheduleLoading] = useState(false)
+  const [mgrScheduleError, setMgrScheduleError] = useState("")
+
   const mgrNavigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
     { id: "staffing", label: "Staffing", icon: EmployeeIcon },
@@ -149,6 +154,12 @@ function ManagerDashboard() {
     mgrFetchCurrentUser()
   }, [])
 
+  useEffect(() => {
+    if (mgrActiveTab === "schedule") {
+      mgrFetchSchedule()
+    }
+  }, [mgrActiveTab])
+
   const mgrFetchCurrentUser = async () => {
     try {
       // Try to get from cache first
@@ -169,6 +180,22 @@ function ManagerDashboard() {
         const parsedUser = JSON.parse(cached)
         setMgrCurrentUser(parsedUser)
       }
+    }
+  }
+
+  const mgrFetchSchedule = async () => {
+    try {
+      setMgrScheduleLoading(true)
+      setMgrScheduleError("")
+      const response = await api.dashboard.getMySchedule()
+      if (response && response.data) {
+        setMgrScheduleData(response.data)
+      }
+    } catch (err) {
+      console.error("Error fetching schedule:", err)
+      setMgrScheduleError(err.message || "Failed to load schedule")
+    } finally {
+      setMgrScheduleLoading(false)
     }
   }
 
@@ -1119,18 +1146,20 @@ function ManagerDashboard() {
                 </div>
 
                 <div className="requests-list">
-                  {requests.map((request) => (
-                    <div key={request.id} className="request-card">
+                  {requests.map((request) => {
+                    const isPending = request.status === "in queue" || request.status === "pending";
+                    return (
+                    <div key={request.request_id} className="request-card">
                       <div className="request-header">
                         <div className="request-type">
-                          {getRequestTypeLabel(request.request_type)}
+                          {getRequestTypeLabel(request.type)}
                         </div>
-                        <span className={getStatusBadgeClass(request.status)}>
-                          {request.status?.toUpperCase() || "PENDING"}
+                        <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
+                          {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
                         </span>
                       </div>
                       <div className="request-body">
-                        <p className="request-message">{request.reason}</p>
+                        <p className="request-message">{request.message}</p>
                         {request.start_date && (
                           <div className="request-dates">
                             <strong>Dates:</strong>{" "}
@@ -1145,14 +1174,14 @@ function ManagerDashboard() {
                       <div className="request-footer">
                         <span className="request-date">
                           Submitted:{" "}
-                          {new Date(request.created_at).toLocaleDateString()}
+                          {new Date(request.submitted_at).toLocaleDateString()}
                         </span>
-                        {request.status === "pending" && (
+                        {isPending && (
                           <div className="request-actions">
                             <button
                               className="btn-approve"
                               onClick={() =>
-                                mgrHandleApproveRequest(employee.id, request.id)
+                                mgrHandleApproveRequest(employee.id, request.request_id)
                               }
                               disabled={mgrRequestActionLoading}
                             >
@@ -1161,7 +1190,7 @@ function ManagerDashboard() {
                             <button
                               className="btn-decline"
                               onClick={() =>
-                                mgrHandleDeclineRequest(employee.id, request.id)
+                                mgrHandleDeclineRequest(employee.id, request.request_id)
                               }
                               disabled={mgrRequestActionLoading}
                             >
@@ -1171,7 +1200,7 @@ function ManagerDashboard() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             ))}
@@ -1181,14 +1210,20 @@ function ManagerDashboard() {
     )
   }
 
-  // Hardcoded personal schedule data - Manager's shifts for the week
-  const mgrPersonalScheduleData = [
-    { day: 0, startHour: 8, endHour: 16, role: "Manager" }, // Monday
-    { day: 1, startHour: 8, endHour: 16, role: "Manager" }, // Tuesday
-    { day: 2, startHour: 8, endHour: 16, role: "Manager" }, // Wednesday
-    { day: 3, startHour: 8, endHour: 16, role: "Manager" }, // Thursday
-    { day: 4, startHour: 8, endHour: 16, role: "Manager" }, // Friday
-  ]
+  // Transform API schedule data to match expected format
+  const mgrPersonalScheduleData = mgrScheduleData.map(shift => {
+    const startDate = new Date(shift.start_time)
+    const endDate = new Date(shift.end_time)
+    const dayOfWeek = startDate.getDay()
+    
+    return {
+      day: dayOfWeek,
+      startHour: startDate.getHours(),
+      endHour: endDate.getHours(),
+      role: mgrCurrentUser?.user_role || "Manager",
+      date: shift.date,
+    }
+  })
 
   const mgrDaysShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -1231,13 +1266,32 @@ function ManagerDashboard() {
           </div>
         </div>
 
-        <div className="personal-schedule-alert">
-          <div className="alert-icon">ℹ️</div>
-          <div className="alert-content">
-            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
-            demonstrate your personal work shifts.
+        {mgrScheduleLoading && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">⏳</div>
+            <div className="alert-content">
+              Loading your schedule...
+            </div>
           </div>
-        </div>
+        )}
+
+        {mgrScheduleError && (
+          <div className="personal-schedule-alert" style={{ borderColor: mgrAccentColor }}>
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">
+              <strong>Error:</strong> {mgrScheduleError}
+            </div>
+          </div>
+        )}
+
+        {!mgrScheduleLoading && !mgrScheduleError && mgrPersonalScheduleData.length === 0 && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">ℹ️</div>
+            <div className="alert-content">
+              <strong>No Schedule:</strong> You don't have any shifts scheduled for the next 7 days.
+            </div>
+          </div>
+        )}
 
         <div className="personal-schedule-view">
           <div className="schedule-grid">

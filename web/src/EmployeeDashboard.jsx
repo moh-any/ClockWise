@@ -63,8 +63,14 @@ function EmployeeDashboard() {
     message: "",
   })
   const [requestsLoading, setRequestsLoading] = useState(false)
+  const [requestsListLoading, setRequestsListLoading] = useState(false)
   const [requestsError, setRequestsError] = useState("")
   const [requestsSuccess, setRequestsSuccess] = useState("")
+
+  // Schedule state
+  const [scheduleData, setScheduleData] = useState([])
+  const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [scheduleError, setScheduleError] = useState("")
 
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
@@ -146,10 +152,21 @@ function EmployeeDashboard() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === "requests" && currentUser?.user_id) {
-      fetchUserRequests()
+    if (activeTab === "requests") {
+      console.log("Requests tab activated, currentUser:", currentUser)
+      if (currentUser?.user_id) {
+        fetchUserRequests()
+      } else {
+        console.log("Waiting for currentUser to load...")
+      }
     }
   }, [activeTab, currentUser])
+
+  useEffect(() => {
+    if (activeTab === "schedule") {
+      fetchSchedule()
+    }
+  }, [activeTab])
 
   const fetchCurrentUser = async () => {
     try {
@@ -171,6 +188,22 @@ function EmployeeDashboard() {
         const parsedUser = JSON.parse(cached)
         setCurrentUser(parsedUser)
       }
+    }
+  }
+
+  const fetchSchedule = async () => {
+    try {
+      setScheduleLoading(true)
+      setScheduleError("")
+      const response = await api.dashboard.getMySchedule()
+      if (response && response.data) {
+        setScheduleData(response.data)
+      }
+    } catch (err) {
+      console.error("Error fetching schedule:", err)
+      setScheduleError(err.message || "Failed to load schedule")
+    } finally {
+      setScheduleLoading(false)
     }
   }
 
@@ -407,15 +440,34 @@ function EmployeeDashboard() {
 
   // Fetch user's submitted requests
   const fetchUserRequests = async () => {
-    if (!currentUser?.user_id) return
+    const orgId = localStorage.getItem("org_id")
+    if (!currentUser?.user_id) {
+      console.log("Cannot fetch requests: user_id not available", currentUser)
+      return
+    }
+    if (!orgId) {
+      console.log("Cannot fetch requests: organization_id not available")
+      return
+    }
 
+    console.log("Fetching requests for employee:", currentUser.user_id)
+    setRequestsListLoading(true)
+    setRequestsError("")
     try {
       const response = await api.requests.getEmployeeRequests(
         currentUser.user_id,
       )
+      console.log("Requests fetched successfully:", response)
       setRequests(response.requests || [])
+      if (response.requests && response.requests.length === 0) {
+        console.log("No requests found for this employee")
+      }
     } catch (err) {
       console.error("Error fetching requests:", err)
+      setRequestsError(err.message || "Failed to load requests")
+      setRequests([])
+    } finally {
+      setRequestsListLoading(false)
     }
   }
 
@@ -516,13 +568,20 @@ function EmployeeDashboard() {
     </div>
   )
 
-  // Hardcoded personal schedule data - Employee's shifts for the week
-  const personalScheduleData = [
-    { day: 0, startHour: 9, endHour: 17, role: "Waiter" }, // Monday
-    { day: 2, startHour: 9, endHour: 17, role: "Waiter" }, // Wednesday
-    { day: 4, startHour: 10, endHour: 18, role: "Waiter" }, // Friday
-    { day: 5, startHour: 11, endHour: 19, role: "Waiter" }, // Saturday
-  ]
+  // Transform API schedule data to match expected format
+  const personalScheduleData = scheduleData.map(shift => {
+    const startDate = new Date(shift.start_time)
+    const endDate = new Date(shift.end_time)
+    const dayOfWeek = startDate.getDay()
+    
+    return {
+      day: dayOfWeek,
+      startHour: startDate.getHours(),
+      endHour: endDate.getHours(),
+      role: currentUser?.user_role || "Employee",
+      date: shift.date,
+    }
+  })
 
   const calculateTotalHours = () => {
     return personalScheduleData.reduce((total, shift) => {
@@ -563,13 +622,32 @@ function EmployeeDashboard() {
           </div>
         </div>
 
-        <div className="personal-schedule-alert">
-          <div className="alert-icon">ℹ️</div>
-          <div className="alert-content">
-            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
-            demonstrate your personal work shifts.
+        {scheduleLoading && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">⏳</div>
+            <div className="alert-content">
+              Loading your schedule...
+            </div>
           </div>
-        </div>
+        )}
+
+        {scheduleError && (
+          <div className="personal-schedule-alert" style={{ borderColor: accentColor }}>
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">
+              <strong>Error:</strong> {scheduleError}
+            </div>
+          </div>
+        )}
+
+        {!scheduleLoading && !scheduleError && personalScheduleData.length === 0 && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">ℹ️</div>
+            <div className="alert-content">
+              <strong>No Schedule:</strong> You don't have any shifts scheduled for the next 7 days.
+            </div>
+          </div>
+        )}
 
         <div className="personal-schedule-view">
           <div className="schedule-grid">
@@ -1021,24 +1099,35 @@ function EmployeeDashboard() {
             <h2 className="section-title">My Submitted Requests</h2>
           </div>
 
-          {requests.length === 0 ? (
+          {requestsListLoading ? (
+            <div
+              className="empty-state"
+              style={{ padding: "var(--emp-space-8)" }}
+            >
+              <p>Loading your requests...</p>
+            </div>
+          ) : requestsError ? (
+            <div className="empty-state" style={{ color: "var(--emp-color-danger, #ef4444)" }}>
+              <p>{requestsError}</p>
+            </div>
+          ) : requests.length === 0 ? (
             <div className="empty-state">
               <p>You haven't submitted any requests yet.</p>
             </div>
           ) : (
             <div className="requests-list">
               {requests.map((request) => (
-                <div key={request.id} className="request-card">
+                <div key={request.request_id} className="request-card">
                   <div className="request-header">
                     <div className="request-type">
-                      {getRequestTypeLabel(request.request_type)}
+                      {getRequestTypeLabel(request.type)}
                     </div>
-                    <span className={getStatusBadgeClass(request.status)}>
-                      {request.status?.toUpperCase() || "PENDING"}
+                    <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
+                      {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
                     </span>
                   </div>
                   <div className="request-body">
-                    <p className="request-message">{request.reason}</p>
+                    <p className="request-message">{request.message}</p>
                     {request.start_date && (
                       <div className="request-dates">
                         <strong>Dates:</strong>{" "}
@@ -1051,7 +1140,7 @@ function EmployeeDashboard() {
                   <div className="request-footer">
                     <span className="request-date">
                       Submitted:{" "}
-                      {new Date(request.created_at).toLocaleDateString()}
+                      {new Date(request.submitted_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
