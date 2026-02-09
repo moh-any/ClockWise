@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS users(
     organization_id UUID REFERENCES organizations(id),
     user_role VARCHAR(50) CHECK (user_role IN ('admin','manager','employee')),
     salary_per_hour DECIMAL(10,2) CHECK((user_role = 'admin' AND salary_per_hour IS NULL) OR (user_role != 'admin' AND salary_per_hour IS NOT NULL)), 
-    max_hours_per_week INTEGER DEFAULT 45,
-    preferred_hours_per_week INTEGER DEFAULT 40,
-    max_consec_slots INTEGER DEFAULT 8,
+    max_hours_per_week INTEGER NOT NULL DEFAULT 45,
+    preferred_hours_per_week INTEGER NOT NULL DEFAULT 40,
+    max_consec_slots INTEGER NOT NULL DEFAULT 8,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
