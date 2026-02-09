@@ -188,7 +188,8 @@ function AdminDashboard() {
   const [scheduleData, setScheduleData] = useState([])
   const [scheduleLoading, setScheduleLoading] = useState(false)
   const [scheduleError, setScheduleError] = useState("")
-  const [scheduleGenerating, setScheduleGenerating] = useState(false)
+  const [scheduleGeneratingWeek, setScheduleGeneratingWeek] = useState(false)
+  const [scheduleGeneratingMonth, setScheduleGeneratingMonth] = useState(false)
   const [scheduleGenerateError, setScheduleGenerateError] = useState("")
   const [scheduleGenerateSuccess, setScheduleGenerateSuccess] = useState("")
   const [scheduleView, setScheduleView] = useState("none") // none, week, month
@@ -217,65 +218,53 @@ function AdminDashboard() {
   // We need to create a simplified schedule grid showing coverage
   const scheduleDataForDisplay = (() => {
     const data = []
-    
+
     // Group shifts by day and hour to count coverage
     const coverageMap = {}
-    
-    scheduleData.forEach(shift => {
-      // NEW: Handle ML schedule format
-      if (shift.day && shift.time && Array.isArray(shift.employees)) {
-        // Parse time range
-        const [startStr, endStr] = shift.time.split('-')
-        const startHour = parseInt(startStr.split(':')[0], 10)
-        const endHour = parseInt(endStr.split(':')[0], 10)
-        const dayOfWeek = days.indexOf(shift.day.charAt(0).toUpperCase() + shift.day.slice(1, 3))
-        // Mark all hours in this slot
+
+    scheduleData.forEach((shift) => {
+      // Handle new backend format: { schedule_date, day, start_time, end_time, employees }
+      if (shift.day && shift.start_time && shift.end_time && Array.isArray(shift.employees)) {
+        // Parse start and end times (format: "HH:MM:SS")
+        const startHour = parseInt(shift.start_time.split(":")[0], 10)
+        const endHour = parseInt(shift.end_time.split(":")[0], 10)
+        
+        // Map day name to day index (0=Monday, 6=Sunday)
+        const dayMap = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 }
+        const dayOfWeek = dayMap[shift.day.toLowerCase()] ?? 0
+        
+        // Mark all hours in this shift
         for (let hour = startHour; hour < endHour; hour++) {
           const key = `${dayOfWeek}-${hour}`
           if (!coverageMap[key]) {
             coverageMap[key] = { count: 0, shifts: [] }
           }
           coverageMap[key].count += shift.employees.length
-          coverageMap[key].shifts.push({ ...shift, start_time: shift.time, end_time: shift.time })
-        }
-      } else if (shift.start_time && shift.end_time) {
-        // Legacy format
-        const startDate = new Date(shift.start_time)
-        const endDate = new Date(shift.end_time)
-        const dayOfWeek = startDate.getDay()
-        const startHour = startDate.getHours()
-        const endHour = endDate.getHours()
-        for (let hour = startHour; hour < endHour; hour++) {
-          const key = `${dayOfWeek}-${hour}`
-          if (!coverageMap[key]) {
-            coverageMap[key] = { count: 0, shifts: [] }
-          }
-          coverageMap[key].count++
           coverageMap[key].shifts.push(shift)
         }
       }
     })
-    
+
     // Create data structure for grid display
     for (let hour = 0; hour < 24; hour++) {
       for (let day = 0; day < 7; day++) {
         const key = `${day}-${hour}`
         const coverage = coverageMap[key] || { count: 0, shifts: [] }
-        
+
         data.push({
           hour,
           day,
           employeeCount: coverage.count,
-          shifts: coverage.shifts
+          shifts: coverage.shifts,
         })
       }
     }
-    
+
     return data
   })()
 
   const getScheduleSlot = (hour, day) => {
-    return scheduleDataForDisplay.find(s => s.hour === hour && s.day === day)
+    return scheduleDataForDisplay.find((s) => s.hour === hour && s.day === day)
   }
 
   const navigationItems = [
@@ -548,22 +537,9 @@ function AdminDashboard() {
       setScheduleLoading(true)
       setScheduleError("")
       const response = await api.dashboard.getAllSchedule()
-      if (response && response.schedule_output) {
-        // Flatten schedule_output for display
-        const flatSchedule = []
-        Object.entries(response.schedule_output).forEach(([day, slots]) => {
-          slots.forEach(slotObj => {
-            Object.entries(slotObj).forEach(([time, employees]) => {
-              flatSchedule.push({
-                day,
-                time,
-                employees,
-              })
-            })
-          })
-        })
-        setScheduleData(flatSchedule)
-      } else if (response && response.data) {
+      console.log("fetchSchedule response:", response)
+      if (response && response.data) {
+        // Handle new backend format with data array
         setScheduleData(response.data)
       } else {
         setScheduleData([])
@@ -578,40 +554,30 @@ function AdminDashboard() {
 
   const handleGenerateSchedule = async (viewType) => {
     try {
-      setScheduleGenerating(true)
+      if (viewType === "week") {
+        setScheduleGeneratingWeek(true)
+      } else {
+        setScheduleGeneratingMonth(true)
+      }
       setScheduleGenerateError("")
       setScheduleGenerateSuccess("")
-      
+
       console.log("Generating schedule...")
       const response = await api.dashboard.generateSchedule()
       console.log("Schedule generation response:", response)
-      // NEW: Handle ML API response structure
-      if (response.schedule_output) {
-        // Flatten schedule_output for display
-        const flatSchedule = []
-        Object.entries(response.schedule_output).forEach(([day, slots]) => {
-          slots.forEach(slotObj => {
-            Object.entries(slotObj).forEach(([time, employees]) => {
-              flatSchedule.push({
-                day,
-                time,
-                employees,
-              })
-            })
-          })
-        })
-        setScheduleData(flatSchedule)
-      } else if (response.data) {
-        setScheduleData(response.data)
-      } else {
-        setScheduleData([])
-      }
-      setScheduleGenerateSuccess(response.schedule_message || response.message || "Schedule generated successfully!")
-      // Optionally handle management_insights here
-      // Show the requested view
-      setScheduleView(viewType)
-      setCameFromMonth(false)
       
+      setScheduleGenerateSuccess(
+        response.schedule_message ||
+          response.message ||
+          "Schedule generated successfully!",
+      )
+      
+      // Fetch the newly generated schedule from backend
+      await fetchSchedule()
+      
+      // DON'T auto-navigate - let user click to view
+      // setScheduleView(viewType) - REMOVED
+
       // Clear success message after 5 seconds
       setTimeout(() => setScheduleGenerateSuccess(""), 5000)
     } catch (err) {
@@ -619,7 +585,8 @@ function AdminDashboard() {
       setScheduleGenerateError(err.message || "Failed to generate schedule")
       setTimeout(() => setScheduleGenerateError(""), 5000)
     } finally {
-      setScheduleGenerating(false)
+      setScheduleGeneratingWeek(false)
+      setScheduleGeneratingMonth(false)
     }
   }
 
@@ -1361,30 +1328,32 @@ function AdminDashboard() {
           {scheduleLoading && (
             <div className="schedule-hardcoded-alert">
               <div className="alert-icon">⏳</div>
-              <div className="alert-content">
-                Loading schedule data...
-              </div>
+              <div className="alert-content">Loading schedule data...</div>
             </div>
           )}
-          
+
           {scheduleError && (
-            <div className="schedule-hardcoded-alert" style={{ borderColor: accentColor }}>
+            <div
+              className="schedule-hardcoded-alert"
+              style={{ borderColor: accentColor }}
+            >
               <div className="alert-icon">⚠️</div>
               <div className="alert-content">
                 <strong>Error:</strong> {scheduleError}
               </div>
             </div>
           )}
-          
+
           {!scheduleLoading && !scheduleError && scheduleData.length === 0 && (
             <div className="schedule-hardcoded-alert">
               <div className="alert-icon">ℹ️</div>
               <div className="alert-content">
-                <strong>No Schedule:</strong> No shifts scheduled for the next 7 days. Generate a new schedule to get started.
+                <strong>No Schedule:</strong> No shifts scheduled for the next 7
+                days. Generate a new schedule to get started.
               </div>
             </div>
           )}
-          
+
           <div className="month-header">
             <h3>February 2026 - Monthly Overview</h3>
             <p>Click on any week to view detailed schedule</p>
@@ -1453,7 +1422,8 @@ function AdminDashboard() {
                   {selectedSlot.hour.toString().padStart(2, "0")}:00
                 </h3>
                 <p className="popup-subtitle">
-                  {totalEmployees} {totalEmployees === 1 ? "employee" : "employees"} scheduled
+                  {totalEmployees}{" "}
+                  {totalEmployees === 1 ? "employee" : "employees"} scheduled
                 </p>
               </div>
               <button
@@ -1467,20 +1437,32 @@ function AdminDashboard() {
             <div className="popup-content">
               {slotData && slotData.shifts && slotData.shifts.length > 0 ? (
                 <div className="popup-shifts-section">
-                  <h4>Active Shifts</h4>
+                  <h4>Scheduled Employees</h4>
                   <ul className="shifts-list">
                     {slotData.shifts.map((shift, idx) => {
-                      const startTime = new Date(shift.start_time)
-                      const endTime = new Date(shift.end_time)
                       return (
                         <li key={idx} className="shift-item">
                           <span className="shift-time">
-                            {startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} -{" "}
-                            {endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            {shift.start_time} - {shift.end_time}
                           </span>
-                          <span className="shift-day">
-                            {shift.day}
-                          </span>
+                          <div className="shift-employees" style={{ marginTop: "8px" }}>
+                            {shift.employees && shift.employees.length > 0 ? (
+                              shift.employees.map((emp, empIdx) => (
+                                <span key={empIdx} className="employee-badge" style={{
+                                  display: "inline-block",
+                                  padding: "4px 8px",
+                                  margin: "2px",
+                                  backgroundColor: "var(--primary-100)",
+                                  borderRadius: "4px",
+                                  fontSize: "0.85em"
+                                }}>
+                                  {emp}
+                                </span>
+                              ))
+                            ) : (
+                              <span>No employees</span>
+                            )}
+                          </div>
                         </li>
                       )
                     })}
@@ -1532,18 +1514,22 @@ function AdminDashboard() {
                 <button
                   className="btn-primary"
                   onClick={() => handleGenerateSchedule("week")}
-                  disabled={scheduleGenerating}
+                  disabled={scheduleGeneratingWeek || scheduleGeneratingMonth}
                 >
                   <img src={ScheduleIcon} alt="" className="btn-icon-svg" />{" "}
-                  {scheduleGenerating ? "Generating..." : "Generate Week Schedule"}
+                  {scheduleGeneratingWeek
+                    ? "Generating..."
+                    : "Generate Week Schedule"}
                 </button>
                 <button
                   className="btn-primary"
                   onClick={() => handleGenerateSchedule("month")}
-                  disabled={scheduleGenerating}
+                  disabled={scheduleGeneratingWeek || scheduleGeneratingMonth}
                 >
                   <img src={ScheduleIcon} alt="" className="btn-icon-svg" />{" "}
-                  {scheduleGenerating ? "Generating..." : "Generate Month Schedule"}
+                  {scheduleGeneratingMonth
+                    ? "Generating..."
+                    : "Generate Month Schedule"}
                 </button>
               </>
             )}
@@ -1571,10 +1557,28 @@ function AdminDashboard() {
         {scheduleView === "none" && (
           <div className="empty-state">
             <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-            <h3>Generate Your Schedule</h3>
+            <h3>View Your Schedule</h3>
             <p>
-              Choose between weekly or monthly view to generate and see the workforce schedule
+              {scheduleData.length > 0
+                ? "Click on Week or Month view below to see the schedule"
+                : "Generate a schedule first, then click Week or Month to view it"}
             </p>
+            {scheduleData.length > 0 && (
+              <div style={{ marginTop: "var(--space-4)", display: "flex", gap: "var(--space-3)", justifyContent: "center" }}>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setScheduleView("week")}
+                >
+                  View Week Schedule
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setScheduleView("month")}
+                >
+                  View Month Schedule
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -2872,8 +2876,7 @@ function AdminDashboard() {
                           style={{
                             width: "20px",
                             height: "20px",
-                            filter:
-                              "brightness(0) saturate(100%) invert(1)",
+                            filter: "brightness(0) saturate(100%) invert(1)",
                           }}
                         />
                         Generate Recommendations
@@ -5136,78 +5139,82 @@ function AdminDashboard() {
                 ) : (
                   <div className="alerts-grid">
                     {employeeRequests.map((req) => {
-                      const isPending = req.status === "in queue" || req.status === "pending";
-                      const isApproved = req.status === "approved";
+                      const isPending =
+                        req.status === "in queue" || req.status === "pending"
+                      const isApproved = req.status === "approved"
                       return (
-                      <div
-                        key={req.request_id}
-                        className={`alert-card ${isPending ? "alert-medium" : isApproved ? "alert-low" : "alert-high"}`}
-                      >
-                        <div className="alert-header">
-                          <div
-                            className={`alert-badge ${isPending ? "priority-medium" : isApproved ? "priority-low" : "priority-high"}`}
-                          >
-                            {req.status === "in queue" ? "PENDING" : req.status?.toUpperCase() || "PENDING"}
+                        <div
+                          key={req.request_id}
+                          className={`alert-card ${isPending ? "alert-medium" : isApproved ? "alert-low" : "alert-high"}`}
+                        >
+                          <div className="alert-header">
+                            <div
+                              className={`alert-badge ${isPending ? "priority-medium" : isApproved ? "priority-low" : "priority-high"}`}
+                            >
+                              {req.status === "in queue"
+                                ? "PENDING"
+                                : req.status?.toUpperCase() || "PENDING"}
+                            </div>
+                            <span className="alert-timestamp">
+                              {req.type === "calloff"
+                                ? "Call Off"
+                                : req.type === "holiday"
+                                  ? "Holiday / Leave"
+                                  : req.type === "resign"
+                                    ? "Resignation"
+                                    : req.type}
+                            </span>
                           </div>
-                          <span className="alert-timestamp">
-                            {req.type === "calloff"
-                              ? "Call Off"
-                              : req.type === "holiday"
-                                ? "Holiday / Leave"
-                                : req.type === "resign"
-                                  ? "Resignation"
-                                  : req.type}
-                          </span>
-                        </div>
-                        <p className="alert-message">
-                          {req.message || "No reason provided"}
-                        </p>
-                        {(req.start_date || req.end_date) && (
-                          <p
-                            className="alert-timestamp"
-                            style={{ marginTop: "8px" }}
-                          >
-                            {req.start_date && req.end_date
-                              ? `${req.start_date} to ${req.end_date}`
-                              : req.start_date || req.end_date}
+                          <p className="alert-message">
+                            {req.message || "No reason provided"}
                           </p>
-                        )}
-                        {isPending && (
-                          <div className="alert-actions">
-                            <button
-                              className="btn-primary btn-sm"
-                              onClick={() =>
-                                handleApproveRequest(
-                                  selectedEmployee.id,
-                                  req.request_id,
-                                )
-                              }
-                              style={{
-                                backgroundColor: "#10b981",
-                                borderColor: "#10b981",
-                              }}
+                          {(req.start_date || req.end_date) && (
+                            <p
+                              className="alert-timestamp"
+                              style={{ marginTop: "8px" }}
                             >
-                              ✓ Approve
-                            </button>
-                            <button
-                              className="btn-secondary btn-sm"
-                              onClick={() =>
-                                handleDeclineRequest(
-                                  selectedEmployee.id,
-                                  req.request_id,
-                                )
-                              }
-                              style={{
-                                color: accentColor,
-                                borderColor: accentColor,
-                              }}
-                            >
-                              ✕ Decline
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )})}
+                              {req.start_date && req.end_date
+                                ? `${req.start_date} to ${req.end_date}`
+                                : req.start_date || req.end_date}
+                            </p>
+                          )}
+                          {isPending && (
+                            <div className="alert-actions">
+                              <button
+                                className="btn-primary btn-sm"
+                                onClick={() =>
+                                  handleApproveRequest(
+                                    selectedEmployee.id,
+                                    req.request_id,
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#10b981",
+                                  borderColor: "#10b981",
+                                }}
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                className="btn-secondary btn-sm"
+                                onClick={() =>
+                                  handleDeclineRequest(
+                                    selectedEmployee.id,
+                                    req.request_id,
+                                  )
+                                }
+                                style={{
+                                  color: accentColor,
+                                  borderColor: accentColor,
+                                }}
+                              >
+                                ✕ Decline
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -5448,76 +5455,90 @@ function AdminDashboard() {
 
                 <div className="requests-list">
                   {requests.map((request) => {
-                    const isPending = request.status === "in queue" || request.status === "pending";
+                    const isPending =
+                      request.status === "in queue" ||
+                      request.status === "pending"
                     return (
-                    <div key={request.request_id} className="request-card">
-                      <div className="request-header">
-                        <div className="request-type">
-                          {getRequestTypeLabel(request.type)}
+                      <div key={request.request_id} className="request-card">
+                        <div className="request-header">
+                          <div className="request-type">
+                            {getRequestTypeLabel(request.type)}
+                          </div>
+                          <span
+                            className={getStatusBadgeClass(
+                              request.status === "in queue"
+                                ? "pending"
+                                : request.status,
+                            )}
+                          >
+                            {request.status === "in queue"
+                              ? "PENDING"
+                              : request.status?.toUpperCase() || "PENDING"}
+                          </span>
                         </div>
-                        <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
-                          {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
-                        </span>
+                        <div className="request-body">
+                          <p className="request-message">{request.message}</p>
+                          {request.start_date && (
+                            <div className="request-dates">
+                              <strong>Dates:</strong>{" "}
+                              {new Date(
+                                request.start_date,
+                              ).toLocaleDateString()}
+                              {request.end_date &&
+                                ` - ${new Date(
+                                  request.end_date,
+                                ).toLocaleDateString()}`}
+                            </div>
+                          )}
+                        </div>
+                        <div className="request-footer">
+                          <span className="request-date">
+                            Submitted:{" "}
+                            {new Date(
+                              request.submitted_at,
+                            ).toLocaleDateString()}
+                          </span>
+                          {isPending && (
+                            <div className="request-actions">
+                              <button
+                                className="btn-approve"
+                                onClick={() =>
+                                  handleApproveRequestFromTab(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={requestActionLoading}
+                                style={{
+                                  backgroundColor: "#10b981",
+                                  color: "#ffffff",
+                                  border: "none",
+                                }}
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                className="btn-decline"
+                                onClick={() =>
+                                  handleDeclineRequestFromTab(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={requestActionLoading}
+                                style={{
+                                  backgroundColor: accentColor,
+                                  color: "#ffffff",
+                                  border: "none",
+                                }}
+                              >
+                                ✕ Decline
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="request-body">
-                        <p className="request-message">{request.message}</p>
-                        {request.start_date && (
-                          <div className="request-dates">
-                            <strong>Dates:</strong>{" "}
-                            {new Date(request.start_date).toLocaleDateString()}
-                            {request.end_date &&
-                              ` - ${new Date(
-                                request.end_date,
-                              ).toLocaleDateString()}`}
-                          </div>
-                        )}
-                      </div>
-                      <div className="request-footer">
-                        <span className="request-date">
-                          Submitted:{" "}
-                          {new Date(request.submitted_at).toLocaleDateString()}
-                        </span>
-                        {isPending && (
-                          <div className="request-actions">
-                            <button
-                              className="btn-approve"
-                              onClick={() =>
-                                handleApproveRequestFromTab(
-                                  employee.id,
-                                  request.request_id,
-                                )
-                              }
-                              disabled={requestActionLoading}
-                              style={{
-                                backgroundColor: "#10b981",
-                                color: "#ffffff",
-                                border: "none",
-                              }}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              className="btn-decline"
-                              onClick={() =>
-                                handleDeclineRequestFromTab(
-                                  employee.id,
-                                  request.request_id,
-                                )
-                              }
-                              disabled={requestActionLoading}
-                              style={{
-                                backgroundColor: accentColor,
-                                color: "#ffffff",
-                                border: "none",
-                              }}
-                            >
-                              ✕ Decline
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
+                    )
                   })}
                 </div>
               </div>
