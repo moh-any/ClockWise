@@ -41,7 +41,7 @@ func (cps *CachedPreferencesStore) UpsertPreference(pref *database.EmployeePrefe
 }
 
 // UpsertPreferences invalidates the list and all relevant days
-func (cps *CachedPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs []*database.EmployeePreference) error {
+func (cps *CachedPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs []database.EmployeePreference) error {
 	err := cps.store.UpsertPreferences(employeeID, prefs)
 	if err != nil {
 		return err
@@ -61,10 +61,10 @@ func (cps *CachedPreferencesStore) UpsertPreferences(employeeID uuid.UUID, prefs
 
 // GetPreferencesByEmployeeID retrieves the full set of preferences
 // Cache key: user:{uuid}:preferences
-func (cps *CachedPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]*database.EmployeePreference, error) {
+func (cps *CachedPreferencesStore) GetPreferencesByEmployeeID(employeeID uuid.UUID) ([]database.EmployeePreference, error) {
 	key := fmt.Sprintf("user:%s:preferences", employeeID)
 
-	var prefs []*database.EmployeePreference
+	var prefs []database.EmployeePreference
 	if err := cps.cache.Get(key, &prefs); err == nil {
 		return prefs, nil
 	}
