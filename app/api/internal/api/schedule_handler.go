@@ -355,7 +355,7 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "error storing schedule"})
 		return
 	}
-	
+
 	for day, timeSlots := range scheduleResponse.ScheduleOutput {
 		for i, slotMap := range timeSlots {
 			for timeRange := range slotMap {
@@ -556,41 +556,14 @@ func (sh *ScheduleHandler) getNextSevenDayDates() map[string]time.Time {
 }
 
 // parseTimeRange parses a time range string like "10:00-14:00" into start and end times
-func (sh *ScheduleHandler) parseTimeRange(timeRange string, baseDate time.Time) (time.Time, time.Time, error) {
+func (sh *ScheduleHandler) parseTimeRange(timeRange string, baseDate time.Time) (string, string, error) {
 	parts := strings.Split(timeRange, "-")
 	if len(parts) != 2 {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid time range format: %s", timeRange)
+		return "", "", fmt.Errorf("invalid time range format: %s", timeRange)
 	}
 
 	startStr := strings.TrimSpace(parts[0])
 	endStr := strings.TrimSpace(parts[1])
 
-	startTime, err := sh.parseTimeString(startStr, baseDate)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid start time: %w", err)
-	}
-
-	endTime, err := sh.parseTimeString(endStr, baseDate)
-	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid end time: %w", err)
-	}
-
-	return startTime, endTime, nil
-}
-
-// parseTimeString parses a time string like "10:00" into a time.Time with the base date
-func (sh *ScheduleHandler) parseTimeString(timeStr string, baseDate time.Time) (time.Time, error) {
-	parts := strings.Split(timeStr, ":")
-	if len(parts) != 2 {
-		return time.Time{}, fmt.Errorf("invalid time format: %s", timeStr)
-	}
-
-	hour := 0
-	minute := 0
-	_, err := fmt.Sscanf(timeStr, "%d:%d", &hour, &minute)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), hour, minute, 0, 0, baseDate.Location()), nil
+	return startStr, endStr, nil
 }
