@@ -19,7 +19,7 @@ func TestUpsertPreference(t *testing.T) {
 
 	pref := &database.EmployeePreference{
 		EmployeeID:         uuid.New(),
-		Day:                "Monday",
+		Day:                "monday",
 		PreferredStartTime: func() *string { s := "09:00"; return &s }(),
 		PreferredEndTime:   func() *string { s := "17:00"; return &s }(),
 	}
@@ -50,9 +50,9 @@ func TestUpsertPreferences(t *testing.T) {
 	store := database.NewPostgresPreferencesStore(db, logger)
 
 	empID := uuid.New()
-	prefs := []*database.EmployeePreference{
-		{Day: "Monday"},
-		{Day: "Tuesday"},
+	prefs := []database.EmployeePreference{
+		{Day: "monday"},
+		{Day: "tuesday"},
 	}
 
 	query := regexp.QuoteMeta(`INSERT INTO employees_preferences (employee_id, day, preferred_start_time, preferred_end_time, available_start_time, available_end_time) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (employee_id, day) DO UPDATE SET preferred_start_time = EXCLUDED.preferred_start_time, preferred_end_time = EXCLUDED.preferred_end_time, available_start_time = EXCLUDED.available_start_time, available_end_time = EXCLUDED.available_end_time`)
@@ -88,19 +88,19 @@ func TestGetPreferencesByEmployeeID(t *testing.T) {
 	store := database.NewPostgresPreferencesStore(db, logger)
 
 	empID := uuid.New()
-	query := regexp.QuoteMeta(`SELECT employee_id, day, preferred_start_time, preferred_end_time, available_start_time, available_end_time FROM employees_preferences WHERE employee_id = $1 ORDER BY CASE day WHEN 'Sunday' THEN 0 WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3 WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 END`)
+	query := regexp.QuoteMeta(`SELECT employee_id, day, preferred_start_time, preferred_end_time, available_start_time, available_end_time FROM employees_preferences WHERE employee_id = $1 ORDER BY CASE day WHEN 'sunday' THEN 0 WHEN 'monday' THEN 1 WHEN 'tuesday' THEN 2 WHEN 'wednesday' THEN 3 WHEN 'thursday' THEN 4 WHEN 'friday' THEN 5 WHEN 'saturday' THEN 6 END`)
 
 	t.Run("Success", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"employee_id", "day", "preferred_start_time", "preferred_end_time", "available_start_time", "available_end_time"}).
-			AddRow(empID, "Monday", "09:00", "17:00", nil, nil).
-			AddRow(empID, "Tuesday", "09:00", "17:00", nil, nil)
+			AddRow(empID, "monday", "09:00", "17:00", nil, nil).
+			AddRow(empID, "tuesday", "09:00", "17:00", nil, nil)
 
 		mock.ExpectQuery(query).WithArgs(empID).WillReturnRows(rows)
 
 		prefs, err := store.GetPreferencesByEmployeeID(empID)
 		assert.NoError(t, err)
 		assert.Len(t, prefs, 2)
-		assert.Equal(t, "Monday", prefs[0].Day)
+		assert.Equal(t, "monday", prefs[0].Day)
 		AssertExpectations(t, mock)
 	})
 }
@@ -111,7 +111,7 @@ func TestGetPreferenceByDay(t *testing.T) {
 	store := database.NewPostgresPreferencesStore(db, logger)
 
 	empID := uuid.New()
-	day := "Monday"
+	day := "monday"
 	query := regexp.QuoteMeta(`SELECT employee_id, day, preferred_start_time, preferred_end_time, available_start_time, available_end_time FROM employees_preferences WHERE employee_id = $1 AND day = $2`)
 
 	t.Run("Success", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGetPreferenceByDay(t *testing.T) {
 
 		pref, err := store.GetPreferenceByDay(empID, day)
 		assert.NoError(t, err)
-		assert.Equal(t, day, pref.Day)
+		assert.Equal(t, "monday", pref.Day)
 		AssertExpectations(t, mock)
 	})
 
@@ -157,7 +157,7 @@ func TestDeletePreferenceByDay(t *testing.T) {
 	store := database.NewPostgresPreferencesStore(db, logger)
 
 	empID := uuid.New()
-	day := "Monday"
+	day := "monday"
 	query := regexp.QuoteMeta(`DELETE FROM employees_preferences WHERE employee_id = $1 AND day = $2`)
 
 	t.Run("Success", func(t *testing.T) {
