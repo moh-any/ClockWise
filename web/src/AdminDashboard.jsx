@@ -222,20 +222,37 @@ function AdminDashboard() {
     const coverageMap = {}
     
     scheduleData.forEach(shift => {
-      const startDate = new Date(shift.start_time)
-      const endDate = new Date(shift.end_time)
-      const dayOfWeek = startDate.getDay()
-      const startHour = startDate.getHours()
-      const endHour = endDate.getHours()
-      
-      // Mark all hours in this shift as covered
-      for (let hour = startHour; hour < endHour; hour++) {
-        const key = `${dayOfWeek}-${hour}`
-        if (!coverageMap[key]) {
-          coverageMap[key] = { count: 0, shifts: [] }
+      // NEW: Handle ML schedule format
+      if (shift.day && shift.time && Array.isArray(shift.employees)) {
+        // Parse time range
+        const [startStr, endStr] = shift.time.split('-')
+        const startHour = parseInt(startStr.split(':')[0], 10)
+        const endHour = parseInt(endStr.split(':')[0], 10)
+        const dayOfWeek = days.indexOf(shift.day.charAt(0).toUpperCase() + shift.day.slice(1, 3))
+        // Mark all hours in this slot
+        for (let hour = startHour; hour < endHour; hour++) {
+          const key = `${dayOfWeek}-${hour}`
+          if (!coverageMap[key]) {
+            coverageMap[key] = { count: 0, shifts: [] }
+          }
+          coverageMap[key].count += shift.employees.length
+          coverageMap[key].shifts.push({ ...shift, start_time: shift.time, end_time: shift.time })
         }
-        coverageMap[key].count++
-        coverageMap[key].shifts.push(shift)
+      } else if (shift.start_time && shift.end_time) {
+        // Legacy format
+        const startDate = new Date(shift.start_time)
+        const endDate = new Date(shift.end_time)
+        const dayOfWeek = startDate.getDay()
+        const startHour = startDate.getHours()
+        const endHour = endDate.getHours()
+        for (let hour = startHour; hour < endHour; hour++) {
+          const key = `${dayOfWeek}-${hour}`
+          if (!coverageMap[key]) {
+            coverageMap[key] = { count: 0, shifts: [] }
+          }
+          coverageMap[key].count++
+          coverageMap[key].shifts.push(shift)
+        }
       }
     })
     
@@ -531,8 +548,25 @@ function AdminDashboard() {
       setScheduleLoading(true)
       setScheduleError("")
       const response = await api.dashboard.getAllSchedule()
-      if (response && response.data) {
+      if (response && response.schedule_output) {
+        // Flatten schedule_output for display
+        const flatSchedule = []
+        Object.entries(response.schedule_output).forEach(([day, slots]) => {
+          slots.forEach(slotObj => {
+            Object.entries(slotObj).forEach(([time, employees]) => {
+              flatSchedule.push({
+                day,
+                time,
+                employees,
+              })
+            })
+          })
+        })
+        setScheduleData(flatSchedule)
+      } else if (response && response.data) {
         setScheduleData(response.data)
+      } else {
+        setScheduleData([])
       }
     } catch (err) {
       console.error("Error fetching schedule:", err)
@@ -551,12 +585,29 @@ function AdminDashboard() {
       console.log("Generating schedule...")
       const response = await api.dashboard.generateSchedule()
       console.log("Schedule generation response:", response)
-      
-      setScheduleGenerateSuccess(response.message || "Schedule generated successfully!")
-      
-      // Fetch the newly generated schedule from the database
-      await fetchSchedule()
-      
+      // NEW: Handle ML API response structure
+      if (response.schedule_output) {
+        // Flatten schedule_output for display
+        const flatSchedule = []
+        Object.entries(response.schedule_output).forEach(([day, slots]) => {
+          slots.forEach(slotObj => {
+            Object.entries(slotObj).forEach(([time, employees]) => {
+              flatSchedule.push({
+                day,
+                time,
+                employees,
+              })
+            })
+          })
+        })
+        setScheduleData(flatSchedule)
+      } else if (response.data) {
+        setScheduleData(response.data)
+      } else {
+        setScheduleData([])
+      }
+      setScheduleGenerateSuccess(response.schedule_message || response.message || "Schedule generated successfully!")
+      // Optionally handle management_insights here
       // Show the requested view
       setScheduleView(viewType)
       setCameFromMonth(false)
