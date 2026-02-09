@@ -1247,36 +1247,53 @@ function AdminDashboard() {
       const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
 
       return (
-        <div className="schedule-week-view">
-          <div className="schedule-week-header">
-            <h3>Week {weekOffset + 1} Schedule</h3>
-            <p>Click any time slot to view employee details</p>
+        <div className="schedule-week-view-premium">
+          <div className="schedule-week-header-premium">
+            <div className="schedule-title-section">
+              <h3 className="schedule-main-title">Week {weekOffset + 1} Schedule</h3>
+              <p className="schedule-subtitle">Click any time slot to view employee details</p>
+            </div>
+            <div className="schedule-stats-mini">
+              <div className="mini-stat">
+                <span className="mini-stat-value">{scheduleData.length}</span>
+                <span className="mini-stat-label">Shifts</span>
+              </div>
+              <div className="mini-stat">
+                <span className="mini-stat-value">{scheduleData.reduce((sum, s) => sum + (s.employees?.length || 0), 0)}</span>
+                <span className="mini-stat-label">Staff</span>
+              </div>
+            </div>
           </div>
-          <div className="schedule-grid">
+          <div className="schedule-grid-premium">
             {/* Header row with days */}
             <div
-              className="schedule-header-cell schedule-corner-cell"
+              className="schedule-header-cell-premium schedule-corner-cell-premium"
               style={{ background: cornerGradient }}
             >
-              <div className="corner-label">Time / Day</div>
+              <svg className="corner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="corner-label">Time</span>
             </div>
             {days.map((day, dayIndex) => (
               <div
                 key={dayIndex}
-                className="schedule-header-cell"
+                className="schedule-header-cell-premium"
                 style={{ background: headerGradient }}
               >
-                <span className="day-name">{day}</span>
+                <span className="day-name-premium">{day}</span>
+                <span className="day-subtitle">Day {dayIndex + 1}</span>
               </div>
             ))}
 
             {/* Hour rows */}
             {Array.from({ length: 24 }).map((_, hour) => (
               <>
-                <div key={`hour-${hour}`} className="schedule-hour-label">
-                  <span className="hour-time">
-                    {hour.toString().padStart(2, "0")}:00
+                <div key={`hour-${hour}`} className="schedule-hour-label-premium">
+                  <span className="hour-time-large">
+                    {hour.toString().padStart(2, "0")}
                   </span>
+                  <span className="hour-period">{hour < 12 ? 'AM' : 'PM'}</span>
                 </div>
                 {days.map((_, day) => {
                   const slotData = getScheduleSlot(hour, day)
@@ -1285,25 +1302,30 @@ function AdminDashboard() {
                   return (
                     <div
                       key={`${hour}-${day}`}
-                      className={`schedule-cell ${totalStaff === 0 ? "empty-slot" : ""}`}
+                      className={`schedule-cell-premium ${totalStaff === 0 ? "empty-slot-premium" : "active-slot-premium"}`}
                       onClick={() =>
                         totalStaff > 0 && handleSlotClick(hour, day)
                       }
+                      style={{
+                        background: totalStaff > 0 ? `linear-gradient(135deg, ${primaryColor}08, ${secondaryColor}05)` : undefined
+                      }}
                     >
                       {totalStaff > 0 ? (
-                        <div className="schedule-cell-content">
-                          <div className="schedule-employee-count">
-                            <span className="employee-count-label">Staff:</span>
-                            <span
-                              className="employee-count-value"
-                              style={{ backgroundColor: primaryColor }}
-                            >
-                              {totalStaff}
-                            </span>
+                        <div className="schedule-cell-content-premium">
+                          <div className="staff-count-badge" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+                            <svg className="staff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span className="staff-count">{totalStaff}</span>
                           </div>
+                          <span className="staff-label">Staff Members</span>
                         </div>
                       ) : (
-                        <div className="empty-indicator">—</div>
+                        <div className="empty-indicator-premium">
+                          <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        </div>
                       )}
                     </div>
                   )
@@ -1404,73 +1426,93 @@ function AdminDashboard() {
       const slotData = getScheduleSlot(selectedSlot.hour, selectedSlot.day)
       const totalEmployees = slotData ? slotData.employeeCount : 0
 
-      const popupHeaderGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
-
       return (
         <div
-          className="schedule-popup-overlay"
+          className="schedule-popup-overlay-premium"
           onClick={() => setShowSchedulePopup(false)}
         >
-          <div className="schedule-popup" onClick={(e) => e.stopPropagation()}>
-            <div
-              className="popup-header"
-              style={{ background: popupHeaderGradient }}
-            >
-              <div className="popup-title">
-                <h3>
-                  {days[selectedSlot.day]} -{" "}
-                  {selectedSlot.hour.toString().padStart(2, "0")}:00
-                </h3>
-                <p className="popup-subtitle">
-                  {totalEmployees}{" "}
-                  {totalEmployees === 1 ? "employee" : "employees"} scheduled
-                </p>
+          <div className="schedule-popup-premium" onClick={(e) => e.stopPropagation()}>
+            {/* Profile-style header card */}
+            <div className="popup-header-card">
+              <div className="popup-header-content">
+                <div className="popup-icon-wrapper" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+                  <svg className="popup-main-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="popup-title-section">
+                  <h3 className="popup-title-premium">
+                    {days[selectedSlot.day]}, {selectedSlot.hour.toString().padStart(2, "0")}:00
+                  </h3>
+                  <p className="popup-subtitle-premium">
+                    {totalEmployees} {totalEmployees === 1 ? "Staff Member" : "Staff Members"} Scheduled
+                  </p>
+                </div>
               </div>
               <button
-                className="popup-close"
+                className="popup-close-premium"
                 onClick={() => setShowSchedulePopup(false)}
                 aria-label="Close"
               >
-                ×
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <div className="popup-content">
+
+            {/* Profile-style content */}
+            <div className="popup-content-premium">
               {slotData && slotData.shifts && slotData.shifts.length > 0 ? (
-                <div className="popup-shifts-section">
-                  <h4>Scheduled Employees</h4>
-                  <ul className="shifts-list">
-                    {slotData.shifts.map((shift, idx) => {
-                      return (
-                        <li key={idx} className="shift-item">
-                          <span className="shift-time">
-                            {shift.start_time} - {shift.end_time}
-                          </span>
-                          <div className="shift-employees" style={{ marginTop: "8px" }}>
-                            {shift.employees && shift.employees.length > 0 ? (
-                              shift.employees.map((emp, empIdx) => (
-                                <span key={empIdx} className="employee-badge" style={{
-                                  display: "inline-block",
-                                  padding: "4px 8px",
-                                  margin: "2px",
-                                  backgroundColor: "var(--primary-100)",
-                                  borderRadius: "4px",
-                                  fontSize: "0.85em"
-                                }}>
-                                  {emp}
-                                </span>
-                              ))
-                            ) : (
-                              <span>No employees</span>
-                            )}
+                <>
+                  {/* Shift info cards */}
+                  {slotData.shifts.map((shift, idx) => (
+                    <div key={idx} className="shift-info-card">
+                      <div className="shift-card-header">
+                        <div className="shift-time-badge" style={{ background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}10)`, borderColor: primaryColor }}>
+                          <svg className="time-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{shift.start_time} - {shift.end_time}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Employee grid - profile style */}
+                      <div className="employees-grid-premium">
+                        {shift.employees && shift.employees.length > 0 ? (
+                          shift.employees.map((emp, empIdx) => (
+                            <div key={empIdx} className="employee-card-mini">
+                              <div className="employee-avatar" style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                              <div className="employee-info-mini">
+                                <span className="employee-name-mini">{emp}</span>
+                                <span className="employee-role-mini">Staff Member</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="no-employees-card">
+                            <svg className="no-emp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            </svg>
+                            <span>No employees assigned</span>
                           </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
               ) : (
-                <div className="no-staff-message">
-                  <p>No staff scheduled for this time slot</p>
+                <div className="no-data-card">
+                  <div className="no-data-icon" style={{ background: `${accentColor}15` }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ stroke: accentColor }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <h4 className="no-data-title">No Staff Scheduled</h4>
+                  <p className="no-data-text">There are no staff members assigned to this time slot yet.</p>
                 </div>
               )}
             </div>
