@@ -153,12 +153,9 @@ function EmployeeDashboard() {
 
   useEffect(() => {
     if (activeTab === "requests") {
-      console.log("Requests tab activated, currentUser:", currentUser)
-      if (currentUser?.user_id) {
-        fetchUserRequests()
-      } else {
-        console.log("Waiting for currentUser to load...")
-      }
+      console.log("Requests tab activated, triggering fetchUserRequests")
+      console.log("currentUser at tab activation:", currentUser)
+      fetchUserRequests()
     }
   }, [activeTab, currentUser])
 
@@ -170,22 +167,28 @@ function EmployeeDashboard() {
 
   const fetchCurrentUser = async () => {
     try {
+      console.log("fetchCurrentUser: Starting...")
       // Try to get from cache first
       const cached = localStorage.getItem("current_user")
       if (cached) {
         const parsedUser = JSON.parse(cached)
+        console.log("fetchCurrentUser: Setting from cache:", parsedUser)
         setCurrentUser(parsedUser)
       }
 
       // Fetch fresh data from API
+      console.log("fetchCurrentUser: Fetching from API...")
       const userData = await api.auth.getCurrentUser()
+      console.log("fetchCurrentUser: API response:", userData)
       setCurrentUser(userData)
+      console.log("fetchCurrentUser: currentUser state updated")
     } catch (err) {
       console.error("Error fetching user data:", err)
       // Still try to use cached data
       const cached = localStorage.getItem("current_user")
       if (cached) {
         const parsedUser = JSON.parse(cached)
+        console.log("fetchCurrentUser: Using cached data after error:", parsedUser)
         setCurrentUser(parsedUser)
       }
     }
@@ -441,33 +444,59 @@ function EmployeeDashboard() {
   // Fetch user's submitted requests
   const fetchUserRequests = async () => {
     const orgId = localStorage.getItem("org_id")
-    if (!currentUser?.user_id) {
-      console.log("Cannot fetch requests: user_id not available", currentUser)
+    // Try to get user_id from currentUser first, then fall back to localStorage
+    let userId = currentUser?.user_id || currentUser?.id
+    if (!userId) {
+      userId = localStorage.getItem("user_id")
+    }
+    
+    console.log("=== fetchUserRequests called ===")
+    console.log("currentUser:", currentUser)
+    console.log("userId from currentUser:", currentUser?.user_id || currentUser?.id)
+    console.log("userId from localStorage:", localStorage.getItem("user_id"))
+    console.log("Final userId:", userId)
+    console.log("orgId:", orgId)
+    
+    if (!userId) {
+      console.log("Cannot fetch requests: user_id not available anywhere")
+      setRequestsError("User ID not available. Please log in again.")
       return
     }
     if (!orgId) {
       console.log("Cannot fetch requests: organization_id not available")
+      setRequestsError("Organization ID not available. Please log in again.")
       return
     }
 
-    console.log("Fetching requests for employee:", currentUser.user_id)
+    console.log("Making API call to fetch requests for employee:", userId)
     setRequestsListLoading(true)
     setRequestsError("")
     try {
-      const response = await api.requests.getEmployeeRequests(
-        currentUser.user_id,
-      )
-      console.log("Requests fetched successfully:", response)
-      setRequests(response.requests || [])
-      if (response.requests && response.requests.length === 0) {
-        console.log("No requests found for this employee")
+      const response = await api.requests.getEmployeeRequests(userId)
+      console.log("Raw API Response:", response)
+      console.log("Response type:", typeof response)
+      console.log("Response.requests:", response.requests)
+      console.log("Is Array:", Array.isArray(response.requests))
+      
+      if (response && response.requests) {
+        console.log("Setting requests to:", response.requests)
+        setRequests(response.requests)
+        console.log("Number of requests:", response.requests.length)
+      } else if (Array.isArray(response)) {
+        console.log("Response is directly an array:", response)
+        setRequests(response)
+      } else {
+        console.log("Unexpected response structure, setting empty array")
+        setRequests([])
       }
     } catch (err) {
       console.error("Error fetching requests:", err)
+      console.error("Error details:", JSON.stringify(err, null, 2))
       setRequestsError(err.message || "Failed to load requests")
       setRequests([])
     } finally {
       setRequestsListLoading(false)
+      console.log("=== fetchUserRequests completed ===")
     }
   }
 
@@ -1095,8 +1124,19 @@ function EmployeeDashboard() {
           className="section-wrapper"
           style={{ marginTop: "var(--emp-space-6)" }}
         >
-          <div className="section-header">
+          <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 className="section-title">My Submitted Requests</h2>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                console.log("Manual refresh clicked. CurrentUser:", currentUser)
+                fetchUserRequests()
+              }}
+              disabled={requestsListLoading}
+              style={{ marginLeft: "auto" }}
+            >
+              {requestsListLoading ? "Refreshing..." : "Refresh"}
+            </button>
           </div>
 
           {requestsListLoading ? (
