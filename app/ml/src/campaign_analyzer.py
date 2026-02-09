@@ -125,7 +125,25 @@ class CampaignAnalyzer:
         avg_orders_during = len(during_orders) / max(duration, 1)
         avg_orders_after = len(after_orders) / max(duration, 1)
         
-        uplift = ((avg_orders_during - avg_orders_before) / max(avg_orders_before, 1)) * 100
+        # Calculate uplift with robust baseline handling
+        # Require a meaningful baseline to compute uplift; otherwise use conservative default
+        MIN_BASELINE_ORDERS_PER_DAY = 2.0  # Need at least 2 orders/day for reliable baseline
+        if avg_orders_before >= MIN_BASELINE_ORDERS_PER_DAY:
+            uplift = ((avg_orders_during - avg_orders_before) / avg_orders_before) * 100
+        elif avg_orders_before > 0 and avg_orders_during > 0:
+            # Low baseline — use dampened uplift to avoid explosion
+            # Scale the uplift towards 0 proportionally to how far baseline is from minimum
+            raw_uplift = ((avg_orders_during - avg_orders_before) / avg_orders_before) * 100
+            damping_factor = avg_orders_before / MIN_BASELINE_ORDERS_PER_DAY
+            uplift = raw_uplift * damping_factor
+        else:
+            # No meaningful baseline data — cannot reliably estimate uplift
+            uplift = 0.0
+        
+        # Clamp uplift to realistic range: campaigns rarely exceed 80% lift
+        # Floor at 0 — negative uplift is a data artifact (seasonal variation, sparse data),
+        # not a real campaign signal. We don't want to train on or show negative uplifts.
+        uplift = float(np.clip(uplift, 0.0, 80.0))
         
         # Item-level analysis
         item_uplift = self._calculate_item_uplift(
@@ -152,15 +170,29 @@ class CampaignAnalyzer:
         # Holiday check
         was_holiday = self._check_holiday_overlap(start_dt_naive, end_dt.tz_localize(None) if end_dt.tzinfo else end_dt)
         
-        # Profitability (simplified - assumes 30% margin before discount)
-        base_margin = 0.30
-        discount_rate = campaign['discount'] / 100
-        effective_margin = base_margin - discount_rate
-        gross_margin = revenue_during * effective_margin
+        # Profitability: ROI measures the INCREMENTAL gain from running the campaign
+        # Incremental revenue = revenue during campaign minus what we'd have earned anyway (baseline)
+        baseline_revenue = revenue_before  # revenue in equivalent period before campaign
+        incremental_revenue = revenue_during - baseline_revenue
         
-        # ROI (assumes campaign cost is 5% of revenue)
-        campaign_cost = revenue_during * 0.05
-        roi = (gross_margin - campaign_cost) / max(campaign_cost, 1) * 100
+        discount_rate = campaign['discount'] / 100
+        # Campaign cost = the discount given away on the during-period revenue
+        campaign_cost = revenue_during * discount_rate
+        
+        # Gross margin: incremental revenue minus the discount cost
+        gross_margin = incremental_revenue - campaign_cost
+        
+        # ROI = (incremental revenue - campaign cost) / campaign cost
+        if campaign_cost > 0 and baseline_revenue > 0:
+            roi = (incremental_revenue - campaign_cost) / campaign_cost * 100
+        elif campaign_cost > 0:
+            # No baseline revenue data — can't compute meaningful ROI
+            roi = 0.0
+        else:
+            roi = 0.0
+        
+        # Clamp ROI to realistic range for marketing campaigns
+        roi = float(np.clip(roi, -50.0, 200.0))
         
         return CampaignMetrics(
             campaign_id=campaign.get('id', f"campaign_{start_dt.timestamp()}"),
@@ -203,13 +235,19 @@ class CampaignAnalyzer:
             during_count = self._count_item_in_orders(during_orders, order_items_df, item)
             after_count = self._count_item_in_orders(after_orders, order_items_df, item)
             
-            # Calculate uplift
-            if before_count > 0:
-                uplift = ((during_count - before_count) / before_count) * 100
+            # Calculate item uplift with robust baseline handling
+            MIN_ITEM_BASELINE = 3  # Need at least 3 item orders for reliable baseline
+            if before_count >= MIN_ITEM_BASELINE:
+                item_up = ((during_count - before_count) / before_count) * 100
+            elif before_count > 0 and during_count > 0:
+                raw_up = ((during_count - before_count) / before_count) * 100
+                damping = before_count / MIN_ITEM_BASELINE
+                item_up = raw_up * damping
             else:
-                uplift = 100.0 if during_count > 0 else 0.0
+                item_up = 0.0
             
-            item_uplift[item] = uplift
+            # Clamp item uplift to realistic range (no negatives)
+            item_uplift[item] = float(np.clip(item_up, 0.0, 80.0))
         
         return item_uplift
     
@@ -442,9 +480,9 @@ class CampaignAnalyzer:
         rois = [c.roi for c in self.campaign_metrics]
         revenues = [c.total_revenue_during for c in self.campaign_metrics]
         
-        # Filter out extreme outliers (cap at 1000% for display)
-        rois_capped = [min(roi, 1000) for roi in rois]
-        uplifts_capped = [min(uplift, 1000) for uplift in uplifts]
+        # Values are already clamped in calculation, but cap display values too
+        rois_capped = [max(min(roi, 200), 0) for roi in rois]
+        uplifts_capped = [max(min(uplift, 80), 0) for uplift in uplifts]
         
         return {
             'total_campaigns_analyzed': len(self.campaign_metrics),

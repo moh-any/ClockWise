@@ -506,8 +506,8 @@ html {
 
 .logoName {
   position: absolute;
-  top: 40%;
-  left: 60%;
+  top: 39%;
+  left: 54%;
   transform: translateX(20%);
   font-size: 1.125rem;
   font-family: "Iceberg", sans-serif;
@@ -609,7 +609,7 @@ html {
     transform: rotate(0deg);
   }
   to {
-    transform: rotate(360deg);
+    transform: rotate(-360deg);
   }
 }
 

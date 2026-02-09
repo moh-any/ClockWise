@@ -11,7 +11,7 @@ import OrdersIcon from "./Icons/Orders-Icon.svg"
 import InfoIcon from "./Icons/Info_Icon.svg"
 import ChartUpIcon from "./Icons/Chart-Up-Icon.svg"
 import ChartDownIcon from "./Icons/Chart-down-Icon.svg"
-import TargetHitIcon from "./Icons/Target-Hit-Icon.svg"
+import MagicIcon from "./Icons/Magic-Icon.svg"
 import MissedTargetIcon from "./Icons/Missed-Target-Icon.svg"
 import LocationIcon from "./Icons/location-Icon.svg"
 import CloudUploadIcon from "./Icons/Cloud-Upload-Icon.svg"
@@ -156,13 +156,13 @@ function AdminDashboard() {
   // ADD THESE STATE VARIABLES:
   const [showRecommendationModal, setShowRecommendationModal] = useState(false)
   const [recommendationParams, setRecommendationParams] = useState({
-    recommendation_start_date: new Date().toISOString().split('T')[0],
+    recommendation_start_date: new Date().toISOString().split("T")[0],
     num_recommendations: 5,
-    optimize_for: 'roi',
+    optimize_for: "roi",
     max_discount: 30,
     min_campaign_duration_days: 3,
     max_campaign_duration_days: 14,
-    available_items: []
+    available_items: [],
   })
   const [recommendations, setRecommendations] = useState(null)
   const [recommendationsLoading, setRecommendationsLoading] = useState(false)
@@ -185,11 +185,18 @@ function AdminDashboard() {
   const [aiAlerts, setAiAlerts] = useState([])
 
   // Schedule state
+  const [scheduleData, setScheduleData] = useState([])
+  const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [scheduleError, setScheduleError] = useState("")
+  const [scheduleGeneratingWeek, setScheduleGeneratingWeek] = useState(false)
+  const [scheduleGeneratingMonth, setScheduleGeneratingMonth] = useState(false)
+  const [scheduleGenerateError, setScheduleGenerateError] = useState("")
+  const [scheduleGenerateSuccess, setScheduleGenerateSuccess] = useState("")
   const [scheduleView, setScheduleView] = useState("none") // none, week, month
   const [selectedWeek, setSelectedWeek] = useState(null) // 0-3 for month view
   const [selectedSlot, setSelectedSlot] = useState(null) // {hour, day}
   const [showSchedulePopup, setShowSchedulePopup] = useState(false)
-  const [cameFromMonth, setCameFromMonth] = useState(false) // Track navigation path
+  const [cameFromMonth, setCameFromMonth] = useState(false)
 
   // Initialize heatmap with base data (24 hours x 7 days, all zeros)
   const [heatMapData, setHeatMapData] = useState(() => {
@@ -206,79 +213,71 @@ function AdminDashboard() {
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-  // Hardcoded schedule data - 24 hours x 7 days
-  // Structure: { hour: 0-23, day: 0-6, roles: { roleName: { count, employees: [] } } }
-  const hardcodedScheduleData = (() => {
+  // Transform API schedule data for display
+  // API returns: { date, day, start_time, end_time }
+  // We need to create a simplified schedule grid showing coverage
+  const scheduleDataForDisplay = (() => {
     const data = []
-    const roleNames = ["Chef", "Waiter", "Manager", "Cashier", "Cleaner", "Driver"]
-    const employeeNames = [
-      ["John Doe", "Jane Smith", "Bob Wilson", "Tom Harris", "Sarah Connor"],
-      ["Alice Brown", "Charlie Davis", "Eva Martinez", "David Lee", "Sophie Turner", "Mike Ross"],
-      ["Frank Johnson", "Grace Lee", "Henry Taylor"],
-      ["Ivy Anderson", "Jack White", "Kate Green", "Lucas Moore"],
-      ["Leo Black", "Mia Gray", "Noah Blue"],
-      ["Olivia Red", "Paul Yellow", "Quinn Orange", "Rachel Green", "Ross Geller"]
-    ]
 
+    // Group shifts by day and hour to count coverage
+    const coverageMap = {}
+
+    scheduleData.forEach((shift) => {
+      // Handle new backend format: { schedule_date, day, start_time, end_time, employees }
+      if (
+        shift.day &&
+        shift.start_time &&
+        shift.end_time &&
+        Array.isArray(shift.employees)
+      ) {
+        // Parse start and end times (format: "HH:MM:SS")
+        const startHour = parseInt(shift.start_time.split(":")[0], 10)
+        const endHour = parseInt(shift.end_time.split(":")[0], 10)
+
+        // Map day name to day index (0=Monday, 6=Sunday)
+        const dayMap = {
+          monday: 0,
+          tuesday: 1,
+          wednesday: 2,
+          thursday: 3,
+          friday: 4,
+          saturday: 5,
+          sunday: 6,
+        }
+        const dayOfWeek = dayMap[shift.day.toLowerCase()] ?? 0
+
+        // Mark all hours in this shift
+        for (let hour = startHour; hour < endHour; hour++) {
+          const key = `${dayOfWeek}-${hour}`
+          if (!coverageMap[key]) {
+            coverageMap[key] = { count: 0, shifts: [] }
+          }
+          coverageMap[key].count += shift.employees.length
+          coverageMap[key].shifts.push(shift)
+        }
+      }
+    })
+
+    // Create data structure for grid display
     for (let hour = 0; hour < 24; hour++) {
       for (let day = 0; day < 7; day++) {
-        const roles = {}
+        const key = `${day}-${hour}`
+        const coverage = coverageMap[key] || { count: 0, shifts: [] }
 
-        // Different staffing levels based on time of day and day of week
-        let staffingMultiplier = 1
-        const isWeekend = day === 5 || day === 6
-
-        if (hour >= 11 && hour <= 14) {
-          staffingMultiplier = isWeekend ? 2.5 : 2 // Lunch rush
-        } else if (hour >= 18 && hour <= 21) {
-          staffingMultiplier = isWeekend ? 3 : 2.5 // Dinner rush
-        } else if (hour >= 6 && hour <= 10) {
-          staffingMultiplier = 1.5 // Breakfast
-        } else if (hour >= 22 || hour <= 5) {
-          staffingMultiplier = 0.3 // Late night/early morning
-        } else if (hour >= 15 && hour <= 17) {
-          staffingMultiplier = 0.8 // Afternoon lull
-        }
-
-        roleNames.forEach((roleName, roleIndex) => {
-          let baseCount = 1
-          if (roleName === "Waiter") baseCount = 3
-          else if (roleName === "Chef") baseCount = 2
-          else if (roleName === "Cleaner") baseCount = 1
-          else if (roleName === "Driver") {
-            baseCount = isWeekend ? 2 : 1
-          }
-
-          let count = Math.max(0, Math.round(baseCount * staffingMultiplier))
-
-          // Vary the count more - some roles might not be needed at all times
-          if ((roleName === "Manager" && (hour < 8 || hour > 22)) ||
-            (roleName === "Cleaner" && hour >= 22 && hour <= 5)) {
-            count = Math.max(0, count - 1)
-          }
-
-          if (count === 0) return // Skip roles with 0 count
-
-          const employees = []
-          const availableEmployees = employeeNames[roleIndex]
-
-          for (let i = 0; i < count; i++) {
-            // Add some variation - different employees on different days
-            const employeeIndex = (i + day + Math.floor(hour / 8)) % availableEmployees.length
-            employees.push(availableEmployees[employeeIndex])
-          }
-
-          roles[roleName] = { count, employees }
+        data.push({
+          hour,
+          day,
+          employeeCount: coverage.count,
+          shifts: coverage.shifts,
         })
-
-        data.push({ hour, day, roles })
       }
     }
+
     return data
   })()
 
   const getScheduleSlot = (hour, day) => {
-    return hardcodedScheduleData.find(s => s.hour === hour && s.day === day)
+    return scheduleDataForDisplay.find((s) => s.hour === hour && s.day === day)
   }
 
   const navigationItems = [
@@ -305,10 +304,10 @@ function AdminDashboard() {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
     return result
       ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
       : null
   }
 
@@ -540,6 +539,88 @@ function AdminDashboard() {
     }
   }, [])
 
+  useEffect(() => {
+    if (activeTab === "schedule") {
+      fetchSchedule()
+    }
+  }, [activeTab])
+
+  // Fetch fresh insights when admin profile is opened
+  useEffect(() => {
+    const fetchOrgStatsForProfile = async () => {
+      if (showAdminProfile && currentUser?.user_role === "admin") {
+        try {
+          const insightsResponse = await api.dashboard.getInsights()
+          if (insightsResponse && insightsResponse.data) {
+            setInsights(insightsResponse.data)
+          }
+        } catch (err) {
+          console.error("Error fetching organization stats:", err)
+        }
+      }
+    }
+
+    fetchOrgStatsForProfile()
+  }, [showAdminProfile, currentUser?.user_role])
+
+  const fetchSchedule = async () => {
+    try {
+      setScheduleLoading(true)
+      setScheduleError("")
+      const response = await api.dashboard.getAllSchedule()
+      console.log("fetchSchedule response:", response)
+      if (response && response.data) {
+        // Handle new backend format with data array
+        setScheduleData(response.data)
+      } else {
+        setScheduleData([])
+      }
+    } catch (err) {
+      console.error("Error fetching schedule:", err)
+      setScheduleError(err.message || "Failed to load schedule")
+    } finally {
+      setScheduleLoading(false)
+    }
+  }
+
+  const handleGenerateSchedule = async (viewType) => {
+    try {
+      if (viewType === "week") {
+        setScheduleGeneratingWeek(true)
+      } else {
+        setScheduleGeneratingMonth(true)
+      }
+      setScheduleGenerateError("")
+      setScheduleGenerateSuccess("")
+
+      console.log("Generating schedule...")
+      const response = await api.dashboard.generateSchedule()
+      console.log("Schedule generation response:", response)
+
+      setScheduleGenerateSuccess(
+        response.schedule_message ||
+          response.message ||
+          "Schedule generated successfully!",
+      )
+
+      // Fetch the newly generated schedule from backend
+      await fetchSchedule()
+
+      // DON'T auto-navigate - let user click to view
+      // setScheduleView(viewType) - REMOVED
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setScheduleGenerateSuccess(""), 5000)
+    } catch (err) {
+      console.error("Error generating schedule:", err)
+      setScheduleGenerateError(err.message || "Failed to generate schedule")
+      setTimeout(() => setScheduleGenerateError(""), 5000)
+    } finally {
+      setScheduleGeneratingWeek(false)
+      setScheduleGeneratingMonth(false)
+    }
+  }
+
   const fetchCurrentUser = async () => {
     try {
       // Try to get from cache first
@@ -565,6 +646,12 @@ function AdminDashboard() {
         ...authData,
         ...userData,
         organization_name: userData.organization,
+        // Map salary_per_hour to hourly_salary for consistency
+        hourly_salary:
+          userData.salary_per_hour ||
+          userData.hourly_salary ||
+          authData.salary_per_hour ||
+          authData.hourly_salary,
       }
 
       console.log("Complete user data:", completeUser)
@@ -1197,67 +1284,135 @@ function AdminDashboard() {
       const cornerGradient = `linear-gradient(135deg, ${secondaryColor}, ${accentColor})`
 
       return (
-        <div className="schedule-week-view">
-          <div className="schedule-week-header">
-            <h3>Week {weekOffset + 1} Schedule</h3>
-            <p>Click any time slot to view employee details</p>
+        <div className="schedule-week-view-premium">
+          <div className="schedule-week-header-premium">
+            <div className="schedule-title-section">
+              <h3 className="schedule-main-title">
+                Week {weekOffset + 1} Schedule
+              </h3>
+              <p className="schedule-subtitle">
+                Click any time slot to view employee details
+              </p>
+            </div>
+            <div className="schedule-stats-mini">
+              <div className="mini-stat">
+                <span className="mini-stat-value">{scheduleData.length}</span>
+                <span className="mini-stat-label">Shifts</span>
+              </div>
+              <div className="mini-stat">
+                <span className="mini-stat-value">
+                  {scheduleData.reduce(
+                    (sum, s) => sum + (s.employees?.length || 0),
+                    0,
+                  )}
+                </span>
+                <span className="mini-stat-label">Staff</span>
+              </div>
+            </div>
           </div>
-          <div className="schedule-grid">
+          <div className="schedule-grid-premium">
             {/* Header row with days */}
             <div
-              className="schedule-header-cell schedule-corner-cell"
+              className="schedule-header-cell-premium schedule-corner-cell-premium"
               style={{ background: cornerGradient }}
             >
-              <div className="corner-label">Time / Day</div>
+              <svg
+                className="corner-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="corner-label">Time</span>
             </div>
             {days.map((day, dayIndex) => (
               <div
                 key={dayIndex}
-                className="schedule-header-cell"
+                className="schedule-header-cell-premium"
                 style={{ background: headerGradient }}
               >
-                <span className="day-name">{day}</span>
+                <span className="day-name-premium">{day}</span>
+                <span className="day-subtitle">Day {dayIndex + 1}</span>
               </div>
             ))}
 
             {/* Hour rows */}
             {Array.from({ length: 24 }).map((_, hour) => (
               <>
-                <div key={`hour-${hour}`} className="schedule-hour-label">
-                  <span className="hour-time">{hour.toString().padStart(2, '0')}:00</span>
+                <div
+                  key={`hour-${hour}`}
+                  className="schedule-hour-label-premium"
+                >
+                  <span className="hour-time-large">
+                    {hour.toString().padStart(2, "0")}
+                  </span>
+                  <span className="hour-period">{hour < 12 ? "AM" : "PM"}</span>
                 </div>
                 {days.map((_, day) => {
                   const slotData = getScheduleSlot(hour, day)
-                  const totalStaff = slotData
-                    ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
-                    : 0
+                  const totalStaff = slotData ? slotData.employeeCount : 0
 
                   return (
                     <div
                       key={`${hour}-${day}`}
-                      className={`schedule-cell ${totalStaff === 0 ? 'empty-slot' : ''}`}
-                      onClick={() => totalStaff > 0 && handleSlotClick(hour, day)}
+                      className={`schedule-cell-premium ${totalStaff === 0 ? "empty-slot-premium" : "active-slot-premium"}`}
+                      onClick={() =>
+                        totalStaff > 0 && handleSlotClick(hour, day)
+                      }
+                      style={{
+                        background:
+                          totalStaff > 0
+                            ? `linear-gradient(135deg, ${primaryColor}08, ${secondaryColor}05)`
+                            : undefined,
+                      }}
                     >
                       {totalStaff > 0 ? (
-                        <div className="schedule-cell-content">
-                          {Object.entries(slotData.roles).map(([roleName, roleData]) => (
-                            <div
-                              key={roleName}
-                              className="schedule-role-item"
-                              style={{ borderLeftColor: primaryColor }}
+                        <div className="schedule-cell-content-premium">
+                          <div
+                            className="staff-count-badge"
+                            style={{
+                              background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                            }}
+                          >
+                            <svg
+                              className="staff-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
                             >
-                              <span className="role-name">{roleName}</span>
-                              <span
-                                className="role-count"
-                                style={{ backgroundColor: primaryColor }}
-                              >
-                                {roleData.count}
-                              </span>
-                            </div>
-                          ))}
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                              />
+                            </svg>
+                            <span className="staff-count">{totalStaff}</span>
+                          </div>
+                          <span className="staff-label">Staff Members</span>
                         </div>
                       ) : (
-                        <div className="empty-indicator">—</div>
+                        <div className="empty-indicator-premium">
+                          <svg
+                            className="empty-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                            />
+                          </svg>
+                        </div>
                       )}
                     </div>
                   )
@@ -1274,17 +1429,40 @@ function AdminDashboard() {
         { label: "Week 1", dates: "Feb 1-7" },
         { label: "Week 2", dates: "Feb 8-14" },
         { label: "Week 3", dates: "Feb 15-21" },
-        { label: "Week 4", dates: "Feb 22-28" }
+        { label: "Week 4", dates: "Feb 22-28" },
       ]
 
       return (
         <div className="schedule-month-view">
-          <div className="schedule-hardcoded-alert">
-            <div className="alert-icon">ℹ️</div>
-            <div className="alert-content">
-              <strong>Demo Mode:</strong> This schedule is currently hardcoded to demonstrate the functionality we promise to deliver.
+          {scheduleLoading && (
+            <div className="schedule-hardcoded-alert">
+              <div className="alert-icon">⏳</div>
+              <div className="alert-content">Loading schedule data...</div>
             </div>
-          </div>
+          )}
+
+          {scheduleError && (
+            <div
+              className="schedule-hardcoded-alert"
+              style={{ borderColor: accentColor }}
+            >
+              <div className="alert-icon">⚠️</div>
+              <div className="alert-content">
+                <strong>Error:</strong> {scheduleError}
+              </div>
+            </div>
+          )}
+
+          {!scheduleLoading && !scheduleError && scheduleData.length === 0 && (
+            <div className="schedule-hardcoded-alert">
+              <div className="alert-icon">ℹ️</div>
+              <div className="alert-content">
+                <strong>No Schedule:</strong> No shifts scheduled for the next 7
+                days. Generate a new schedule to get started.
+              </div>
+            </div>
+          )}
+
           <div className="month-header">
             <h3>February 2026 - Monthly Overview</h3>
             <p>Click on any week to view detailed schedule</p>
@@ -1308,9 +1486,7 @@ function AdminDashboard() {
                   {days.map((day, dayIndex) => {
                     // Show total staff for peak hour (18:00)
                     const peakSlot = getScheduleSlot(18, dayIndex)
-                    const peakStaff = peakSlot
-                      ? Object.values(peakSlot.roles).reduce((sum, role) => sum + role.count, 0)
-                      : 0
+                    const peakStaff = peakSlot ? peakSlot.employeeCount : 0
 
                     return (
                       <div key={dayIndex} className="week-preview-day">
@@ -1335,66 +1511,182 @@ function AdminDashboard() {
       if (!showSchedulePopup || !selectedSlot) return null
 
       const slotData = getScheduleSlot(selectedSlot.hour, selectedSlot.day)
-      const totalEmployees = slotData
-        ? Object.values(slotData.roles).reduce((sum, role) => sum + role.count, 0)
-        : 0
-
-      const popupHeaderGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
-      const employeeNumberGradient = `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+      const totalEmployees = slotData ? slotData.employeeCount : 0
 
       return (
-        <div className="schedule-popup-overlay" onClick={() => setShowSchedulePopup(false)}>
-          <div className="schedule-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="popup-header" style={{ background: popupHeaderGradient }}>
-              <div className="popup-title">
-                <h3>
-                  {days[selectedSlot.day]} - {selectedSlot.hour.toString().padStart(2, '0')}:00
-                </h3>
-                <p className="popup-subtitle">{totalEmployees} employees scheduled</p>
+        <div
+          className="schedule-popup-overlay-premium"
+          onClick={() => setShowSchedulePopup(false)}
+        >
+          <div
+            className="schedule-popup-premium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Profile-style header card */}
+            <div className="popup-header-card">
+              <div className="popup-header-content">
+                <div
+                  className="popup-icon-wrapper"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                  }}
+                >
+                  <svg
+                    className="popup-main-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="popup-title-section">
+                  <h3 className="popup-title-premium">
+                    {days[selectedSlot.day]},{" "}
+                    {selectedSlot.hour.toString().padStart(2, "0")}:00
+                  </h3>
+                  <p className="popup-subtitle-premium">
+                    {totalEmployees}{" "}
+                    {totalEmployees === 1 ? "Staff Member" : "Staff Members"}{" "}
+                    Scheduled
+                  </p>
+                </div>
               </div>
               <button
-                className="popup-close"
+                className="popup-close-premium"
                 onClick={() => setShowSchedulePopup(false)}
                 aria-label="Close"
               >
-                ×
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
               </button>
             </div>
-            <div className="popup-content">
-              {slotData && Object.keys(slotData.roles).length > 0 ? (
-                Object.entries(slotData.roles).map(([roleName, roleData]) => (
-                  <div
-                    key={roleName}
-                    className="popup-role-section"
-                    style={{ borderLeftColor: primaryColor }}
-                  >
-                    <div className="role-header">
-                      <h4>{roleName}</h4>
-                      <span
-                        className="role-badge"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        {roleData.count} {roleData.count === 1 ? 'person' : 'people'}
-                      </span>
-                    </div>
-                    <ul className="employee-list">
-                      {roleData.employees.map((employeeName, idx) => (
-                        <li key={idx}>
-                          <span
-                            className="employee-number"
-                            style={{ background: employeeNumberGradient }}
+
+            {/* Profile-style content */}
+            <div className="popup-content-premium">
+              {slotData && slotData.shifts && slotData.shifts.length > 0 ? (
+                <>
+                  {/* Shift info cards */}
+                  {slotData.shifts.map((shift, idx) => (
+                    <div key={idx} className="shift-info-card">
+                      <div className="shift-card-header">
+                        <div
+                          className="shift-time-badge"
+                          style={{
+                            background: `linear-gradient(135deg, ${primaryColor}15, ${secondaryColor}10)`,
+                            borderColor: primaryColor,
+                          }}
+                        >
+                          <svg
+                            className="time-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
                           >
-                            {idx + 1}
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          <span>
+                            {shift.start_time} - {shift.end_time}
                           </span>
-                          <span className="employee-name">{employeeName}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))
+                        </div>
+                      </div>
+
+                      {/* Employee grid - profile style */}
+                      <div className="employees-grid-premium">
+                        {shift.employees && shift.employees.length > 0 ? (
+                          shift.employees.map((emp, empIdx) => (
+                            <div key={empIdx} className="employee-card-mini">
+                              <div
+                                className="employee-avatar"
+                                style={{
+                                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                                }}
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  />
+                                </svg>
+                              </div>
+                              <div className="employee-info-mini">
+                                <span className="employee-name-mini">
+                                  {emp}
+                                </span>
+                                <span className="employee-role-mini">
+                                  Staff Member
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="no-employees-card">
+                            <svg
+                              className="no-emp-icon"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                              />
+                            </svg>
+                            <span>No employees assigned</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
               ) : (
-                <div className="no-staff-message">
-                  <p>No staff scheduled for this time slot</p>
+                <div className="no-data-card">
+                  <div
+                    className="no-data-icon"
+                    style={{ background: `${accentColor}15` }}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      style={{ stroke: accentColor }}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                      />
+                    </svg>
+                  </div>
+                  <h4 className="no-data-title">No Staff Scheduled</h4>
+                  <p className="no-data-text">
+                    There are no staff members assigned to this time slot yet.
+                  </p>
                 </div>
               )}
             </div>
@@ -1426,40 +1718,90 @@ function AdminDashboard() {
           </div>
           <div className="schedule-buttons">
             {scheduleView !== "none" && (
-              <button
-                className="btn-secondary"
-                onClick={handleBackClick}
-              >
-                <span className="btn-icon">←</span> Back to {cameFromMonth && scheduleView === "week" ? "Month" : "Schedule"}
+              <button className="btn-secondary" onClick={handleBackClick}>
+                <span className="btn-icon">←</span> Back to{" "}
+                {cameFromMonth && scheduleView === "week"
+                  ? "Month"
+                  : "Schedule"}
               </button>
             )}
             {scheduleView === "none" && (
               <>
                 <button
                   className="btn-primary"
-                  onClick={() => {
-                    setScheduleView("week")
-                    setCameFromMonth(false)
-                  }}
+                  onClick={() => handleGenerateSchedule("week")}
+                  disabled={scheduleGeneratingWeek || scheduleGeneratingMonth}
                 >
-                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" /> Generate Week Schedule
+                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" />{" "}
+                  {scheduleGeneratingWeek
+                    ? "Generating..."
+                    : "Generate Week Schedule"}
                 </button>
                 <button
                   className="btn-primary"
-                  onClick={() => setScheduleView("month")}
+                  onClick={() => handleGenerateSchedule("month")}
+                  disabled={scheduleGeneratingWeek || scheduleGeneratingMonth}
                 >
-                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" /> Generate Month Schedule
+                  <img src={ScheduleIcon} alt="" className="btn-icon-svg" />{" "}
+                  {scheduleGeneratingMonth
+                    ? "Generating..."
+                    : "Generate Month Schedule"}
                 </button>
               </>
             )}
           </div>
         </div>
 
+        {scheduleGenerateError && (
+          <div className="login-error-message" style={{ marginBottom: "15px" }}>
+            {scheduleGenerateError}
+          </div>
+        )}
+        {scheduleGenerateSuccess && (
+          <div
+            className="login-error-message"
+            style={{
+              marginBottom: "15px",
+              backgroundColor: "var(--success-color)",
+              borderColor: "var(--success-color)",
+            }}
+          >
+            {scheduleGenerateSuccess}
+          </div>
+        )}
+
         {scheduleView === "none" && (
           <div className="empty-state">
             <img src={ScheduleIcon} alt="Schedule" className="empty-icon-svg" />
-            <h3>Generate Your Schedule</h3>
-            <p>Choose between weekly or monthly view to see the workforce schedule</p>
+            <h3>View Your Schedule</h3>
+            <p>
+              {scheduleData.length > 0
+                ? "Click on Week or Month view below to see the schedule"
+                : "Generate a schedule first, then click Week or Month to view it"}
+            </p>
+            {scheduleData.length > 0 && (
+              <div
+                style={{
+                  marginTop: "var(--space-4)",
+                  display: "flex",
+                  gap: "var(--space-3)",
+                  justifyContent: "center",
+                }}
+              >
+                <button
+                  className="btn-secondary"
+                  onClick={() => setScheduleView("week")}
+                >
+                  View Week Schedule
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setScheduleView("month")}
+                >
+                  View Month Schedule
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1675,11 +2017,11 @@ function AdminDashboard() {
           >
             {currentUser?.full_name
               ? currentUser.full_name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
               : "..."}
           </div>
           <div>
@@ -2007,7 +2349,8 @@ function AdminDashboard() {
     const handleFetchRecommendations = async () => {
       try {
         setRecommendationsLoading(true)
-        const response = await api.campaigns.recommendCampaigns(recommendationParams)
+        const response =
+          await api.campaigns.recommendCampaigns(recommendationParams)
         setRecommendations(response)
         setActionMessage({
           type: "success",
@@ -2018,7 +2361,9 @@ function AdminDashboard() {
         console.error("Failed to fetch recommendations:", err)
         setActionMessage({
           type: "error",
-          text: err.message || "Failed to generate recommendations. Ensure sufficient historical data exists.",
+          text:
+            err.message ||
+            "Failed to generate recommendations. Ensure sufficient historical data exists.",
         })
         setTimeout(() => setActionMessage(null), 6000)
       } finally {
@@ -2119,20 +2464,17 @@ function AdminDashboard() {
               className="btn-secondary"
               onClick={handleGetRecommendations}
             >
-              <svg
-                style={{ width: "18px", height: "18px", marginRight: "8px" }}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
-              Get Recommendations
+              <img
+                src={MagicIcon}
+                alt="AI Recommendations"
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  marginRight: "8px",
+                  filter: "brightness(0) saturate(100%)",
+                }}
+              />
+              Get AI Recommendations
             </button>
             <button
               className="btn-primary"
@@ -2222,7 +2564,7 @@ function AdminDashboard() {
                 <p
                   style={{
                     fontSize: "var(--text-sm)",
-                    color: "var(--gray-600)",
+                    color: "var(--text-secondary)",
                     marginBottom: "var(--space-2)",
                   }}
                 >
@@ -2232,7 +2574,7 @@ function AdminDashboard() {
                   style={{
                     fontSize: "var(--text-2xl)",
                     fontWeight: 700,
-                    color: "var(--primary-600)",
+                    color: primaryColor,
                   }}
                 >
                   {insight.statistic}
@@ -2417,7 +2759,7 @@ function AdminDashboard() {
                         }}
                       >
                         {campaign.items_included &&
-                          campaign.items_included.length > 0 ? (
+                        campaign.items_included.length > 0 ? (
                           <span
                             title={campaign.items_included
                               .map((item) => item.name)
@@ -2546,14 +2888,16 @@ function AdminDashboard() {
         {showRecommendationModal && (
           <div
             className="modal-overlay"
-            onClick={() => !recommendationsLoading && setShowRecommendationModal(false)}
+            onClick={() =>
+              !recommendationsLoading && setShowRecommendationModal(false)
+            }
           >
             <div
               className="modal-content"
               style={{
-                maxWidth: '900px',
-                maxHeight: '90vh',
-                overflow: 'auto'
+                maxWidth: "900px",
+                maxHeight: "90vh",
+                overflow: "auto",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2572,32 +2916,40 @@ function AdminDashboard() {
 
               {!recommendations ? (
                 // Configuration Form
-                <div style={{ padding: 'var(--space-4)' }}>
-                  <h3 style={{
-                    marginBottom: 'var(--space-4)',
-                    fontSize: 'var(--text-lg)',
-                    color: 'var(--text-primary)'
-                  }}>
+                <div style={{ padding: "var(--space-4)" }}>
+                  <h3
+                    style={{
+                      marginBottom: "var(--space-4)",
+                      fontSize: "var(--text-lg)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
                     Configure Parameters
                   </h3>
 
-                  <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                  <div style={{ display: "grid", gap: "var(--space-4)" }}>
                     <div>
-                      <label className="form-label">
-                        Campaign Start Date
-                      </label>
+                      <label className="form-label">Campaign Start Date</label>
                       <input
                         type="date"
                         className="form-input"
                         value={recommendationParams.recommendation_start_date}
-                        onChange={(e) => setRecommendationParams({
-                          ...recommendationParams,
-                          recommendation_start_date: e.target.value
-                        })}
+                        onChange={(e) =>
+                          setRecommendationParams({
+                            ...recommendationParams,
+                            recommendation_start_date: e.target.value,
+                          })
+                        }
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "var(--space-3)",
+                      }}
+                    >
                       <div>
                         <label className="form-label">
                           Number of Recommendations
@@ -2608,24 +2960,26 @@ function AdminDashboard() {
                           max="10"
                           className="form-input"
                           value={recommendationParams.num_recommendations}
-                          onChange={(e) => setRecommendationParams({
-                            ...recommendationParams,
-                            num_recommendations: parseInt(e.target.value)
-                          })}
+                          onChange={(e) =>
+                            setRecommendationParams({
+                              ...recommendationParams,
+                              num_recommendations: parseInt(e.target.value),
+                            })
+                          }
                         />
                       </div>
 
                       <div>
-                        <label className="form-label">
-                          Optimize For
-                        </label>
+                        <label className="form-label">Optimize For</label>
                         <select
                           className="form-input"
                           value={recommendationParams.optimize_for}
-                          onChange={(e) => setRecommendationParams({
-                            ...recommendationParams,
-                            optimize_for: e.target.value
-                          })}
+                          onChange={(e) =>
+                            setRecommendationParams({
+                              ...recommendationParams,
+                              optimize_for: e.target.value,
+                            })
+                          }
                         >
                           <option value="roi">ROI</option>
                           <option value="revenue">Revenue</option>
@@ -2635,9 +2989,7 @@ function AdminDashboard() {
                     </div>
 
                     <div>
-                      <label className="form-label">
-                        Maximum Discount (%)
-                      </label>
+                      <label className="form-label">Maximum Discount (%)</label>
                       <input
                         type="number"
                         min="0"
@@ -2645,14 +2997,22 @@ function AdminDashboard() {
                         step="5"
                         className="form-input"
                         value={recommendationParams.max_discount}
-                        onChange={(e) => setRecommendationParams({
-                          ...recommendationParams,
-                          max_discount: parseFloat(e.target.value)
-                        })}
+                        onChange={(e) =>
+                          setRecommendationParams({
+                            ...recommendationParams,
+                            max_discount: parseFloat(e.target.value),
+                          })
+                        }
                       />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-3)' }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "var(--space-3)",
+                      }}
+                    >
                       <div>
                         <label className="form-label">
                           Min Duration (days)
@@ -2662,11 +3022,17 @@ function AdminDashboard() {
                           min="1"
                           max="30"
                           className="form-input"
-                          value={recommendationParams.min_campaign_duration_days}
-                          onChange={(e) => setRecommendationParams({
-                            ...recommendationParams,
-                            min_campaign_duration_days: parseInt(e.target.value)
-                          })}
+                          value={
+                            recommendationParams.min_campaign_duration_days
+                          }
+                          onChange={(e) =>
+                            setRecommendationParams({
+                              ...recommendationParams,
+                              min_campaign_duration_days: parseInt(
+                                e.target.value,
+                              ),
+                            })
+                          }
                         />
                       </div>
                       <div>
@@ -2678,11 +3044,17 @@ function AdminDashboard() {
                           min="1"
                           max="30"
                           className="form-input"
-                          value={recommendationParams.max_campaign_duration_days}
-                          onChange={(e) => setRecommendationParams({
-                            ...recommendationParams,
-                            max_campaign_duration_days: parseInt(e.target.value)
-                          })}
+                          value={
+                            recommendationParams.max_campaign_duration_days
+                          }
+                          onChange={(e) =>
+                            setRecommendationParams({
+                              ...recommendationParams,
+                              max_campaign_duration_days: parseInt(
+                                e.target.value,
+                              ),
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -2693,156 +3065,220 @@ function AdminDashboard() {
                     onClick={handleFetchRecommendations}
                     disabled={recommendationsLoading}
                     style={{
-                      width: '100%',
-                      marginTop: 'var(--space-4)',
-                      padding: 'var(--space-3)'
+                      width: "100%",
+                      marginTop: "var(--space-4)",
+                      padding: "var(--space-3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
                     }}
                   >
-                    {recommendationsLoading ? '⏳ Generating...' : '✨ Generate Recommendations'}
+                    {recommendationsLoading ? (
+                      <>
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{
+                            animation: "spin 1s linear infinite",
+                          }}
+                        >
+                          <path d="M21 12a9 9 0 11-6.219-8.56" />
+                        </svg>
+                        Generating Recommendations...
+                      </>
+                    ) : (
+                      <>
+                        <img
+                          src={MagicIcon}
+                          alt="Magic"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            filter: "brightness(0) saturate(100%) invert(1)",
+                          }}
+                        />
+                        Generate Recommendations
+                      </>
+                    )}
                   </button>
 
                   {recommendationsLoading && (
-                    <p style={{
-                      textAlign: 'center',
-                      marginTop: 'var(--space-3)',
-                      color: 'var(--text-tertiary)',
-                      fontSize: 'var(--text-sm)'
-                    }}>
-                      Analyzing your data... This may take up to 60 seconds
-                    </p>
+                    <div
+                      style={{
+                        textAlign: "center",
+                        marginTop: "var(--space-3)",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color: "var(--text-tertiary)",
+                          fontSize: "var(--text-sm)",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        🤖 AI is analyzing your data...
+                      </p>
+                      <p
+                        style={{
+                          color: "var(--text-tertiary)",
+                          fontSize: "var(--text-xs)",
+                        }}
+                      >
+                        This may take up to 60 seconds
+                      </p>
+                    </div>
                   )}
                 </div>
               ) : (
                 // Recommendations Display
-                <div style={{ padding: 'var(--space-4)' }}>
-                  <div className="info-item" style={{
-                    marginBottom: 'var(--space-4)',
-                    padding: 'var(--space-4)'
-                  }}>
-                    <h3 style={{
-                      marginBottom: 'var(--space-2)',
-                      color: 'var(--text-primary)',
-                      fontSize: 'var(--text-xl)',
-                      fontWeight: 700
-                    }}>
+                <div style={{ padding: "var(--space-4)" }}>
+                  <div
+                    className="info-item"
+                    style={{
+                      marginBottom: "var(--space-4)",
+                      padding: "var(--space-4)",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        marginBottom: "var(--space-2)",
+                        color: "var(--text-primary)",
+                        fontSize: "var(--text-xl)",
+                        fontWeight: 700,
+                      }}
+                    >
                       {recommendations.restaurant_name}
                     </h3>
-                    <p style={{
-                      color: 'var(--text-secondary)',
-                      fontSize: 'var(--text-sm)'
-                    }}>
-                      📅 {recommendations.recommendation_date} •
-                      Confidence: <strong>{recommendations.confidence_level}</strong>
+                    <p
+                      style={{
+                        color: "var(--text-secondary)",
+                        fontSize: "var(--text-sm)",
+                      }}
+                    >
+                      📅 {recommendations.recommendation_date} • Confidence:{" "}
+                      <strong>{recommendations.confidence_level}</strong>
                     </p>
                   </div>
 
-                  <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                  <div style={{ display: "grid", gap: "var(--space-4)" }}>
                     {recommendations.recommendations?.map((rec, index) => (
                       <div
                         key={rec.campaign_id || index}
                         className="profile-card"
                         style={{
-                          padding: 'var(--space-4)',
-                          border: '2px solid var(--color-primary)'
+                          padding: "var(--space-4)",
+                          border: "2px solid var(--color-primary)",
                         }}
                       >
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'start',
-                          marginBottom: 'var(--space-3)'
-                        }}>
-                          <h4 style={{
-                            fontSize: 'var(--text-lg)',
-                            fontWeight: 700,
-                            color: 'var(--text-primary)'
-                          }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "start",
+                            marginBottom: "var(--space-3)",
+                          }}
+                        >
+                          <h4
+                            style={{
+                              fontSize: "var(--text-lg)",
+                              fontWeight: 700,
+                              color: "var(--text-primary)",
+                            }}
+                          >
                             Campaign #{index + 1}
                           </h4>
-                          <span className="badge-primary" style={{
-                            padding: '6px 16px',
-                            fontSize: 'var(--text-sm)',
-                            fontWeight: 700
-                          }}>
+                          <span
+                            className="badge-primary"
+                            style={{
+                              padding: "6px 16px",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: 700,
+                            }}
+                          >
                             {rec.discount_percentage}% OFF
                           </span>
                         </div>
 
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr',
-                          gap: 'var(--space-3)',
-                          marginBottom: 'var(--space-3)'
-                        }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "var(--space-3)",
+                            marginBottom: "var(--space-3)",
+                          }}
+                        >
                           <div className="info-item">
-                            <p className="info-label">
-                              Start Date
-                            </p>
-                            <p className="info-value">
-                              {rec.start_date}
-                            </p>
+                            <p className="info-label">Start Date</p>
+                            <p className="info-value">{rec.start_date}</p>
                           </div>
                           <div className="info-item">
-                            <p className="info-label">
-                              End Date
-                            </p>
+                            <p className="info-label">End Date</p>
                             <p className="info-value">
                               {rec.end_date} ({rec.duration_days}d)
                             </p>
                           </div>
                         </div>
 
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr 1fr',
-                          gap: 'var(--space-3)',
-                          marginBottom: 'var(--space-3)'
-                        }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr 1fr",
+                            gap: "var(--space-3)",
+                            marginBottom: "var(--space-3)",
+                          }}
+                        >
                           <div className="stat-item">
                             <div className="stat-value">
                               {rec.expected_uplift?.toFixed(1)}%
                             </div>
-                            <div className="stat-label">
-                              Expected Uplift
-                            </div>
+                            <div className="stat-label">Expected Uplift</div>
                           </div>
                           <div className="stat-item">
                             <div className="stat-value">
                               {rec.expected_roi?.toFixed(1)}%
                             </div>
-                            <div className="stat-label">
-                              Expected ROI
-                            </div>
+                            <div className="stat-label">Expected ROI</div>
                           </div>
                           <div className="stat-item">
                             <div className="stat-value">
                               ${rec.expected_revenue?.toFixed(0)}
                             </div>
-                            <div className="stat-label">
-                              Expected Revenue
-                            </div>
+                            <div className="stat-label">Expected Revenue</div>
                           </div>
                         </div>
 
-                        <div style={{ marginBottom: 'var(--space-3)' }}>
-                          <p style={{
-                            fontSize: 'var(--text-sm)',
-                            color: 'var(--text-secondary)',
-                            marginBottom: 'var(--space-2)',
-                            fontWeight: 600
-                          }}>
+                        <div style={{ marginBottom: "var(--space-3)" }}>
+                          <p
+                            style={{
+                              fontSize: "var(--text-sm)",
+                              color: "var(--text-secondary)",
+                              marginBottom: "var(--space-2)",
+                              fontWeight: 600,
+                            }}
+                          >
                             Items Included:
                           </p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "var(--space-2)",
+                            }}
+                          >
                             {rec.items?.map((item, idx) => (
                               <span
                                 key={idx}
                                 className="badge"
                                 style={{
-                                  padding: '4px 12px',
-                                  background: 'var(--bg-secondary)',
-                                  color: 'var(--text-primary)',
-                                  border: '1px solid var(--border-color)'
+                                  padding: "4px 12px",
+                                  background: "var(--bg-secondary)",
+                                  color: "var(--text-primary)",
+                                  border: "1px solid var(--border-color)",
                                 }}
                               >
                                 {item}
@@ -2852,15 +3288,20 @@ function AdminDashboard() {
                         </div>
 
                         {rec.reasoning && (
-                          <div className="alert-card alert-low" style={{
-                            padding: 'var(--space-3)',
-                            marginTop: 'var(--space-3)'
-                          }}>
-                            <p style={{
-                              fontSize: 'var(--text-sm)',
-                              color: 'var(--text-primary)',
-                              margin: 0
-                            }}>
+                          <div
+                            className="alert-card alert-low"
+                            style={{
+                              padding: "var(--space-3)",
+                              marginTop: "var(--space-3)",
+                            }}
+                          >
+                            <p
+                              style={{
+                                fontSize: "var(--text-sm)",
+                                color: "var(--text-primary)",
+                                margin: 0,
+                              }}
+                            >
                               <strong>💡 AI Insight:</strong> {rec.reasoning}
                             </p>
                           </div>
@@ -2875,7 +3316,7 @@ function AdminDashboard() {
                       setRecommendations(null)
                       setShowRecommendationModal(false)
                     }}
-                    style={{ width: '100%', marginTop: 'var(--space-4)' }}
+                    style={{ width: "100%", marginTop: "var(--space-4)" }}
                   >
                     Close
                   </button>
@@ -3280,7 +3721,7 @@ function AdminDashboard() {
                 <p
                   style={{
                     fontSize: "var(--text-sm)",
-                    color: "var(--gray-600)",
+                    color: "var(--text-secondary)",
                     marginBottom: "var(--space-2)",
                   }}
                 >
@@ -3290,7 +3731,7 @@ function AdminDashboard() {
                   style={{
                     fontSize: "var(--text-2xl)",
                     fontWeight: 700,
-                    color: "var(--primary-600)",
+                    color: primaryColor,
                   }}
                 >
                   {insight.statistic}
@@ -3908,8 +4349,8 @@ function AdminDashboard() {
                             >
                               {delivery.out_for_delivery_time
                                 ? new Date(
-                                  delivery.out_for_delivery_time,
-                                ).toLocaleString()
+                                    delivery.out_for_delivery_time,
+                                  ).toLocaleString()
                                 : "—"}
                             </td>
                             <td
@@ -3921,8 +4362,8 @@ function AdminDashboard() {
                             >
                               {delivery.delivered_time
                                 ? new Date(
-                                  delivery.delivered_time,
-                                ).toLocaleString()
+                                    delivery.delivered_time,
+                                  ).toLocaleString()
                                 : "—"}
                             </td>
                           </tr>
@@ -4147,7 +4588,19 @@ function AdminDashboard() {
     try {
       setLoading(true)
       const data = await api.staffing.getAllEmployees()
-      setEmployees(data.employees || [])
+      // Map salary_per_hour to hourly_salary for display
+      const mappedEmployees = (data.employees || []).map((emp) => ({
+        ...emp,
+        hourly_salary: emp.salary_per_hour || emp.hourly_salary,
+      }))
+      setEmployees(mappedEmployees)
+
+      // Calculate total labor cost from all employees (weekly: hourly_salary * 40 hours)
+      const totalWeeklyLabor = mappedEmployees.reduce((sum, emp) => {
+        const hourlyRate = parseFloat(emp.hourly_salary) || 0
+        return sum + hourlyRate * 40 // Assuming 40 hours per week
+      }, 0)
+      setLaborCost(totalWeeklyLabor)
     } catch (err) {
       setError(err.message || "Failed to load employees")
     } finally {
@@ -4192,7 +4645,7 @@ function AdminDashboard() {
 
       // Parse header
       const headers = lines[0].split(",").map((h) => h.trim())
-      const requiredHeaders = ["full_name", "email", "role", "hourly_salary", "roles"]
+      const requiredHeaders = ["full_name", "email", "role", "hourly_salary"]
       const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
 
       if (missingHeaders.length > 0) {
@@ -4204,26 +4657,66 @@ function AdminDashboard() {
         return
       }
 
-      try {
-        console.log(
-          `Attempting to upload employees: ${file.name}`,
-        )
-        await api.staffing.bulkUploadEmployees(file)
-        console.log(`✓ Successfully uploaded: ${file.name}`)
-      } catch (err) {
-        console.error(
-          `✗ Failed to upload file ${file.name}:`,
-          err,
-        )
+      // Parse and upload employees
+      let successCount = 0
+      let errorCount = 0
+      const failedEmployees = []
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map((v) => v.trim())
+        if (values.length !== headers.length) continue
+
+        const employee = {}
+        headers.forEach((header, index) => {
+          employee[header] = values[index]
+        })
+
+        try {
+          console.log(
+            `Attempting to create employee: ${employee.full_name} with role: ${employee.role}`,
+          )
+          await api.staffing.createEmployee({
+            full_name: employee.full_name,
+            email: employee.email,
+            role: employee.role,
+            hourly_salary: parseFloat(employee.hourly_salary),
+            max_hours_per_week: employee.max_hours_per_week
+              ? parseInt(employee.max_hours_per_week)
+              : undefined,
+            preferred_hours_per_week: employee.preferred_hours_per_week
+              ? parseInt(employee.preferred_hours_per_week)
+              : undefined,
+          })
+          console.log(`✓ Successfully created: ${employee.full_name}`)
+          successCount++
+        } catch (err) {
+          console.error(
+            `✗ Failed to create employee ${employee.full_name}:`,
+            err,
+          )
+          failedEmployees.push({
+            name: employee.full_name,
+            role: employee.role,
+            error: err.response?.data?.error || err.message || "Unknown error",
+          })
+          errorCount++
+        }
       }
 
       // Refresh employee list
       await fetchEmployees()
 
       // Build detailed message
-      let message = `Uploaded employees.`
+      let message = `Uploaded ${successCount} employee(s).`
+      if (errorCount > 0) {
+        message += ` ${errorCount} failed:\n`
+        failedEmployees.forEach((emp) => {
+          message += `\n• ${emp.name} (${emp.role}): ${emp.error}`
+        })
+      }
 
       setActionMessage({
+        type: successCount > 0 ? "success" : "error",
         text: message,
       })
       setTimeout(() => setActionMessage(null), 8000)
@@ -4391,7 +4884,10 @@ function AdminDashboard() {
     setRequestActionLoading(true)
     try {
       await api.requests.approveRequest(employeeId, requestId)
-      setRequestActionMessage({ type: "success", text: "Request approved successfully!" })
+      setRequestActionMessage({
+        type: "success",
+        text: "Request approved successfully!",
+      })
       setTimeout(() => setRequestActionMessage(null), 3000)
       // Refresh the requests list
       await fetchAllRequests()
@@ -4411,7 +4907,10 @@ function AdminDashboard() {
     setRequestActionLoading(true)
     try {
       await api.requests.declineRequest(employeeId, requestId)
-      setRequestActionMessage({ type: "success", text: "Request declined successfully!" })
+      setRequestActionMessage({
+        type: "success",
+        text: "Request declined successfully!",
+      })
       setTimeout(() => setRequestActionMessage(null), 3000)
       // Refresh the requests list
       await fetchAllRequests()
@@ -4874,54 +5373,83 @@ function AdminDashboard() {
                   </p>
                 ) : (
                   <div className="alerts-grid">
-                    {employeeRequests.map((req) => (
-                      <div
-                        key={req.id}
-                        className={`alert-card ${req.status === "pending" ? "alert-medium" : req.status === "approved" ? "alert-low" : "alert-high"}`}
-                      >
-                        <div className="alert-header">
-                          <div
-                            className={`alert-badge ${req.status === "pending" ? "priority-medium" : req.status === "approved" ? "priority-low" : "priority-high"}`}
-                          >
-                            {req.status?.toUpperCase()}
+                    {employeeRequests.map((req) => {
+                      const isPending =
+                        req.status === "in queue" || req.status === "pending"
+                      const isApproved = req.status === "approved"
+                      return (
+                        <div
+                          key={req.request_id}
+                          className={`alert-card ${isPending ? "alert-medium" : isApproved ? "alert-low" : "alert-high"}`}
+                        >
+                          <div className="alert-header">
+                            <div
+                              className={`alert-badge ${isPending ? "priority-medium" : isApproved ? "priority-low" : "priority-high"}`}
+                            >
+                              {req.status === "in queue"
+                                ? "PENDING"
+                                : req.status?.toUpperCase() || "PENDING"}
+                            </div>
+                            <span className="alert-timestamp">
+                              {req.type === "calloff"
+                                ? "Call Off"
+                                : req.type === "holiday"
+                                  ? "Holiday / Leave"
+                                  : req.type === "resign"
+                                    ? "Resignation"
+                                    : req.type}
+                            </span>
                           </div>
-                          <span className="alert-timestamp">
-                            {req.request_type}
-                          </span>
+                          <p className="alert-message">
+                            {req.message || "No reason provided"}
+                          </p>
+                          {(req.start_date || req.end_date) && (
+                            <p
+                              className="alert-timestamp"
+                              style={{ marginTop: "8px" }}
+                            >
+                              {req.start_date && req.end_date
+                                ? `${req.start_date} to ${req.end_date}`
+                                : req.start_date || req.end_date}
+                            </p>
+                          )}
+                          {isPending && (
+                            <div className="alert-actions">
+                              <button
+                                className="btn-primary btn-sm"
+                                onClick={() =>
+                                  handleApproveRequest(
+                                    selectedEmployee.id,
+                                    req.request_id,
+                                  )
+                                }
+                                style={{
+                                  backgroundColor: "#10b981",
+                                  borderColor: "#10b981",
+                                }}
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                className="btn-secondary btn-sm"
+                                onClick={() =>
+                                  handleDeclineRequest(
+                                    selectedEmployee.id,
+                                    req.request_id,
+                                  )
+                                }
+                                style={{
+                                  color: accentColor,
+                                  borderColor: accentColor,
+                                }}
+                              >
+                                ✕ Decline
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <p className="alert-message">
-                          {req.reason || "No reason provided"} —{" "}
-                          {req.start_date} to {req.end_date}
-                        </p>
-                        {req.status === "pending" && (
-                          <div className="alert-actions">
-                            <button
-                              className="btn-primary btn-sm"
-                              onClick={() =>
-                                handleApproveRequest(
-                                  selectedEmployee.id,
-                                  req.id,
-                                )
-                              }
-                            >
-                              Approve
-                            </button>
-                            <button
-                              className="btn-link"
-                              style={{ color: "var(--color-accent)" }}
-                              onClick={() =>
-                                handleDeclineRequest(
-                                  selectedEmployee.id,
-                                  req.id,
-                                )
-                              }
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -5101,10 +5629,11 @@ function AdminDashboard() {
 
         {requestActionMessage && (
           <div
-            className={`alert ${requestActionMessage.type === "success"
+            className={`alert ${
+              requestActionMessage.type === "success"
                 ? "alert-success"
                 : "alert-error"
-              }`}
+            }`}
             style={{ marginBottom: "var(--space-4)" }}
           >
             {requestActionMessage.text}
@@ -5118,7 +5647,11 @@ function AdminDashboard() {
           </div>
         ) : allRequestsError ? (
           <div className="error-state">
-            <img src={MissedTargetIcon} alt="Error" className="error-icon-svg" />
+            <img
+              src={MissedTargetIcon}
+              alt="Error"
+              className="error-icon-svg"
+            />
             <h3>Error Loading Requests</h3>
             <p>{allRequestsError}</p>
             <button className="btn-primary" onClick={fetchAllRequests}>
@@ -5156,65 +5689,92 @@ function AdminDashboard() {
                 </div>
 
                 <div className="requests-list">
-                  {requests.map((request) => (
-                    <div key={request.id} className="request-card">
-                      <div className="request-header">
-                        <div className="request-type">
-                          {getRequestTypeLabel(request.request_type)}
+                  {requests.map((request) => {
+                    const isPending =
+                      request.status === "in queue" ||
+                      request.status === "pending"
+                    return (
+                      <div key={request.request_id} className="request-card">
+                        <div className="request-header">
+                          <div className="request-type">
+                            {getRequestTypeLabel(request.type)}
+                          </div>
+                          <span
+                            className={getStatusBadgeClass(
+                              request.status === "in queue"
+                                ? "pending"
+                                : request.status,
+                            )}
+                          >
+                            {request.status === "in queue"
+                              ? "PENDING"
+                              : request.status?.toUpperCase() || "PENDING"}
+                          </span>
                         </div>
-                        <span className={getStatusBadgeClass(request.status)}>
-                          {request.status?.toUpperCase() || "PENDING"}
-                        </span>
+                        <div className="request-body">
+                          <p className="request-message">{request.message}</p>
+                          {request.start_date && (
+                            <div className="request-dates">
+                              <strong>Dates:</strong>{" "}
+                              {new Date(
+                                request.start_date,
+                              ).toLocaleDateString()}
+                              {request.end_date &&
+                                ` - ${new Date(
+                                  request.end_date,
+                                ).toLocaleDateString()}`}
+                            </div>
+                          )}
+                        </div>
+                        <div className="request-footer">
+                          <span className="request-date">
+                            Submitted:{" "}
+                            {new Date(
+                              request.submitted_at,
+                            ).toLocaleDateString()}
+                          </span>
+                          {isPending && (
+                            <div className="request-actions">
+                              <button
+                                className="btn-approve"
+                                onClick={() =>
+                                  handleApproveRequestFromTab(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={requestActionLoading}
+                                style={{
+                                  backgroundColor: "#10b981",
+                                  color: "#ffffff",
+                                  border: "none",
+                                }}
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                className="btn-decline"
+                                onClick={() =>
+                                  handleDeclineRequestFromTab(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={requestActionLoading}
+                                style={{
+                                  backgroundColor: accentColor,
+                                  color: "#ffffff",
+                                  border: "none",
+                                }}
+                              >
+                                ✕ Decline
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="request-body">
-                        <p className="request-message">{request.reason}</p>
-                        {request.start_date && (
-                          <div className="request-dates">
-                            <strong>Dates:</strong>{" "}
-                            {new Date(request.start_date).toLocaleDateString()}
-                            {request.end_date &&
-                              ` - ${new Date(
-                                request.end_date,
-                              ).toLocaleDateString()}`}
-                          </div>
-                        )}
-                      </div>
-                      <div className="request-footer">
-                        <span className="request-date">
-                          Submitted:{" "}
-                          {new Date(request.created_at).toLocaleDateString()}
-                        </span>
-                        {request.status === "pending" && (
-                          <div className="request-actions">
-                            <button
-                              className="btn-approve"
-                              onClick={() =>
-                                handleApproveRequestFromTab(
-                                  employee.id,
-                                  request.id,
-                                )
-                              }
-                              disabled={requestActionLoading}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              className="btn-decline"
-                              onClick={() =>
-                                handleDeclineRequestFromTab(
-                                  employee.id,
-                                  request.id,
-                                )
-                              }
-                              disabled={requestActionLoading}
-                            >
-                              ✕ Decline
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             ))}
@@ -5338,7 +5898,8 @@ function AdminDashboard() {
       min_needed_per_shift: role.min_present || 1,
       items_per_role_per_hour: role.items_per_employee_per_hour || "",
       need_for_demand: role.producing || false,
-      independent: role.is_independent !== undefined ? role.is_independent : true,
+      independent:
+        role.is_independent !== undefined ? role.is_independent : true,
     })
     setShowEditRoleModal(true)
   }
@@ -6183,7 +6744,9 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      <span className="badge badge-primary">{role.role_id}</span>
+                      <span className="badge badge-primary">
+                        {role.role_id}
+                      </span>
                     </td>
                     <td
                       style={{
@@ -6247,25 +6810,27 @@ function AdminDashboard() {
                         verticalAlign: "middle",
                       }}
                     >
-                      {role.role_id !== "admin" && role.role_id !== "manager" && (
-                        <>
-                          <button
-                            className="btn-link"
-                            style={{ marginRight: "var(--space-2)" }}
-                            onClick={() => openEditRole(role)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn-link"
-                            style={{ color: "var(--color-accent)" }}
-                            onClick={() => setConfirmDeleteRole(role)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                      {(role.role_id === "admin" || role.role_id === "manager") && (
+                      {role.role_id !== "admin" &&
+                        role.role_id !== "manager" && (
+                          <>
+                            <button
+                              className="btn-link"
+                              style={{ marginRight: "var(--space-2)" }}
+                              onClick={() => openEditRole(role)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn-link"
+                              style={{ color: "var(--color-accent)" }}
+                              onClick={() => setConfirmDeleteRole(role)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      {(role.role_id === "admin" ||
+                        role.role_id === "manager") && (
                         <span
                           style={{
                             color: "var(--gray-400)",
@@ -6614,8 +7179,8 @@ function AdminDashboard() {
               }}
             >
               Are you sure you want to delete the role{" "}
-              <strong>{confirmDeleteRole.role_id}</strong>? This action cannot be
-              undone and may fail if employees are assigned to this role.
+              <strong>{confirmDeleteRole.role_id}</strong>? This action cannot
+              be undone and may fail if employees are assigned to this role.
             </p>
             <div className="settings-footer">
               <button
@@ -6643,11 +7208,11 @@ function AdminDashboard() {
 
     const userInitials = currentUser?.full_name
       ? currentUser.full_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2)
       : "AD"
 
     // Get data from currentUser
@@ -6684,7 +7249,7 @@ function AdminDashboard() {
         return {
           stat1: {
             label: "Total Employees",
-            value: getInsightValue("Number of Staff"),
+            value: getInsightValue("Number of Employees"),
           },
           stat2: { label: "Active Roles", value: roles.length },
           stat3: { label: "Revenue", value: getInsightValue("Total Revenue") },
@@ -6900,7 +7465,7 @@ function AdminDashboard() {
                       <span className="info-label">Utilization Rate</span>
                       <span className="info-value">
                         {currentUser?.max_hours_per_week &&
-                          profileData.hours_worked_this_week
+                        profileData.hours_worked_this_week
                           ? `${((profileData.hours_worked_this_week / currentUser.max_hours_per_week) * 100).toFixed(1)}%`
                           : "N/A"}
                       </span>
@@ -6912,7 +7477,7 @@ function AdminDashboard() {
                         style={{ color: "var(--color-accent)" }}
                       >
                         {currentUser?.hourly_salary &&
-                          profileData.hours_worked_this_week
+                        profileData.hours_worked_this_week
                           ? `$${(currentUser.hourly_salary * profileData.hours_worked_this_week).toFixed(2)}`
                           : "N/A"}
                       </span>
@@ -7253,7 +7818,7 @@ function AdminDashboard() {
               </svg>
             ) : (
               <>
-                <h1 className="logo">ClockWise</h1>
+                <h1 className="logo">AntiClockWise</h1>
                 <span className="logo-badge">Admin</span>
               </>
             )}
@@ -7319,11 +7884,11 @@ function AdminDashboard() {
             >
               {currentUser?.full_name
                 ? currentUser.full_name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)
                 : "..."}
             </div>
             {!sidebarCollapsed && (

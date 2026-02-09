@@ -3,7 +3,6 @@
 This documentation provides an overview of the unit tests for the API layer of the **Clockwise** backend. These tests utilize `gin-gonic`'s test mode and `testify/mock` to simulate HTTP requests and verify controller logic, middleware authentication, and service interactions without requiring a live server or database.
 
 ## Table of Contents
-- [Alert Handler Tests](#alert-handler-tests)
 - [Campaign Handler Tests](#campaign-handler-tests)
 - [Dashboard Handler Tests](#dashboard-handler-tests)
 - [Employee Handler Tests](#employee-handler-tests)
@@ -16,18 +15,6 @@ This documentation provides an overview of the unit tests for the API layer of t
 - [Rules Handler Tests](#rules-handler-tests)
 - [Schedule Handler Tests](#schedule-handler-tests)
 - [Staffing Handler Tests](#staffing-handler-tests)
-
----
-
-## Alert Handler Tests
-**File:** `alert_handler_test.go`  
-**Focus:** Alert retrieval, weekly filtering, and alert analytics for admin and manager users.
-
-| Test Function | Description | Scenarios Covered |
-| :--- | :--- | :--- |
-| **`TestGetAllAlertsHandler`** | Verifies retrieval of all alerts for an organization. | • **Success (Admin):** Returns all alerts.<br>• **Success (Manager):** Manager can also access alerts.<br>• **Forbidden:** Employee role is denied access (403).<br>• **DBError:** Handles database failure gracefully (500).<br>• **Unauthorized:** Rejects requests without user context (401). |
-| **`TestGetAllAlertsForLastWeekHandler`** | Verifies filtered retrieval of alerts from the past 7 days. | • **Success:** Returns weekly alerts.<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
-| **`TestGetAlertInsightsHandler`** | Verifies aggregation of alert statistics. | • **Success:** Returns alert analytics (total, severity breakdown).<br>• **Forbidden:** Employee role is denied access.<br>• **DBError:** Handles database failure gracefully. |
 
 ---
 

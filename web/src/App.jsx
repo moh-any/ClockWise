@@ -138,7 +138,7 @@ function App() {
               </g>
             </svg>
           </div>
-          <h1 className="logoName">ClockWise</h1>
+          <h1 className="logoName">AntiClockWise</h1>
         </div>
         <div className="authButtons">
           <button className="btn" onClick={() => setShowSignup(true)}>
@@ -151,7 +151,7 @@ function App() {
       </nav>
       <main className="mainContent">
         <section className="hero">
-          <h1 className="heroTitle">ClockWise</h1>
+          <h1 className="heroTitle">AntiClockWise</h1>
           <p className="heroSubtitle">
             AI-powered shift scheduling that adapts to any situation
           </p>
@@ -208,7 +208,7 @@ function App() {
               <p>Shift management with emergency coverage</p>
             </div>
             <div className="useCase">
-              <h3>Retail</h3>
+              <h3>Restaurants</h3>
               <p>Scheduling for peak hours and demand</p>
             </div>
             <div className="useCase">
@@ -224,7 +224,7 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>© 2026 ClockWise. All rights reserved.</p>
+        <p>© 2026 AntiClockWise. All rights reserved.</p>
       </footer>
 
       {showLogin && (

@@ -24,7 +24,7 @@ The QuickServe ML Platform provides intelligent automation for restaurant operat
 ### Prerequisites
 
 ```bash
-Python 3.12+
+Python 3.11+
 8GB RAM recommended
 ```
 
@@ -65,7 +65,8 @@ uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 │  │     Demand      │  │     Staff       │  │    Campaign     │         │
 │  │   Prediction    │  │   Scheduling    │  │  Recommender    │         │
 │  │                 │  │                 │  │                 │         │
-│  │  POST /predict  │  │  POST /schedule │  │  POST /campaign │         │
+│  │  POST /predict  │  │  POST /predict  │  │  POST /recommend│         │
+│  │  /demand        │  │  /schedule      │  │  /campaigns     │         │
 │  └────────┬────────┘  └────────┬────────┘  └────────┬────────┘         │
 │           │                    │                    │                  │
 │           │                    │                    │                  │
@@ -116,7 +117,7 @@ Forecasts hourly `item_count` and `order_count` for restaurant venues.
 | **Bias** | +0.23 (slight over-prediction) |
 
 **Key Features**:
-- 54 engineered features (temporal, lag, rolling, venue-specific)
+- 69 engineered features (temporal, lag, rolling, venue-specific, weather interactions)
 - Prediction intervals (20%, 50%, 80% quantiles)
 - Sample weighting for high-demand periods
 - Weather and holiday enrichment
@@ -222,7 +223,7 @@ ML-powered marketing campaign suggestions using contextual bandits.
 |----------|--------|-------------|
 | `/predict/demand` | POST | Demand forecast only |
 | `/predict/schedule` | POST | Schedule generation only |
-| `/predict/demand-and-schedule` | POST | Full pipeline |
+| `/predict` | POST | Combined demand + scheduling (deprecated) |
 
 ### Campaign
 
@@ -231,14 +232,31 @@ ML-powered marketing campaign suggestions using contextual bandits.
 | `/recommend/campaigns` | POST | Get recommendations |
 | `/recommend/campaigns/feedback` | POST | Submit feedback |
 
+### Data Collection
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/collect/venue` | POST | Collect single venue metrics |
+| `/api/v1/collect/batch` | POST | Collect batch venue metrics |
+| `/api/v1/collect/health` | GET | Data collector health check |
+
 ### Surge Detection
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/surge/venues` | GET | List monitored venues |
-| `/api/v1/surge/venues/{id}/status` | GET | Venue surge status |
-| `/api/v1/surge/events` | GET | Active surge events |
-| `/api/v1/surge/venues/{id}/emergency-schedule` | POST | Generate emergency schedule |
+| `/api/v1/surge/orchestrator/start` | POST | Start surge orchestrator |
+| `/api/v1/surge/orchestrator/stop` | POST | Stop orchestrator |
+| `/api/v1/surge/orchestrator/pause` | POST | Pause orchestrator |
+| `/api/v1/surge/orchestrator/resume` | POST | Resume orchestrator |
+| `/api/v1/surge/orchestrator/status` | GET | Orchestrator status |
+| `/api/v1/surge/orchestrator/history` | GET | Orchestration history |
+| `/api/v1/surge/check` | POST | Manual surge check |
+| `/api/v1/surge/check/batch` | POST | Batch surge check |
+| `/api/v1/surge/check/single` | POST | Check single venue |
+| `/api/v1/surge/alerts/recent` | GET | Recent alerts |
+| `/api/v1/surge/config` | GET/PUT | Surge configuration |
+| `/api/v1/surge/health` | GET | Surge system health |
+| `/api/v1/surge/metrics` | GET | Surge metrics |
 
 ---
 

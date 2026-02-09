@@ -63,8 +63,14 @@ function EmployeeDashboard() {
     message: "",
   })
   const [requestsLoading, setRequestsLoading] = useState(false)
+  const [requestsListLoading, setRequestsListLoading] = useState(false)
   const [requestsError, setRequestsError] = useState("")
   const [requestsSuccess, setRequestsSuccess] = useState("")
+
+  // Schedule state
+  const [scheduleData, setScheduleData] = useState([])
+  const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [scheduleError, setScheduleError] = useState("")
 
   const navigationItems = [
     { id: "home", label: "Dashboard", icon: HomeIcon },
@@ -146,31 +152,84 @@ function EmployeeDashboard() {
   }, [])
 
   useEffect(() => {
-    if (activeTab === "requests" && currentUser?.user_id) {
+    if (activeTab === "preferences") {
+      // Fetch roles when preferences tab is opened
+      const fetchRolesForPreferences = async () => {
+        try {
+          console.log("Fetching roles for preferences tab...")
+          const rolesResponse = await api.roles.getAll()
+          console.log("Roles API response:", rolesResponse)
+          if (rolesResponse && rolesResponse.data) {
+            console.log("Setting roles to:", rolesResponse.data)
+            setRoles(rolesResponse.data)
+            console.log("Roles array length:", rolesResponse.data.length)
+          } else {
+            console.log("No roles data in response")
+          }
+        } catch (err) {
+          console.error("Error fetching roles for preferences:", err)
+        }
+      }
+      fetchRolesForPreferences()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === "requests") {
+      console.log("Requests tab activated, triggering fetchUserRequests")
+      console.log("currentUser at tab activation:", currentUser)
       fetchUserRequests()
     }
   }, [activeTab, currentUser])
 
+  useEffect(() => {
+    if (activeTab === "schedule") {
+      fetchSchedule()
+    }
+  }, [activeTab])
+
   const fetchCurrentUser = async () => {
     try {
+      console.log("fetchCurrentUser: Starting...")
       // Try to get from cache first
       const cached = localStorage.getItem("current_user")
       if (cached) {
         const parsedUser = JSON.parse(cached)
+        console.log("fetchCurrentUser: Setting from cache:", parsedUser)
         setCurrentUser(parsedUser)
       }
 
       // Fetch fresh data from API
+      console.log("fetchCurrentUser: Fetching from API...")
       const userData = await api.auth.getCurrentUser()
+      console.log("fetchCurrentUser: API response:", userData)
       setCurrentUser(userData)
+      console.log("fetchCurrentUser: currentUser state updated")
     } catch (err) {
       console.error("Error fetching user data:", err)
       // Still try to use cached data
       const cached = localStorage.getItem("current_user")
       if (cached) {
         const parsedUser = JSON.parse(cached)
+        console.log("fetchCurrentUser: Using cached data after error:", parsedUser)
         setCurrentUser(parsedUser)
       }
+    }
+  }
+
+  const fetchSchedule = async () => {
+    try {
+      setScheduleLoading(true)
+      setScheduleError("")
+      const response = await api.dashboard.getMySchedule()
+      if (response && response.data) {
+        setScheduleData(response.data)
+      }
+    } catch (err) {
+      console.error("Error fetching schedule:", err)
+      setScheduleError(err.message || "Failed to load schedule")
+    } finally {
+      setScheduleLoading(false)
     }
   }
 
@@ -202,8 +261,10 @@ function EmployeeDashboard() {
       // Fetch roles
       try {
         const rolesResponse = await api.roles.getAll()
+        console.log("Roles fetched:", rolesResponse)
         if (rolesResponse && rolesResponse.data) {
           setRoles(rolesResponse.data)
+          console.log("Roles set to:", rolesResponse.data)
         }
       } catch (err) {
         console.error("Error fetching roles:", err)
@@ -407,15 +468,60 @@ function EmployeeDashboard() {
 
   // Fetch user's submitted requests
   const fetchUserRequests = async () => {
-    if (!currentUser?.user_id) return
+    const orgId = localStorage.getItem("org_id")
+    // Try to get user_id from currentUser first, then fall back to localStorage
+    let userId = currentUser?.user_id || currentUser?.id
+    if (!userId) {
+      userId = localStorage.getItem("user_id")
+    }
+    
+    console.log("=== fetchUserRequests called ===")
+    console.log("currentUser:", currentUser)
+    console.log("userId from currentUser:", currentUser?.user_id || currentUser?.id)
+    console.log("userId from localStorage:", localStorage.getItem("user_id"))
+    console.log("Final userId:", userId)
+    console.log("orgId:", orgId)
+    
+    if (!userId) {
+      console.log("Cannot fetch requests: user_id not available anywhere")
+      setRequestsError("User ID not available. Please log in again.")
+      return
+    }
+    if (!orgId) {
+      console.log("Cannot fetch requests: organization_id not available")
+      setRequestsError("Organization ID not available. Please log in again.")
+      return
+    }
 
+    console.log("Making API call to fetch requests for employee:", userId)
+    setRequestsListLoading(true)
+    setRequestsError("")
     try {
-      const response = await api.requests.getEmployeeRequests(
-        currentUser.user_id,
-      )
-      setRequests(response.requests || [])
+      const response = await api.requests.getEmployeeRequests(userId)
+      console.log("Raw API Response:", response)
+      console.log("Response type:", typeof response)
+      console.log("Response.requests:", response.requests)
+      console.log("Is Array:", Array.isArray(response.requests))
+      
+      if (response && response.requests) {
+        console.log("Setting requests to:", response.requests)
+        setRequests(response.requests)
+        console.log("Number of requests:", response.requests.length)
+      } else if (Array.isArray(response)) {
+        console.log("Response is directly an array:", response)
+        setRequests(response)
+      } else {
+        console.log("Unexpected response structure, setting empty array")
+        setRequests([])
+      }
     } catch (err) {
       console.error("Error fetching requests:", err)
+      console.error("Error details:", JSON.stringify(err, null, 2))
+      setRequestsError(err.message || "Failed to load requests")
+      setRequests([])
+    } finally {
+      setRequestsListLoading(false)
+      console.log("=== fetchUserRequests completed ===")
     }
   }
 
@@ -516,13 +622,20 @@ function EmployeeDashboard() {
     </div>
   )
 
-  // Hardcoded personal schedule data - Employee's shifts for the week
-  const personalScheduleData = [
-    { day: 0, startHour: 9, endHour: 17, role: "Waiter" }, // Monday
-    { day: 2, startHour: 9, endHour: 17, role: "Waiter" }, // Wednesday
-    { day: 4, startHour: 10, endHour: 18, role: "Waiter" }, // Friday
-    { day: 5, startHour: 11, endHour: 19, role: "Waiter" }, // Saturday
-  ]
+  // Transform API schedule data to match expected format
+  const personalScheduleData = scheduleData.map(shift => {
+    const startDate = new Date(shift.start_time)
+    const endDate = new Date(shift.end_time)
+    const dayOfWeek = startDate.getDay()
+    
+    return {
+      day: dayOfWeek,
+      startHour: startDate.getHours(),
+      endHour: endDate.getHours(),
+      role: currentUser?.user_role || "Employee",
+      date: shift.date,
+    }
+  })
 
   const calculateTotalHours = () => {
     return personalScheduleData.reduce((total, shift) => {
@@ -563,13 +676,32 @@ function EmployeeDashboard() {
           </div>
         </div>
 
-        <div className="personal-schedule-alert">
-          <div className="alert-icon">ℹ️</div>
-          <div className="alert-content">
-            <strong>Demo Mode:</strong> This schedule is currently hardcoded to
-            demonstrate your personal work shifts.
+        {scheduleLoading && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">⏳</div>
+            <div className="alert-content">
+              Loading your schedule...
+            </div>
           </div>
-        </div>
+        )}
+
+        {scheduleError && (
+          <div className="personal-schedule-alert" style={{ borderColor: accentColor }}>
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">
+              <strong>Error:</strong> {scheduleError}
+            </div>
+          </div>
+        )}
+
+        {!scheduleLoading && !scheduleError && personalScheduleData.length === 0 && (
+          <div className="personal-schedule-alert">
+            <div className="alert-icon">ℹ️</div>
+            <div className="alert-content">
+              <strong>No Schedule:</strong> You don't have any shifts scheduled for the next 7 days.
+            </div>
+          </div>
+        )}
 
         <div className="personal-schedule-view">
           <div className="schedule-grid">
@@ -729,26 +861,47 @@ function EmployeeDashboard() {
           <div className="form-group">
             <label className="form-label">Roles You Can Perform</label>
             <div className="roles-checkboxes">
-              {roles
-                .filter(
-                  (role) => role.role !== "admin" && role.role !== "manager",
+              {(() => {
+                console.log("Rendering roles, total count:", roles.length)
+                console.log("All roles:", roles.map(r => r.role_id).join(", "))
+                const filteredRoles = roles.filter(
+                  (role) => {
+                    const roleName = role.role_id?.toLowerCase() || ""
+                    const shouldInclude = roleName !== "admin" && roleName !== "manager" && roleName !== "employee"
+                    console.log(`Role "${role.role_id}" (${roleName}): ${shouldInclude ? "INCLUDED" : "EXCLUDED"}`)
+                    return shouldInclude
+                  }
                 )
-                .map((role) => (
-                  <label key={role.role} className="checkbox-label">
+                console.log("Filtered roles count:", filteredRoles.length)
+                
+                if (filteredRoles.length === 0) {
+                  return (
+                    <div style={{ padding: "1rem", color: "#64748b", fontStyle: "italic" }}>
+                      {roles.length === 0 
+                        ? "Loading roles... If this persists, please refresh the page."
+                        : "No additional roles available (admin, manager, and employee roles are excluded)."}
+                    </div>
+                  )
+                }
+                
+                return filteredRoles.map((role) => (
+                  <label key={role.role_id} className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={userRoles.includes(role.role)}
+                      checked={userRoles.includes(role.role_id)}
                       onChange={(e) => {
+                        e.stopPropagation()
                         if (e.target.checked) {
-                          setUserRoles([...userRoles, role.role])
+                          setUserRoles([...userRoles, role.role_id])
                         } else {
-                          setUserRoles(userRoles.filter((r) => r !== role.role))
+                          setUserRoles(userRoles.filter((r) => r !== role.role_id))
                         }
                       }}
                     />
-                    <span>{role.role}</span>
+                    <span>{role.role_id}</span>
                   </label>
-                ))}
+                ))
+              })()}
             </div>
           </div>
 
@@ -1017,28 +1170,50 @@ function EmployeeDashboard() {
           className="section-wrapper"
           style={{ marginTop: "var(--emp-space-6)" }}
         >
-          <div className="section-header">
+          <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 className="section-title">My Submitted Requests</h2>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                console.log("Manual refresh clicked. CurrentUser:", currentUser)
+                fetchUserRequests()
+              }}
+              disabled={requestsListLoading}
+              style={{ marginLeft: "auto" }}
+            >
+              {requestsListLoading ? "Refreshing..." : "Refresh"}
+            </button>
           </div>
 
-          {requests.length === 0 ? (
+          {requestsListLoading ? (
+            <div
+              className="empty-state"
+              style={{ padding: "var(--emp-space-8)" }}
+            >
+              <p>Loading your requests...</p>
+            </div>
+          ) : requestsError ? (
+            <div className="empty-state" style={{ color: "var(--emp-color-danger, #ef4444)" }}>
+              <p>{requestsError}</p>
+            </div>
+          ) : requests.length === 0 ? (
             <div className="empty-state">
               <p>You haven't submitted any requests yet.</p>
             </div>
           ) : (
             <div className="requests-list">
               {requests.map((request) => (
-                <div key={request.id} className="request-card">
+                <div key={request.request_id} className="request-card">
                   <div className="request-header">
                     <div className="request-type">
-                      {getRequestTypeLabel(request.request_type)}
+                      {getRequestTypeLabel(request.type)}
                     </div>
-                    <span className={getStatusBadgeClass(request.status)}>
-                      {request.status?.toUpperCase() || "PENDING"}
+                    <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
+                      {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
                     </span>
                   </div>
                   <div className="request-body">
-                    <p className="request-message">{request.reason}</p>
+                    <p className="request-message">{request.message}</p>
                     {request.start_date && (
                       <div className="request-dates">
                         <strong>Dates:</strong>{" "}
@@ -1051,7 +1226,7 @@ function EmployeeDashboard() {
                   <div className="request-footer">
                     <span className="request-date">
                       Submitted:{" "}
-                      {new Date(request.created_at).toLocaleDateString()}
+                      {new Date(request.submitted_at).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
