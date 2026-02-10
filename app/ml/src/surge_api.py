@@ -546,6 +546,276 @@ async def get_surge_metrics():
 
 
 # =============================================================================
+# MANUAL TRIGGER & TEST ENDPOINTS
+# =============================================================================
+
+class TestEmailInput(BaseModel):
+    """Input for sending a test surge alert email."""
+    to_email: str = Field(..., description="Email address to send test alert to")
+    severity: str = Field(default="high", description="Severity: moderate, high, or critical")
+    venue_name: str = Field(default="Test Restaurant", description="Venue name for the test alert")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "to_email": "admin@example.com",
+                "severity": "high",
+                "venue_name": "Test Restaurant"
+            }
+        }
+    )
+
+
+class TriggerSurgeInput(BaseModel):
+    """Input for manually triggering a forced surge with email.
+
+    Either `to_emails` (explicit recipients) or `org_id` (fetch recipients from backend)
+    must be provided. Validation enforces at least one is present.
+    """
+    to_emails: Optional[List[str]] = Field(default_factory=list, description="Emails to send the alert to")
+    venue_name: str = Field(default="Demo Restaurant", description="Venue name")
+    severity: str = Field(default="high", description="Severity: moderate, high, or critical")
+    org_id: Optional[str] = Field(default=None, description="Organization UUID (to fetch emails from backend instead)")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "to_emails": ["admin@example.com", "manager@example.com"],
+                "venue_name": "Downtown Pizza",
+                "severity": "high",
+                "org_id": None
+            }
+        }
+    )
+
+
+@router.post("/trigger")
+async def trigger_surge_manually(input_data: TriggerSurgeInput):
+    """
+    🚨 Force-trigger a surge detection + email alert (bypasses thresholds).
+    
+    This endpoint:
+    1. Creates a fake SurgeEvent with the specified severity
+    2. Runs it through the full alert pipeline (Layer 3)
+    3. Sends the HTML email to the provided addresses
+    4. Also posts the alert to the Go backend if org_id is provided
+    
+    Use this to test the ENTIRE pipeline end-to-end without waiting
+    for a real surge to occur.
+    
+    **Quick test:**
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/surge/trigger \\
+      -H "Content-Type: application/json" \\
+      -d '{"to_emails": ["your@email.com"], "severity": "high"}'
+    ```
+    
+    **With org_id (fetches emails from backend + stores alert):**
+    ```bash
+    curl -X POST http://localhost:8000/api/v1/surge/trigger \\
+      -H "Content-Type: application/json" \\
+      -d '{"to_emails": [], "org_id": "YOUR-ORG-UUID", "severity": "critical"}'
+    ```
+    """
+    from src.surge_detector import SurgeDetector, SurgeMetrics, SurgeEvent
+    from src.alert_system import AlertDispatcher
+    from src.email_sender import send_surge_email
+    import requests
+    import os
+    
+    now = datetime.now()
+    
+    # Severity presets
+    severity_presets = {
+        "critical": {"ratio": 3.5, "risk": 0.92, "trend": "accelerating", "cause": "nearby_event",
+                     "duration": "4-8 hours (major event pattern)"},
+        "high":     {"ratio": 2.3, "risk": 0.78, "trend": "accelerating", "cause": "social_media_viral",
+                     "duration": "3-6 hours (viral peak pattern)"},
+        "moderate": {"ratio": 1.7, "risk": 0.55, "trend": "stable", "cause": "unknown",
+                     "duration": "1-3 hours"},
+    }
+    preset = severity_presets.get(input_data.severity, severity_presets["high"])
+    
+    # Build fake metrics for the window
+    metrics = [
+        SurgeMetrics(
+            timestamp=now - __import__('datetime').timedelta(hours=2-i),
+            actual=preset["ratio"] * 100,
+            predicted=100.0,
+            ratio=preset["ratio"],
+            social_signals={'composite_signal': 0.8 if preset["cause"].startswith("social") else 0.2},
+            excess_demand=(preset["ratio"] - 1.0) * 100
+        )
+        for i in range(3)
+    ]
+    
+    # Create SurgeEvent directly (bypass detector thresholds)
+    surge_event = SurgeEvent(
+        place_id=input_data.org_id or "manual-test",
+        detected_at=now,
+        severity=input_data.severity,
+        risk_score=preset["risk"],
+        avg_ratio=preset["ratio"],
+        trend=preset["trend"],
+        root_cause=preset["cause"],
+        metrics_window=metrics,
+        recommendations=_get_recommendations(input_data.severity),
+        estimated_duration=preset["duration"]
+    )
+    
+    # Resolve recipient emails
+    to_emails = list(input_data.to_emails) if input_data.to_emails else []
+    org_name = input_data.venue_name
+    
+    # If org_id provided, fetch emails from the Go backend
+    if input_data.org_id:
+        backend_emails, fetched_org_name = _fetch_org_emails(input_data.org_id)
+        to_emails = list(set(to_emails + backend_emails))
+        if fetched_org_name:
+            org_name = fetched_org_name
+    
+    if not to_emails:
+        raise HTTPException(status_code=400, detail="No email recipients. Provide to_emails or a valid org_id.")
+    
+    # Generate alert (Layer 3)
+    dispatcher = AlertDispatcher()
+    alert = dispatcher.generate_alert(
+        surge_event=surge_event,
+        venue_name=input_data.venue_name,
+    )
+    
+    # Send email via email_sender
+    try:
+        send_surge_email(
+            to_emails=to_emails,
+            venue_name=input_data.venue_name,
+            alert_data={
+                'severity': surge_event.severity,
+                'avg_ratio': surge_event.avg_ratio,
+                'risk_score': surge_event.risk_score,
+                'trend': surge_event.trend,
+                'root_cause': surge_event.root_cause,
+                'estimated_duration': surge_event.estimated_duration,
+                'recommendations': surge_event.recommendations
+            }
+        )
+        email_status = {"success": True, "recipients": to_emails}
+    except Exception as e:
+        email_status = {"success": False, "error": str(e)}
+    
+    # Optionally post alert to Go backend for DB storage
+    backend_status = None
+    if input_data.org_id:
+        backend_status = _post_alert_to_backend(input_data.org_id, alert, surge_event)
+    
+    return {
+        "message": "Surge triggered manually",
+        "surge_event": {
+            "severity": surge_event.severity,
+            "risk_score": surge_event.risk_score,
+            "avg_ratio": surge_event.avg_ratio,
+            "trend": surge_event.trend,
+            "root_cause": surge_event.root_cause,
+            "detected_at": surge_event.detected_at.isoformat(),
+        },
+        "alert": {
+            "subject": alert.get("subject"),
+            "severity": alert.get("severity"),
+            "channels": alert.get("channels"),
+        },
+        "email": email_status,
+        "backend_store": backend_status,
+    }
+
+
+def _get_recommendations(severity: str) -> List[str]:
+    """Get severity-appropriate recommendations."""
+    recs = {
+        "critical": [
+            "🚨 CRITICAL: Activate ALL emergency staffing immediately",
+            "Call in all available off-duty employees",
+            "Contact partner restaurants for staff sharing",
+            "Extend all current shifts — authorize overtime",
+            "📱 Major event detected nearby — expect sustained extreme demand",
+            "💼 Estimated staff needed: 3x current levels",
+        ],
+        "high": [
+            "⚠️ HIGH PRIORITY: Activate emergency staffing protocol",
+            "Contact on-call employees from emergency list",
+            "Extend current shifts with overtime pay if employees agree",
+            "📱 Social media surge detected — expect continued high demand for 2-6 hours",
+            "💼 Estimated staff needed: 2x current levels",
+        ],
+        "moderate": [
+            "⚡ Monitor situation closely",
+            "Prepare on-call staff list in case demand increases",
+            "Review current shift coverage",
+            "💼 Consider adding 1-2 additional staff members",
+        ],
+    }
+    return recs.get(severity, recs["high"])
+
+
+def _fetch_org_emails(org_id: str) -> tuple:
+    """Fetch admin+manager emails from Go backend. Returns (emails, org_name)."""
+    import requests
+    import os
+    
+    backend_base = os.getenv("BACKEND_URL", "http://localhost:8080")
+    urls = [
+        f"http://localhost:8080/api/{org_id}/surge/demand_data",
+        f"http://cw-api-service:8080/api/{org_id}/surge/demand_data",
+    ]
+    
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                emails = data.get("alert_emails", [])
+                org_name = data.get("organization", {}).get("name", "")
+                return emails, org_name
+        except Exception:
+            continue
+    
+    return [], ""
+
+
+def _post_alert_to_backend(org_id: str, alert: dict, surge_event) -> dict:
+    """Post the alert to the Go backend for DB storage."""
+    import requests
+    
+    urls = [
+        f"http://localhost:8080/api/{org_id}/surge/alert",
+        f"http://cw-api-service:8080/api/{org_id}/surge/alert",
+    ]
+    
+    payload = {
+        "severity": alert.get("severity", "high"),
+        "subject": alert.get("subject", "Surge Alert"),
+        "message": alert.get("message", ""),
+        "venue_name": "",
+        "risk_score": surge_event.risk_score,
+        "avg_ratio": surge_event.avg_ratio,
+        "trend": surge_event.trend,
+        "root_cause": surge_event.root_cause,
+        "detected_at": surge_event.detected_at.isoformat(),
+        "estimated_duration": surge_event.estimated_duration,
+        "recommendations": surge_event.recommendations,
+    }
+    
+    for url in urls:
+        try:
+            resp = requests.post(url, json=payload, timeout=5)
+            if resp.status_code == 200:
+                return {"stored": True, "response": resp.json()}
+        except Exception:
+            continue
+    
+    return {"stored": False, "error": "Could not reach Go backend"}
+
+
+# =============================================================================
 # INTEGRATION HELPER
 # =============================================================================
 

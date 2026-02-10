@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS employees_preferences (
-    employee_id UUID REFERENCES users(id),
+    employee_id UUID REFERENCES users(id) ON DELETE CASCADE,
     day VARCHAR(10) NOT NULL CHECK (day IN ('sunday','monday','tuesday','wednesday','thursday','friday','saturday')),
     preferred_start_time TIME,
     preferred_end_time TIME,

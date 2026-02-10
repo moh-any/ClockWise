@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS marketing_campaigns (
 );
 
 CREATE TABLE IF NOT EXISTS campaigns_items (
-    campaign_id UUID REFERENCES marketing_campaigns(id),
+    campaign_id UUID REFERENCES marketing_campaigns(id) ON DELETE CASCADE,
     item_id UUID REFERENCES items(id),
     PRIMARY KEY(campaign_id, item_id)
 );

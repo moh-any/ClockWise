@@ -115,6 +115,10 @@ except ImportError as e:
 # INITIALIZE FASTAPI APP
 # ============================================================================
 
+
+from fastapi import BackgroundTasks
+import asyncio
+
 app = FastAPI(
     title="Restaurant Demand Prediction & Scheduling API",
     description="Predict hourly demand, generate optimal staff schedules, recommend AI-powered campaigns, and detect demand surges",
@@ -123,6 +127,19 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/openapi.json"
 )
+
+# Start the surge orchestrator as a background task on startup
+@app.on_event("startup")
+async def start_surge_orchestrator():
+    try:
+        from src.surge_orchestrator import get_orchestrator
+        orchestrator = get_orchestrator()
+        if hasattr(orchestrator, "start"):
+            # Start in background
+            asyncio.create_task(orchestrator.start())
+            logger.info("Surge orchestrator started automatically on app startup")
+    except Exception as e:
+        logger.error(f"Failed to start surge orchestrator on startup: {e}")
 
 # Add custom ReDoc endpoint
 @app.get("/redoc", include_in_schema=False)
