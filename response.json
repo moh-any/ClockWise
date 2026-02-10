@@ -1,0 +1,1334 @@
+{
+    "management_insights": {
+        "has_solution": true,
+        "peak_periods": [
+            {
+                "average_demand": 3.4285714285714284,
+                "max_demand": 5,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 16
+            },
+            {
+                "average_demand": 3.4285714285714284,
+                "max_demand": 5,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 17
+            },
+            {
+                "average_demand": 2.857142857142857,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 15
+            },
+            {
+                "average_demand": 2.7142857142857144,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 8
+            },
+            {
+                "average_demand": 2.7142857142857144,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 9
+            },
+            {
+                "average_demand": 2.7142857142857144,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 10
+            },
+            {
+                "average_demand": 2.7142857142857144,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 11
+            },
+            {
+                "average_demand": 2.7142857142857144,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 12
+            },
+            {
+                "average_demand": 2.5714285714285716,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 14
+            },
+            {
+                "average_demand": 2.2857142857142856,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 13
+            },
+            {
+                "average_demand": 2.2857142857142856,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 18
+            },
+            {
+                "average_demand": 2.2857142857142856,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 19
+            },
+            {
+                "average_demand": 2.2857142857142856,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 20
+            },
+            {
+                "average_demand": 2.2857142857142856,
+                "max_demand": 4,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 21
+            },
+            {
+                "average_demand": 2.142857142857143,
+                "max_demand": 3,
+                "recommendation": "Consider scheduling more staff during this time slot",
+                "slot": 22
+            }
+        ],
+        "capacity_analysis": {
+            "bartender": {
+                "capacity_ratio": 5.869565217391305,
+                "eligible_employees": 12,
+                "is_sufficient": true,
+                "potential_output": 1620,
+                "total_available_hours": 540
+            },
+            "cleaner": {
+                "capacity_ratio": 5.380434782608695,
+                "eligible_employees": 11,
+                "is_sufficient": true,
+                "potential_output": 1485,
+                "total_available_hours": 495
+            },
+            "cook": {
+                "capacity_ratio": 5.869565217391305,
+                "eligible_employees": 12,
+                "is_sufficient": true,
+                "potential_output": 1620,
+                "total_available_hours": 540
+            },
+            "delivery": {
+                "capacity_ratio": 5.380434782608695,
+                "eligible_employees": 11,
+                "is_sufficient": true,
+                "potential_output": 1485,
+                "total_available_hours": 495
+            },
+            "host": {
+                "capacity_ratio": 3.4239130434782608,
+                "eligible_employees": 7,
+                "is_sufficient": true,
+                "potential_output": 945,
+                "total_available_hours": 315
+            },
+            "manager": {
+                "capacity_ratio": 0,
+                "eligible_employees": 3,
+                "is_sufficient": true,
+                "potential_output": 0,
+                "total_available_hours": 135
+            },
+            "waiter": {
+                "capacity_ratio": 3.9130434782608696,
+                "eligible_employees": 8,
+                "is_sufficient": true,
+                "potential_output": 1080,
+                "total_available_hours": 360
+            }
+        },
+        "employee_utilization": [
+            {
+                "employee": "e18298d6-be4d-493b-af23-3dae75674fbe",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "27e358e9-d04b-4f39-9b30-d3882611db33",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "32557427-4c39-420e-ab7f-23fc00c13700",
+                "hours_deviation": 5,
+                "hours_worked": 45,
+                "max_hours": 45,
+                "status": "overutilized",
+                "utilization_rate": 1
+            },
+            {
+                "employee": "88bc113c-2097-42ff-b06a-1994235e9678",
+                "hours_deviation": 10,
+                "hours_worked": 30,
+                "max_hours": 45,
+                "status": "well_utilized",
+                "utilization_rate": 0.6666666666666666
+            },
+            {
+                "employee": "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                "hours_deviation": 10,
+                "hours_worked": 30,
+                "max_hours": 45,
+                "status": "well_utilized",
+                "utilization_rate": 0.6666666666666666
+            },
+            {
+                "employee": "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                "hours_deviation": 10,
+                "hours_worked": 30,
+                "max_hours": 45,
+                "status": "well_utilized",
+                "utilization_rate": 0.6666666666666666
+            },
+            {
+                "employee": "02212a6d-1abc-4f77-93bf-72bf71a064af",
+                "hours_deviation": 10,
+                "hours_worked": 30,
+                "max_hours": 45,
+                "status": "well_utilized",
+                "utilization_rate": 0.6666666666666666
+            },
+            {
+                "employee": "bf118455-4d0c-4316-a98c-64b319e71f12",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "0ebf3b9b-f131-484b-8b49-04cd251c3df5",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "02247583-b69d-45d3-8696-fb653f6c0730",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "3b583cb1-67eb-4c12-908e-a07530e1d68e",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "cd411003-460c-47d3-8db6-904ac0c45258",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "4dc023dd-928f-4522-bfa5-0cbfcdfa2be2",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "bc1b7f87-60c5-4465-9631-86a2d40ceedd",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "26f1d627-b9ce-4047-84ae-a513c9ec9a7d",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "df0381e3-517d-4e04-a263-363a07c31a55",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "42cf93d0-148e-4207-9ef6-ac10e7fa814a",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "99210bf2-1c5e-4850-8f79-16b07d54ef3b",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "0c18f9ff-1385-4f53-b254-dc5b0843ca42",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "e07280ca-04ab-44c6-be57-9d56a7acff53",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "03e1555f-ff66-458f-bf9d-dc4d9b344d6f",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "302b6871-0659-4c8e-bfdd-b636cefe341c",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "c9f4ef89-8148-4c2c-86c7-26c0c253f168",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "c224f3a5-0a25-4b20-a511-49b912b04ec0",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "df07beb9-c0da-44f1-aa5c-774a18cd80da",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "b385115d-dbf7-45e1-88a0-46ac777dc023",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            },
+            {
+                "employee": "ed738290-8eb3-4c6e-8373-92fb8020eb67",
+                "hours_deviation": 40,
+                "hours_worked": 0,
+                "max_hours": 45,
+                "status": "unused",
+                "utilization_rate": 0
+            }
+        ],
+        "role_demand": {
+            "bartender": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 12,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 2
+            },
+            "cleaner": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 11,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 2
+            },
+            "cook": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 12,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 4
+            },
+            "delivery": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 11,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 2
+            },
+            "host": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 7,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 2
+            },
+            "manager": {
+                "capacity_utilization": 0,
+                "eligible_employees": 3,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 2
+            },
+            "waiter": {
+                "capacity_utilization": 0.8152173913043478,
+                "eligible_employees": 8,
+                "is_bottleneck": false,
+                "total_hours_worked": 75,
+                "working_employees": 3
+            }
+        },
+        "cost_analysis": {
+            "cost_by_role": {
+                "bartender": 1041.0300000000009,
+                "cleaner": 1107.3000000000009,
+                "cook": 1078.3200000000008,
+                "delivery": 1109.1000000000015,
+                "host": 1358.8500000000004,
+                "manager": 1207.0499999999993,
+                "waiter": 1130.5499999999993
+            },
+            "cost_per_item_served": 5.949777777777777,
+            "opportunity_cost_unmet_demand": 0,
+            "total_cost": 8032.2,
+            "total_wage_cost": 8032.2
+        },
+        "workload_distribution": {
+            "average_hours": 15.909090909090908,
+            "balance_score": 0.021739130434782594,
+            "max_hours": 45,
+            "min_hours": 0,
+            "overutilized_employees": 9,
+            "range": 45,
+            "underutilized_employees": 0,
+            "unused_employees": 20,
+            "well_utilized_employees": 4
+        }
+    },
+    "message": "schedule prediction retrieved successfully from API",
+    "objective_value": 80366175,
+    "schedule_message": "Schedule generated successfully",
+    "schedule_output": {
+        "friday": [],
+        "monday": [
+            {
+                "08:00-09:00": [
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "09:00-10:00": [
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "10:00-11:00": [
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "11:00-12:00": [
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "12:00-13:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "13:00-14:00": [
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "14:00-15:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "15:00-16:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "16:00-17:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "17:00-18:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "18:00-19:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "19:00-20:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "20:00-21:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "21:00-22:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "22:00-23:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            }
+        ],
+        "saturday": [],
+        "sunday": [
+            {
+                "08:00-09:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "09:00-10:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "10:00-11:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "11:00-12:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "12:00-13:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "13:00-14:00": [
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "14:00-15:00": [
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "15:00-16:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "16:00-17:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "17:00-18:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "18:00-19:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "19:00-20:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "20:00-21:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "21:00-22:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "22:00-23:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            }
+        ],
+        "thursday": [
+            {
+                "08:00-09:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "09:00-10:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "10:00-11:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "11:00-12:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "12:00-13:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "13:00-14:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "14:00-15:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "15:00-16:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "16:00-17:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "17:00-18:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "18:00-19:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "19:00-20:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "20:00-21:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "21:00-22:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "22:00-23:00": [
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            }
+        ],
+        "tuesday": [
+            {
+                "08:00-09:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "09:00-10:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "10:00-11:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "11:00-12:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "12:00-13:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "13:00-14:00": [
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "14:00-15:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "15:00-16:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "16:00-17:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "17:00-18:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "18:00-19:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "19:00-20:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "20:00-21:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "21:00-22:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "22:00-23:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            }
+        ],
+        "wednesday": [
+            {
+                "08:00-09:00": [
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "09:00-10:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "10:00-11:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "11:00-12:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "12:00-13:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "13:00-14:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "14:00-15:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "15:00-16:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "16:00-17:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "17:00-18:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "18:00-19:00": [
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "19:00-20:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            },
+            {
+                "20:00-21:00": [
+                    "e18298d6-be4d-493b-af23-3dae75674fbe",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "a1e1ca56-4b71-4fde-925b-01394ef44131",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "21:00-22:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "eea362b0-7332-46ce-afb1-bd8eab804c06",
+                    "8b9f4c55-2d64-4c28-a7ba-6f7e50c3a47a",
+                    "366e88cc-f4cc-4586-a940-a8475f1bbb8f",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "32557427-4c39-420e-ab7f-23fc00c13700"
+                ]
+            },
+            {
+                "22:00-23:00": [
+                    "25237d9c-19cc-4adc-83fd-a6217f2a08cd",
+                    "874b5c8e-cb67-4e24-8b0c-353318013bc2",
+                    "88bc113c-2097-42ff-b06a-1994235e9678",
+                    "9ceed74b-c1b4-4c1e-9f63-9e156911dfe0",
+                    "2400d6db-57aa-4a7e-93b2-61ed786e92e9",
+                    "27e358e9-d04b-4f39-9b30-d3882611db33",
+                    "02212a6d-1abc-4f77-93bf-72bf71a064af"
+                ]
+            }
+        ]
+    },
+    "schedule_status": "OPTIMAL"
+}

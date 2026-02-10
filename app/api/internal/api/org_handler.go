@@ -3,6 +3,7 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/clockwise/clockwise/backend/internal/database"
 	"github.com/clockwise/clockwise/backend/internal/service"
@@ -143,16 +144,23 @@ func (h *OrgHandler) DelegateUser(c *gin.Context) {
 		return
 	}
 
+	max_hours := 40
+	pref_hours := 45
+	max_slots := 8
+	oncall := false
+
 	newUser := &database.User{
 		FullName:              req.FullName,
 		Email:                 req.Email,
 		UserRole:              req.Role,
 		OrganizationID:        currentUser.OrganizationID,
 		SalaryPerHour:         req.SalaryPerHour,
-		MaxHoursPerWeek:       req.MaxHoursPerWeek,
-		PreferredHoursPerWeek: req.PreferredHoursPerWeek,
-		MaxConsecSlots:        req.MaxConsecSlots,
-		OnCall:                req.OnCall,
+		MaxHoursPerWeek:       &max_hours,
+		PreferredHoursPerWeek: &pref_hours,
+		MaxConsecSlots:        &max_slots,
+		OnCall:                &oncall,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
 	}
 
 	if err := newUser.PasswordHash.Set(tempPassword); err != nil {

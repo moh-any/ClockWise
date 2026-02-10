@@ -1,6 +1,6 @@
 services:
   cw-app: 
-    container_name: "ClockwiseBackend"
+    container_name: "AntiClockwiseBackend"
     build: ./app/api/
     ports:
       - "${PORT}:8080"
@@ -11,7 +11,7 @@ services:
       - db
       - redis
   db:
-    container_name: "ClockwiseDB"
+    container_name: "AntiClockwiseDB"
     image: postgres:12.4-alpine
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -23,7 +23,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     restart: always
   cw-ml-service: 
-    container_name: "MLService"
+    container_name: "AntiClockWiseMLService"
     build: ./app/ml/
     ports:
       - "${ML_PORT}:8000"
@@ -32,16 +32,16 @@ services:
     restart: always
   #Add FrontendService
   cw-web: 
-    container_name: "ClockwiseFrontend"
+    container_name: "AntiClockwiseFrontend"
     build: ./web
     ports:
-      - "3000:3000"
+      - "${WEB_PORT}:3000"
     environment:
       - REACT_APP_API_BASE_URL=http://localhost:${NGINX_PORT}
     depends_on:
       - cw-app
   nginx:
-    container_name: "ClockwiseNginx"
+    container_name: "AntiClockwiseNginx"
     build: ./nginx/
     ports:
       - "${NGINX_PORT}:80"
@@ -50,7 +50,7 @@ services:
       - cw-app
       - cw-web
   redis:
-    container_name: "ClockwiseRedis"
+    container_name: "AntiClockwiseRedis"
     image: redis:7-alpine
     ports:
       - "6379:6379"

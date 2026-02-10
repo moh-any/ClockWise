@@ -281,7 +281,6 @@ func (sh *ScheduleHandler) PredictScheduleHandler(c *gin.Context) {
 
 		Employees = append(Employees, emp)
 	}
-
 	scheduleInput := ScheduleInput{
 		SchedulerConfig:     schedulerConfig,
 		DemandPredictions:   demands.Days,
