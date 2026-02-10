@@ -2077,13 +2077,6 @@ function AdminDashboard() {
               "secondary",
             )}
 
-            {/* Tables & Capacity */}
-            {renderCategorySection(
-              "Tables & Capacity",
-              categorizedInsights.tables,
-              LocationIcon,
-              "accent",
-            )}
 
             {/* Orders & Sales */}
             {renderCategorySection(

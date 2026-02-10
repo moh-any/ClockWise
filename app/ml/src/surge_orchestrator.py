@@ -360,13 +360,13 @@ class SurgeOrchestrator:
     def _get_active_venues(self) -> List[Dict]:
         """
         Get list of active venues to monitor via API endpoint.
-        Calls: GET /api/v1/venues/active
+        Calls: GET /api/venues/active
         """
         import requests
         
         try:
             response = requests.get(
-                "http://localhost:8000/api/v1/venues/active",
+                "http://localhost:8080/api/venues/active",
                 timeout=10
             )
             

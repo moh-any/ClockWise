@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users(
     max_hours_per_week INTEGER DEFAULT 45,
     preferred_hours_per_week INTEGER DEFAULT 40,
     max_consec_slots INTEGER DEFAULT 8,
+    OnCall BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

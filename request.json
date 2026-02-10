@@ -1,0 +1,1496 @@
+{
+    "place": {
+        "place_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+        "name": "AUC",
+        "type": "restaurant",
+        "latitude": 28.797348,
+        "longitude": 31.785047,
+        "waiting_time": 60,
+        "receiving_phone": true,
+        "delivery": true,
+        "opening_hours": [
+            {
+                "weekday": "sunday",
+                "opening_time": "08:00:00",
+                "closing_time": "23:00:00"
+            },
+            {
+                "weekday": "monday",
+                "opening_time": "08:00:00",
+                "closing_time": "23:00:00"
+            },
+            {
+                "weekday": "tuesday",
+                "opening_time": "08:00:00",
+                "closing_time": "23:00:00"
+            },
+            {
+                "weekday": "wednesday",
+                "opening_time": "08:00:00",
+                "closing_time": "23:00:00"
+            },
+            {
+                "weekday": "thursday",
+                "opening_time": "08:00:00",
+                "closing_time": "23:00:00"
+            },
+            {
+                "weekday": "friday",
+                "closed": true
+            },
+            {
+                "weekday": "saturday",
+                "closed": true
+            }
+        ],
+        "fixed_shifts": false,
+        "shift_time": null,
+        "accepting_orders": true
+    },
+    "schedule_input": {
+        "roles": [
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "bartender",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "cleaner",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "cook",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "delivery",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "host",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "manager",
+                "min_present": 1,
+                "items_per_employee_per_hour": null,
+                "producing": false,
+                "is_independent": true
+            },
+            {
+                "organization_id": "bb252f1c-5acb-4846-8f2c-f236e7a9633f",
+                "role_id": "waiter",
+                "min_present": 1,
+                "items_per_employee_per_hour": 3,
+                "producing": true,
+                "is_independent": true
+            }
+        ],
+        "employees": [
+            {
+                "employee_id": "7c69c7b4-cb8f-4311-800b-5908e4ee6852",
+                "role_ids": [
+                    "bartender",
+                    "cleaner",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 22.09,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "fa5a8d4b-c3c3-4785-937b-1333b5a4226f",
+                "role_ids": [
+                    "cleaner"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 25.6,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "2532bd64-4fcc-4fab-a7d3-7f1679c0e8f0",
+                "role_ids": [
+                    "bartender",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 17.34,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "d17f7ee8-7a96-4f6a-979c-34d76eb2812c",
+                "role_ids": [
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 17.91,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "f1ce805c-5fef-4f32-ad65-985a3fb93cfa",
+                "role_ids": [
+                    "cleaner"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 14.14,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "9f99a1c0-ca26-4ba5-b69b-cd2330438b25",
+                "role_ids": [
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 18.91,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "d719e1d1-d5b2-48ba-a733-c9a87b9944fa",
+                "role_ids": [
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 25.96,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "b7303409-f284-4737-b152-720fc1b07387",
+                "role_ids": [
+                    "bartender",
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 24.57,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "7b7c18d5-3bbe-43ea-9efc-338aaa48e9d1",
+                "role_ids": [
+                    "bartender",
+                    "delivery",
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 22.43,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "0fd8f3e9-33d2-4b1f-958a-6ac6333c632f",
+                "role_ids": [
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 14,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "995af8de-ed9f-4898-8af9-18a1cd322ce2",
+                "role_ids": [
+                    "cleaner",
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 21.18,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "2940a862-94f9-41cf-8a41-bc662a1d22a5",
+                "role_ids": [
+                    "bartender",
+                    "cleaner",
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 12.93,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "c869f00f-657a-4ed6-8e02-4c096f06efbb",
+                "role_ids": [
+                    "bartender",
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 23.51,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "0b334019-2fca-4dac-8d5a-e20701783b6c",
+                "role_ids": [
+                    "cook",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 15.07,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "219ed7d7-a097-4d92-8ec9-3d7a7f40532a",
+                "role_ids": [
+                    "cleaner",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 18.47,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "45aa5004-4de8-4c7a-bed5-78504cdacd64",
+                "role_ids": [
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 19.48,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "45b2bc16-e7ab-4300-a628-d45eb8ff0eeb",
+                "role_ids": [
+                    "bartender",
+                    "cook",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 16.97,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "5b899f26-8907-4d7f-8816-49f5bf0234ef",
+                "role_ids": [
+                    "bartender",
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 20.9,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "a427c3d7-0520-4f49-a67d-410218119f6b",
+                "role_ids": [
+                    "bartender",
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 24.13,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "c64e874d-d4e7-41ba-8d2e-45e1d8909278",
+                "role_ids": [
+                    "cook",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 15.19,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "6c8b336d-a24a-4f6d-a043-d3c29383393d",
+                "role_ids": [
+                    "cleaner"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 21.86,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "c27af356-0d5b-4d50-b2d4-904037695e85",
+                "role_ids": [
+                    "cook",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 24.4,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "68d4308c-c74f-4a55-ba16-53ab9c861efa",
+                "role_ids": [
+                    "cleaner",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 13.1,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "229e827e-92f8-4348-87aa-cbbe6d8d0cd8",
+                "role_ids": [
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 18.43,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "c26228f1-03d0-4cff-bd3a-68dd9738e347",
+                "role_ids": [
+                    "cleaner"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 15.7,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "cd8a746c-2e54-41ad-a94f-b7ed81cbf538",
+                "role_ids": [
+                    "bartender",
+                    "delivery"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 17.32,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "eda1d8aa-9b80-4775-bf13-49390e7d547f",
+                "role_ids": [
+                    "cleaner",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 15.01,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "ef3ad1f8-72c6-44d0-859f-1b8b042216d2",
+                "role_ids": [
+                    "bartender",
+                    "cook"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 21.77,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "7ec31ba2-5114-4025-a92f-1da5771968f7",
+                "role_ids": [
+                    "bartender",
+                    "cook",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 15.09,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "2c3cd281-86fe-4dcb-ae4c-963bd4a17a97",
+                "role_ids": [
+                    "cook",
+                    "delivery",
+                    "host"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 20.43,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "9963a0ae-0edb-4578-a3f2-952728353ebd",
+                "role_ids": [
+                    "delivery",
+                    "manager"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 13.31,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "f17966ea-835e-467a-9d60-3447cfaf5e31",
+                "role_ids": [
+                    "manager",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 20.27,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            },
+            {
+                "employee_id": "41c2476a-b499-4ae5-bd43-729c1ca08a10",
+                "role_ids": [
+                    "cleaner",
+                    "delivery",
+                    "manager",
+                    "waiter"
+                ],
+                "available_days": [],
+                "preferred_days": [],
+                "available_hours": {},
+                "preferred_hours": {},
+                "hourly_wage": 22.31,
+                "max_hours_per_week": null,
+                "max_consec_slots": null,
+                "pref_hours": null
+            }
+        ],
+        "scheduler_config": {
+            "slot_len_hour": 1,
+            "min_rest_slots": 2,
+            "min_shift_length_slots": 4,
+            "meet_all_demand": false
+        },
+        "demand_predictions": [
+            {
+                "day_name": "tuesday",
+                "date": "2026-02-10T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 2,
+                        "item_count": 5
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 2,
+                        "item_count": 5
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "wednesday",
+                "date": "2026-02-11T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "thursday",
+                "date": "2026-02-12T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 2,
+                        "item_count": 5
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "friday",
+                "date": "2026-02-13T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "saturday",
+                "date": "2026-02-14T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "sunday",
+                "date": "2026-02-15T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            },
+            {
+                "day_name": "monday",
+                "date": "2026-02-16T00:00:00Z",
+                "hours": [
+                    {
+                        "hour": 0,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 1,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 2,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 3,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 4,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 5,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 6,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 7,
+                        "order_count": 0,
+                        "item_count": 0
+                    },
+                    {
+                        "hour": 8,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 9,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 10,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 11,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 12,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 13,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 14,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 15,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 16,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 17,
+                        "order_count": 2,
+                        "item_count": 5
+                    },
+                    {
+                        "hour": 18,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 19,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 20,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 21,
+                        "order_count": 2,
+                        "item_count": 4
+                    },
+                    {
+                        "hour": 22,
+                        "order_count": 2,
+                        "item_count": 3
+                    },
+                    {
+                        "hour": 23,
+                        "order_count": 0,
+                        "item_count": 0
+                    }
+                ]
+            }
+        ],
+        "prediction_start_date": "2026-02-10T09:47:14.856965376Z"
+    }
+}
