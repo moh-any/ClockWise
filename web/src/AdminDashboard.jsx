@@ -2077,13 +2077,6 @@ function AdminDashboard() {
               "secondary",
             )}
 
-            {/* Tables & Capacity */}
-            {renderCategorySection(
-              "Tables & Capacity",
-              categorizedInsights.tables,
-              LocationIcon,
-              "accent",
-            )}
 
             {/* Orders & Sales */}
             {renderCategorySection(
@@ -4627,91 +4620,43 @@ function AdminDashboard() {
     const file = event.target.files[0]
     if (!file) return
 
+    // Validate file type
+    if (!file.name.endsWith('.csv')) {
+      setActionMessage({
+        type: "error",
+        text: "Please upload a CSV file",
+      })
+      setTimeout(() => setActionMessage(null), 4000)
+      event.target.value = ""
+      return
+    }
+
     setDelegateLoading(true)
     setShowCsvUploadModal(false)
 
     try {
-      const text = await file.text()
-      const lines = text.split("\n").filter((line) => line.trim())
-
-      if (lines.length < 2) {
-        setActionMessage({
-          type: "error",
-          text: "CSV file is empty or invalid",
-        })
-        setTimeout(() => setActionMessage(null), 4000)
-        return
-      }
-
-      // Parse header
-      const headers = lines[0].split(",").map((h) => h.trim())
-      const requiredHeaders = ["full_name", "email", "role", "hourly_salary"]
-      const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
-
-      if (missingHeaders.length > 0) {
-        setActionMessage({
-          type: "error",
-          text: `Missing required columns: ${missingHeaders.join(", ")}`,
-        })
-        setTimeout(() => setActionMessage(null), 4000)
-        return
-      }
-
-      // Parse and upload employees
-      let successCount = 0
-      let errorCount = 0
-      const failedEmployees = []
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",").map((v) => v.trim())
-        if (values.length !== headers.length) continue
-
-        const employee = {}
-        headers.forEach((header, index) => {
-          employee[header] = values[index]
-        })
-
-        try {
-          console.log(
-            `Attempting to create employee: ${employee.full_name} with role: ${employee.role}`,
-          )
-          await api.staffing.createEmployee({
-            full_name: employee.full_name,
-            email: employee.email,
-            role: employee.role,
-            hourly_salary: parseFloat(employee.hourly_salary),
-            max_hours_per_week: employee.max_hours_per_week
-              ? parseInt(employee.max_hours_per_week)
-              : undefined,
-            preferred_hours_per_week: employee.preferred_hours_per_week
-              ? parseInt(employee.preferred_hours_per_week)
-              : undefined,
-          })
-          console.log(`✓ Successfully created: ${employee.full_name}`)
-          successCount++
-        } catch (err) {
-          console.error(
-            `✗ Failed to create employee ${employee.full_name}:`,
-            err,
-          )
-          failedEmployees.push({
-            name: employee.full_name,
-            role: employee.role,
-            error: err.response?.data?.error || err.message || "Unknown error",
-          })
-          errorCount++
-        }
-      }
+      console.log("Uploading CSV file to backend:", file.name)
+      
+      // Send the entire CSV file to the backend for processing
+      const response = await api.staffing.bulkUploadEmployees(file)
+      
+      console.log("Bulk upload response:", response)
 
       // Refresh employee list
       await fetchEmployees()
 
-      // Build detailed message
-      let message = `Uploaded ${successCount} employee(s).`
+      // Build detailed message from backend response
+      const successCount = response.created_count || 0
+      const errorCount = response.failed_count || 0
+      const createdEmployees = response.created || []
+      const failedEmployees = response.failed || []
+
+      let message = `Successfully uploaded ${successCount} employee(s).`
+      
       if (errorCount > 0) {
-        message += ` ${errorCount} failed:\n`
+        message += ` ${errorCount} failed:`
         failedEmployees.forEach((emp) => {
-          message += `\n• ${emp.name} (${emp.role}): ${emp.error}`
+          message += `\n• ${emp.email || emp.full_name || 'Unknown'}: ${emp.error || 'Unknown error'}`
         })
       }
 
@@ -4724,7 +4669,7 @@ function AdminDashboard() {
       console.error("CSV upload error:", err)
       setActionMessage({
         type: "error",
-        text: err.message || "Failed to process CSV file",
+        text: err.message || err.data?.error || "Failed to upload CSV file",
       })
       setTimeout(() => setActionMessage(null), 4000)
     } finally {
