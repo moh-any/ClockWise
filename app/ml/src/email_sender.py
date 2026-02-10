@@ -49,7 +49,7 @@ def send_surge_email(to_emails: List[str], venue_name: str, alert_data: Dict):
 <body>
     <div class="container">
         <div class="header">
-            <h1>⏰ ClockWise</h1>
+            <h1>⏰ AntiClockWise</h1>
             <p>Workforce Management & Scheduling</p>
         </div>
         <div class="content">
@@ -87,9 +87,9 @@ def send_surge_email(to_emails: List[str], venue_name: str, alert_data: Dict):
             </p>
         </div>
         <div class="footer">
-            <p><strong>ClockWise Surge Detection</strong></p>
+            <p><strong>AntiClockWise Surge Detection</strong></p>
             <p>This is an automated message.</p>
-            <p>&copy; 2026 ClockWise. All rights reserved.</p>
+            <p>&copy; 2026 AntiClockWise. All rights reserved.</p>
         </div>
     </div>
 </body>
@@ -98,7 +98,7 @@ def send_surge_email(to_emails: List[str], venue_name: str, alert_data: Dict):
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"ClockWise Alerts <{SMTP_USERNAME}>"
+    msg["From"] = f"AntiClockWise Alerts <{SMTP_USERNAME}>"
     # To header only for first recipient to avoid revealing all, or use named group
     msg["To"] = to_emails[0] 
 

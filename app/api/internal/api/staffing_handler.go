@@ -221,6 +221,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 		}
 
 		// Process user roles - check if roles exist, create if not, then assign to user
+		h.Logger.Info("length: %v", len(userRoles))
 		if len(userRoles) > 0 {
 			for _, roleName := range userRoles {
 				// Check if role exists in organization
@@ -242,6 +243,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 						NeedForDemand:       true,         // Default value
 						Independent:         &independent, // Default nil
 					}
+					h.Logger.Info("existingRole: items: ", newRole)
 					if err := h.rolesStore.CreateRole(newRole); err != nil {
 						h.Logger.Error("failed to create role", "error", err, "role", roleName)
 					} else {
@@ -256,7 +258,7 @@ func (h *StaffingHandler) UploadEmployeesCSV(c *gin.Context) {
 			} else {
 				h.Logger.Info("user roles assigned", "user_id", newUser.ID, "roles", userRoles)
 			}
-			
+
 			if newUser.UserRole == "manager" {
 				if err := h.userRolesStore.AddUserRole(newUser.ID, user.OrganizationID, newUser.UserRole); err != nil {
 					h.Logger.Error("failed to set user roles", "error", err, "user_id", newUser.ID, "role", newUser.UserRole)

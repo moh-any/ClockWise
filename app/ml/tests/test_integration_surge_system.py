@@ -406,15 +406,15 @@ async def check_api_endpoints_availability():
     
     # API endpoints that the surge system depends on
     endpoints = [
-        ("GET", "http://localhost:8000/api/v1/venues/active", "Active venues endpoint"),
-        ("POST", "http://localhost:8000/api/v1/surge/bulk-data", "Bulk data endpoint"),
+        ("GET", "http://localhost:8080/api/venues/active", "Active venues endpoint"),
+        ("POST", "http://localhost:8080/api/surge/bulk-data", "Bulk data endpoint"),
     ]
     
     # Optional endpoints for full system integration
     optional_endpoints = [
-        ("GET", "http://localhost:8000/api/v1/surge/orchestrator/status", "Orchestrator status"),
-        ("POST", "http://localhost:8000/api/v1/surge/orchestrator/start", "Orchestrator start"),
-        ("GET", "http://localhost:8000/api/v1/surge/alerts/recent", "Recent alerts"),
+        ("GET", "http://localhost:8080/api/surge/orchestrator/status", "Orchestrator status"),
+        ("POST", "http://localhost:8080/api/surge/orchestrator/start", "Orchestrator start"),
+        ("GET", "http://localhost:8080/api/surge/alerts/recent", "Recent alerts"),
     ]
     
     results = []

@@ -33,7 +33,7 @@ class RealTimeDataCollector:
     """
     
     def __init__(self, 
-                 model_path: str = "data/models/rf_model.joblib",
+                 model_path: str = "app/api/ml/data/models/rf_model.joblib",
                  update_interval_seconds: int = 300,
                  demo_mode: bool = False,
                  enable_monitoring: bool = True,
@@ -108,7 +108,7 @@ class RealTimeDataCollector:
         """
         try:
             response = requests.post(
-                "http://localhost:8000/api/v1/surge/bulk-data",
+                "http://localhost:8080/api/surge/bulk-data",
                 json={
                     "place_id": place_id,
                     "timestamp": timestamp.isoformat(),
@@ -883,14 +883,14 @@ def load_venues_from_database() -> List[Dict[str, any]]:
     """
     Load list of active venues via API endpoint.
     
-    Calls: GET /api/v1/venues/active
+    Calls: GET /api/venues/active
     
     Returns:
         List of venue dictionaries
     """
     try:
         response = requests.get(
-            "http://localhost:8000/api/v1/venues/active",
+            "http://localhost:8080/api/venues/active",
             timeout=10
         )
         
