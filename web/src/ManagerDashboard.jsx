@@ -1147,60 +1147,81 @@ function ManagerDashboard() {
 
                 <div className="requests-list">
                   {requests.map((request) => {
-                    const isPending = request.status === "in queue" || request.status === "pending";
+                    const isPending =
+                      request.status === "in queue" ||
+                      request.status === "pending"
                     return (
-                    <div key={request.request_id} className="request-card">
-                      <div className="request-header">
-                        <div className="request-type">
-                          {getRequestTypeLabel(request.type)}
+                      <div key={request.request_id} className="request-card">
+                        <div className="request-header">
+                          <div className="request-type">
+                            {getRequestTypeLabel(request.type)}
+                          </div>
+                          <span
+                            className={getStatusBadgeClass(
+                              request.status === "in queue"
+                                ? "pending"
+                                : request.status,
+                            )}
+                          >
+                            {request.status === "in queue"
+                              ? "PENDING"
+                              : request.status?.toUpperCase() || "PENDING"}
+                          </span>
                         </div>
-                        <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
-                          {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
-                        </span>
+                        <div className="request-body">
+                          <p className="request-message">{request.message}</p>
+                          {request.start_date && (
+                            <div className="request-dates">
+                              <strong>Dates:</strong>{" "}
+                              {new Date(
+                                request.start_date,
+                              ).toLocaleDateString()}
+                              {request.end_date &&
+                                ` - ${new Date(
+                                  request.end_date,
+                                ).toLocaleDateString()}`}
+                            </div>
+                          )}
+                        </div>
+                        <div className="request-footer">
+                          <span className="request-date">
+                            Submitted:{" "}
+                            {new Date(
+                              request.submitted_at,
+                            ).toLocaleDateString()}
+                          </span>
+                          {isPending && (
+                            <div className="request-actions">
+                              <button
+                                className="btn-approve"
+                                onClick={() =>
+                                  mgrHandleApproveRequest(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={mgrRequestActionLoading}
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                className="btn-decline"
+                                onClick={() =>
+                                  mgrHandleDeclineRequest(
+                                    employee.id,
+                                    request.request_id,
+                                  )
+                                }
+                                disabled={mgrRequestActionLoading}
+                              >
+                                ✕ Decline
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="request-body">
-                        <p className="request-message">{request.message}</p>
-                        {request.start_date && (
-                          <div className="request-dates">
-                            <strong>Dates:</strong>{" "}
-                            {new Date(request.start_date).toLocaleDateString()}
-                            {request.end_date &&
-                              ` - ${new Date(
-                                request.end_date,
-                              ).toLocaleDateString()}`}
-                          </div>
-                        )}
-                      </div>
-                      <div className="request-footer">
-                        <span className="request-date">
-                          Submitted:{" "}
-                          {new Date(request.submitted_at).toLocaleDateString()}
-                        </span>
-                        {isPending && (
-                          <div className="request-actions">
-                            <button
-                              className="btn-approve"
-                              onClick={() =>
-                                mgrHandleApproveRequest(employee.id, request.request_id)
-                              }
-                              disabled={mgrRequestActionLoading}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              className="btn-decline"
-                              onClick={() =>
-                                mgrHandleDeclineRequest(employee.id, request.request_id)
-                              }
-                              disabled={mgrRequestActionLoading}
-                            >
-                              ✕ Decline
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )})}
+                    )
+                  })}
                 </div>
               </div>
             ))}
@@ -1211,19 +1232,31 @@ function ManagerDashboard() {
   }
 
   // Transform API schedule data to match expected format
-  const mgrPersonalScheduleData = mgrScheduleData.map(shift => {
-    const startDate = new Date(shift.start_time)
-    const endDate = new Date(shift.end_time)
-    const dayOfWeek = startDate.getDay()
-    
-    return {
-      day: dayOfWeek,
-      startHour: startDate.getHours(),
-      endHour: endDate.getHours(),
-      role: mgrCurrentUser?.user_role || "Manager",
-      date: shift.date,
-    }
-  })
+  const mgrPersonalScheduleData = mgrScheduleData
+    .filter((shift) => {
+      // Filter out shifts where start_time equals end_time (invalid shifts)
+      return shift.start_time !== shift.end_time
+    })
+    .map((shift) => {
+      // Parse time strings (e.g., "10:00:00") to get hours
+      const startTimeParts = shift.start_time.split(":")
+      const endTimeParts = shift.end_time.split(":")
+      const startHour = parseInt(startTimeParts[0], 10)
+      const endHour = parseInt(endTimeParts[0], 10)
+
+      // Parse the schedule_date to get day of week
+      const scheduleDate = new Date(shift.schedule_date)
+      const dayOfWeek = scheduleDate.getDay()
+
+      return {
+        day: dayOfWeek,
+        startHour: startHour,
+        endHour: endHour,
+        role: shift.role || mgrCurrentUser?.user_role || "Manager",
+        date: shift.schedule_date,
+        employees: shift.employees || [],
+      }
+    })
 
   const mgrDaysShort = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -1269,14 +1302,15 @@ function ManagerDashboard() {
         {mgrScheduleLoading && (
           <div className="personal-schedule-alert">
             <div className="alert-icon">⏳</div>
-            <div className="alert-content">
-              Loading your schedule...
-            </div>
+            <div className="alert-content">Loading your schedule...</div>
           </div>
         )}
 
         {mgrScheduleError && (
-          <div className="personal-schedule-alert" style={{ borderColor: mgrAccentColor }}>
+          <div
+            className="personal-schedule-alert"
+            style={{ borderColor: mgrAccentColor }}
+          >
             <div className="alert-icon">⚠️</div>
             <div className="alert-content">
               <strong>Error:</strong> {mgrScheduleError}
@@ -1284,14 +1318,17 @@ function ManagerDashboard() {
           </div>
         )}
 
-        {!mgrScheduleLoading && !mgrScheduleError && mgrPersonalScheduleData.length === 0 && (
-          <div className="personal-schedule-alert">
-            <div className="alert-icon">ℹ️</div>
-            <div className="alert-content">
-              <strong>No Schedule:</strong> You don't have any shifts scheduled for the next 7 days.
+        {!mgrScheduleLoading &&
+          !mgrScheduleError &&
+          mgrPersonalScheduleData.length === 0 && (
+            <div className="personal-schedule-alert">
+              <div className="alert-icon">ℹ️</div>
+              <div className="alert-content">
+                <strong>No Schedule:</strong> You don't have any shifts
+                scheduled for the next 7 days.
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <div className="personal-schedule-view">
           <div className="schedule-grid">
@@ -1565,7 +1602,7 @@ function ManagerDashboard() {
               </svg>
             ) : (
               <>
-                <h1 className="logo">ClockWise</h1>
+                <h1 className="logo">AntiClockWise</h1>
                 <span className="logo-badge">Manager</span>
               </>
             )}

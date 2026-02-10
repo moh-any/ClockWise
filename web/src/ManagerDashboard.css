@@ -328,7 +328,7 @@ textarea {
 }
 
 .manager-dashboard-wrapper .logo {
-  font-size: var(--mgr-text-2xl);
+  font-size: var(--mgr-text-xl);
   font-weight: 800;
   background: var(--mgr-gradient-primary);
   -webkit-background-clip: text;

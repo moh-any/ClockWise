@@ -328,7 +328,7 @@ textarea {
 }
 
 .employee-dashboard-wrapper .logo {
-  font-size: var(--emp-text-2xl);
+  font-size: var(--emp-text-xl);
   font-weight: 800;
   background: var(--emp-gradient-primary);
   -webkit-background-clip: text;

@@ -211,7 +211,10 @@ function EmployeeDashboard() {
       const cached = localStorage.getItem("current_user")
       if (cached) {
         const parsedUser = JSON.parse(cached)
-        console.log("fetchCurrentUser: Using cached data after error:", parsedUser)
+        console.log(
+          "fetchCurrentUser: Using cached data after error:",
+          parsedUser,
+        )
         setCurrentUser(parsedUser)
       }
     }
@@ -474,14 +477,17 @@ function EmployeeDashboard() {
     if (!userId) {
       userId = localStorage.getItem("user_id")
     }
-    
+
     console.log("=== fetchUserRequests called ===")
     console.log("currentUser:", currentUser)
-    console.log("userId from currentUser:", currentUser?.user_id || currentUser?.id)
+    console.log(
+      "userId from currentUser:",
+      currentUser?.user_id || currentUser?.id,
+    )
     console.log("userId from localStorage:", localStorage.getItem("user_id"))
     console.log("Final userId:", userId)
     console.log("orgId:", orgId)
-    
+
     if (!userId) {
       console.log("Cannot fetch requests: user_id not available anywhere")
       setRequestsError("User ID not available. Please log in again.")
@@ -502,7 +508,7 @@ function EmployeeDashboard() {
       console.log("Response type:", typeof response)
       console.log("Response.requests:", response.requests)
       console.log("Is Array:", Array.isArray(response.requests))
-      
+
       if (response && response.requests) {
         console.log("Setting requests to:", response.requests)
         setRequests(response.requests)
@@ -623,19 +629,31 @@ function EmployeeDashboard() {
   )
 
   // Transform API schedule data to match expected format
-  const personalScheduleData = scheduleData.map(shift => {
-    const startDate = new Date(shift.start_time)
-    const endDate = new Date(shift.end_time)
-    const dayOfWeek = startDate.getDay()
-    
-    return {
-      day: dayOfWeek,
-      startHour: startDate.getHours(),
-      endHour: endDate.getHours(),
-      role: currentUser?.user_role || "Employee",
-      date: shift.date,
-    }
-  })
+  const personalScheduleData = scheduleData
+    .filter((shift) => {
+      // Filter out shifts where start_time equals end_time (invalid shifts)
+      return shift.start_time !== shift.end_time
+    })
+    .map((shift) => {
+      // Parse time strings (e.g., "10:00:00") to get hours
+      const startTimeParts = shift.start_time.split(":")
+      const endTimeParts = shift.end_time.split(":")
+      const startHour = parseInt(startTimeParts[0], 10)
+      const endHour = parseInt(endTimeParts[0], 10)
+
+      // Parse the schedule_date to get day of week
+      const scheduleDate = new Date(shift.schedule_date)
+      const dayOfWeek = scheduleDate.getDay()
+
+      return {
+        day: dayOfWeek,
+        startHour: startHour,
+        endHour: endHour,
+        role: shift.role || currentUser?.user_role || "Employee",
+        date: shift.schedule_date,
+        employees: shift.employees || [],
+      }
+    })
 
   const calculateTotalHours = () => {
     return personalScheduleData.reduce((total, shift) => {
@@ -679,14 +697,15 @@ function EmployeeDashboard() {
         {scheduleLoading && (
           <div className="personal-schedule-alert">
             <div className="alert-icon">⏳</div>
-            <div className="alert-content">
-              Loading your schedule...
-            </div>
+            <div className="alert-content">Loading your schedule...</div>
           </div>
         )}
 
         {scheduleError && (
-          <div className="personal-schedule-alert" style={{ borderColor: accentColor }}>
+          <div
+            className="personal-schedule-alert"
+            style={{ borderColor: accentColor }}
+          >
             <div className="alert-icon">⚠️</div>
             <div className="alert-content">
               <strong>Error:</strong> {scheduleError}
@@ -694,14 +713,17 @@ function EmployeeDashboard() {
           </div>
         )}
 
-        {!scheduleLoading && !scheduleError && personalScheduleData.length === 0 && (
-          <div className="personal-schedule-alert">
-            <div className="alert-icon">ℹ️</div>
-            <div className="alert-content">
-              <strong>No Schedule:</strong> You don't have any shifts scheduled for the next 7 days.
+        {!scheduleLoading &&
+          !scheduleError &&
+          personalScheduleData.length === 0 && (
+            <div className="personal-schedule-alert">
+              <div className="alert-icon">ℹ️</div>
+              <div className="alert-content">
+                <strong>No Schedule:</strong> You don't have any shifts
+                scheduled for the next 7 days.
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         <div className="personal-schedule-view">
           <div className="schedule-grid">
@@ -863,27 +885,39 @@ function EmployeeDashboard() {
             <div className="roles-checkboxes">
               {(() => {
                 console.log("Rendering roles, total count:", roles.length)
-                console.log("All roles:", roles.map(r => r.role_id).join(", "))
-                const filteredRoles = roles.filter(
-                  (role) => {
-                    const roleName = role.role_id?.toLowerCase() || ""
-                    const shouldInclude = roleName !== "admin" && roleName !== "manager" && roleName !== "employee"
-                    console.log(`Role "${role.role_id}" (${roleName}): ${shouldInclude ? "INCLUDED" : "EXCLUDED"}`)
-                    return shouldInclude
-                  }
+                console.log(
+                  "All roles:",
+                  roles.map((r) => r.role_id).join(", "),
                 )
+                const filteredRoles = roles.filter((role) => {
+                  const roleName = role.role_id?.toLowerCase() || ""
+                  const shouldInclude =
+                    roleName !== "admin" &&
+                    roleName !== "manager" &&
+                    roleName !== "employee"
+                  console.log(
+                    `Role "${role.role_id}" (${roleName}): ${shouldInclude ? "INCLUDED" : "EXCLUDED"}`,
+                  )
+                  return shouldInclude
+                })
                 console.log("Filtered roles count:", filteredRoles.length)
-                
+
                 if (filteredRoles.length === 0) {
                   return (
-                    <div style={{ padding: "1rem", color: "#64748b", fontStyle: "italic" }}>
-                      {roles.length === 0 
+                    <div
+                      style={{
+                        padding: "1rem",
+                        color: "#64748b",
+                        fontStyle: "italic",
+                      }}
+                    >
+                      {roles.length === 0
                         ? "Loading roles... If this persists, please refresh the page."
                         : "No additional roles available (admin, manager, and employee roles are excluded)."}
                     </div>
                   )
                 }
-                
+
                 return filteredRoles.map((role) => (
                   <label key={role.role_id} className="checkbox-label">
                     <input
@@ -894,7 +928,9 @@ function EmployeeDashboard() {
                         if (e.target.checked) {
                           setUserRoles([...userRoles, role.role_id])
                         } else {
-                          setUserRoles(userRoles.filter((r) => r !== role.role_id))
+                          setUserRoles(
+                            userRoles.filter((r) => r !== role.role_id),
+                          )
                         }
                       }}
                     />
@@ -1170,7 +1206,14 @@ function EmployeeDashboard() {
           className="section-wrapper"
           style={{ marginTop: "var(--emp-space-6)" }}
         >
-          <div className="section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="section-header"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <h2 className="section-title">My Submitted Requests</h2>
             <button
               className="btn-secondary"
@@ -1193,7 +1236,10 @@ function EmployeeDashboard() {
               <p>Loading your requests...</p>
             </div>
           ) : requestsError ? (
-            <div className="empty-state" style={{ color: "var(--emp-color-danger, #ef4444)" }}>
+            <div
+              className="empty-state"
+              style={{ color: "var(--emp-color-danger, #ef4444)" }}
+            >
               <p>{requestsError}</p>
             </div>
           ) : requests.length === 0 ? (
@@ -1208,8 +1254,16 @@ function EmployeeDashboard() {
                     <div className="request-type">
                       {getRequestTypeLabel(request.type)}
                     </div>
-                    <span className={getStatusBadgeClass(request.status === "in queue" ? "pending" : request.status)}>
-                      {request.status === "in queue" ? "PENDING" : request.status?.toUpperCase() || "PENDING"}
+                    <span
+                      className={getStatusBadgeClass(
+                        request.status === "in queue"
+                          ? "pending"
+                          : request.status,
+                      )}
+                    >
+                      {request.status === "in queue"
+                        ? "PENDING"
+                        : request.status?.toUpperCase() || "PENDING"}
                     </span>
                   </div>
                   <div className="request-body">
@@ -1427,7 +1481,7 @@ function EmployeeDashboard() {
               </svg>
             ) : (
               <>
-                <h1 className="logo">ClockWise</h1>
+                <h1 className="logo">AntiClockWise</h1>
                 <span className="logo-badge">Employee</span>
               </>
             )}
