@@ -1,4 +1,4 @@
-# ClockWise: Intelligent Shift Planning System
+# AntiClockWise: Intelligent Shift Planning System
 
 ![Go](https://img.shields.io/badge/Go-1.25.5-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -38,7 +38,7 @@
 
 ## Project Overview
 
-**ClockWise** is an end-to-end intelligent shift planning and workforce optimization platform designed for quick-service restaurants (QSR) and hospitality businesses. It combines a robust Go REST API, a Python ML service with multiple AI/ML models, and a React frontend to solve the critical challenge of accurately predicting and meeting wildly fluctuating customer demand to ensure optimal staffing on every shift.
+**AntiClockWise** is an end-to-end intelligent shift planning and workforce optimization platform designed for quick-service restaurants (QSR) and hospitality businesses. It combines a robust Go REST API, a Python ML service with multiple AI/ML models, and a React frontend to solve the critical challenge of accurately predicting and meeting wildly fluctuating customer demand to ensure optimal staffing on every shift.
 
 ### The Problem
 
@@ -50,7 +50,7 @@ Quick-service restaurants face constant staffing challenges:
 - **Inefficient manual scheduling** that fails to adapt to dynamic conditions
 - **Marketing inefficiency** from running campaigns without data-driven guidance
 
-ClockWise is the **Shift Wizard** — an intelligent system that monitors schedules, coverage, PTO, surprise events, and continuously recommends optimal staffing and marketing decisions.
+AntiClockWise is the **Shift Wizard** — an intelligent system that monitors schedules, coverage, PTO, surprise events, and continuously recommends optimal staffing and marketing decisions.
 
 ---
 
@@ -101,55 +101,17 @@ ClockWise is the **Shift Wizard** — an intelligent system that monitors schedu
 
 ## System Architecture
 
-```
-                              ┌──────────────────┐
-                              │     Browser      │
-                              │   (React App)    │
-                              └────────┬─────────┘
-                                       │
-                              ┌────────▼─────────┐
-                              │      Nginx       │
-                              │   (Port 80)      │
-                              │  Reverse Proxy   │
-                              │  Rate Limiting   │
-                              │  Gzip / Security │
-                              └──┬──────────┬────┘
-                    /api/*       │          │       /*
-                 ┌───────────────┘          └───────────────┐
-                 │                                          │
-        ┌────────▼─────────┐                    ┌───────────▼──────┐
-        │   Go Backend     │                    │  React Frontend  │
-        │   (Gin, :8080)   │                    │   (CRA, :3000)   │
-        │                  │                    │                  │
-        │  REST API        │                    │  AdminDashboard  │
-        │  JWT Auth        │                    │  ManagerDashboard│
-        │  Middleware      │                    │ EmployeeDashboard│
-        │  CSV Upload      │                    │  Login / Signup  │
-        └──┬─────┬────┬────┘                    └──────────────────┘
-           │     │    │
-     ┌─────┘     │    └──────────┐
-     │           │               │
-┌────▼────┐ ┌───▼────┐  ┌───────▼────────┐
-│  Redis  │ │Postgres│  │  ML Service    │
-│  :6379  │ │  :5432 │  │(FastAPI, :8000)│
-│  Cache  │ │21 migr.│  │                │
-│  LRU    │ │        │  │  CatBoost v6   │
-└─────────┘ └────────┘  │  CP-SAT Solver │
-                        │  Surge Detect. │
-                        │  Campaign Rec. │
-                        └────────────────┘
-```
 
 ### Docker Compose Services
 
 | Container | Service | Port | Description |
 |-----------|---------|------|-------------|
-| `ClockwiseBackend` | `cw-app` | 8080 | Go REST API server |
-| `ClockwiseDB` | `db` | 5432 | PostgreSQL 12.4 with persistent volume |
+| `AntiClockWiseBackend` | `cw-app` | 8080 | Go REST API server |
+| `AntiClockWiseDB` | `db` | 5432 | PostgreSQL 12.4 with persistent volume |
 | `MLService` | `cw-ml-service` | 8000 | Python FastAPI ML service |
-| `ClockwiseFrontend` | `cw-web` | 3000 | React development server |
-| `ClockwiseNginx` | `nginx` | 80 | Reverse proxy & static assets |
-| `ClockwiseRedis` | `redis` | 6379 | Cache layer (256MB, LRU eviction) |
+| `AntiClockWiseFrontend` | `cw-web` | 3000 | React development server |
+| `AntiClockWiseNginx` | `nginx` | 80 | Reverse proxy & static assets |
+| `AntiClockWiseRedis` | `redis` | 6379 | Cache layer (256MB, LRU eviction) |
 
 ---
 
@@ -576,7 +538,7 @@ app/api/migrations/
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd ClockWise
+cd AntiClockWise
 
 # 2. Create .env file (see Environment Variables section below)
 cp .env.example .env   # or create manually
@@ -640,8 +602,8 @@ HOST=localhost
 # ─── Database ───
 DB_HOST=db
 DB_PORT=5432
-POSTGRES_DB=clockwise
-POSTGRES_USER=clockwise
+POSTGRES_DB=AntiClockWise
+POSTGRES_USER=AntiClockWise
 POSTGRES_PASSWORD=<your_password>
 DB_SCHEMA=public
 
@@ -751,10 +713,10 @@ docker-compose down
 docker-compose down -v
 
 # Access database shell
-docker exec -it ClockwiseDB psql -U clockwise -d clockwise
+docker exec -it AntiClockWiseDB psql -U AntiClockWise -d AntiClockWise
 
 # Access Redis CLI
-docker exec -it ClockwiseRedis redis-cli
+docker exec -it AntiClockWiseRedis redis-cli
 ```
 
 ### Running Backend Tests
@@ -811,7 +773,7 @@ start_time,end_time,discount,items_included
 ## Project Structure
 
 ```
-ClockWise/
+AntiClockWise/
 ├── .env                                # Environment configuration
 ├── docker-compose.yml                  # 6-service orchestration
 ├── README.md                           # This file
@@ -995,7 +957,7 @@ The Nginx reverse proxy provides:
 
 MIT License
 
-Copyright (c) 2026 ClockWise Team
+Copyright (c) 2026 AntiClockWise Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
