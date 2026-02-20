@@ -100,7 +100,7 @@ AntiClockWise is the **Shift Wizard** — an intelligent system that monitors sc
 ---
 
 ## System Architecture
-
+![Alt text](./Blank%20diagram.png)
 
 ### Docker Compose Services
 
